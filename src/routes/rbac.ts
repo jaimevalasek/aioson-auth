@@ -286,9 +286,17 @@ rbacRouter.post('/:bindingId/rbac/users/:userId/roles', async (req, res) => {
 });
 
 // DELETE /:bindingId/rbac/users/:userId/roles/:roleId
+//
+// Decisão #3 do pivot S2.4 (chat-sessions/2026-05-07): desvincular dispara
+// revogação imediata dos JWTs deste binding, escopado ao binding (operador
+// continua válido em outros apps onde estiver vinculado). Mesma ordem do
+// DELETE user: revoga ANTES do remove pra que mesmo se remove falhar, os
+// tokens deixem de passar verifyAccessToken. revokeUserTokens é idempotente.
 rbacRouter.delete('/:bindingId/rbac/users/:userId/roles/:roleId', async (req, res) => {
   try {
     const { bindingId, userId, roleId } = req.params;
+    const { revokeUserTokens } = await import('../actions/TokenRevocationAction.js');
+    await revokeUserTokens(userId, bindingId);
     await removeUserRole(userId, roleId, bindingId);
     return res.status(204).send();
   } catch (err) {
