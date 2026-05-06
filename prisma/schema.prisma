@@ -1,0 +1,190 @@
+// AIOSON Auth — Prisma schema
+// learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Global Settings ────────────────────────────────────────────────────────
+
+model GlobalSettings {
+  id                   String   @id @default(cuid())
+  google_client_id     String?
+  google_client_secret String?
+  github_client_id     String?
+  github_client_secret String?
+  smtp_host            String?
+  smtp_port            Int?
+  smtp_user            String?
+  smtp_pass            String?
+  smtp_from_email      String?
+  created_at           DateTime @default(now())
+  updated_at           DateTime @updatedAt
+}
+
+// ─── Token Revocation (aioson-play-identity ADR-07) ────────────────────────
+
+// Lista de revogação imediata. Quando um operador é removido (DELETE
+// /:bindingId/rbac/users/:userId), inserimos uma linha aqui pra invalidar
+// quaisquer JWTs já emitidos antes do TTL natural (7 dias) expirar.
+//
+// Cleanup job (1h) deleta entries expiradas — `expires_at` = revoked_at + 7d
+// (= access TTL). Após esse prazo, JWTs antigos já estariam inválidos pelo
+// próprio expire do JWT, então a entry vira lixo.
+model TokenRevocation {
+  id         String   @id @default(cuid())
+  user_id    String
+  binding_id String
+  revoked_at DateTime @default(now())
+  expires_at DateTime
+
+  @@index([user_id, expires_at])
+}
+
+// ─── App Bindings ────────────────────────────────────────────────────────────
+
+model AppBinding {
+  id                 String   @id @default(cuid())
+  app_name           String
+  app_slug           String   @default("")
+  connection_name    String
+  system_permissions String   @default("[]")
+  enable_2fa         Boolean  @default(false)
+  enable_rbac        Boolean  @default(false)
+  // aioson-play-identity (ADR-10): forward-compat para Fase 3 (cloud aioson-auth
+  // multi-tenant). No MVP local-per-installation o valor sempre bate com o
+  // singleton installation_state.aioson_play_id da máquina, mas a coluna existe
+  // pra migration pra cloud não precisar alterar schema. Two-pass:
+  // 1ª migration adiciona como String? (esta) → backfill em prod com script →
+  // 2ª migration sobe pra String (NOT NULL). Em dev (DB vazio) backfill é noop.
+  aioson_play_id     String?
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+
+  // Relations
+  permissions BindingPermission[]
+
+  @@index([aioson_play_id])
+}
+
+// ─── Global Users ────────────────────────────────────────────────────────────
+
+model GlobalUser {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  password_hash String?
+  name          String   @default("")
+  totp_secret   String?
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  // Relations
+  sessions   AuthSession[]
+  user_roles UserRole[]
+}
+
+// ─── Permissions (per binding) ──────────────────────────────────────────────
+
+// Permission catalog per binding. Registered by systems via POST /register-permissions.
+model BindingPermission {
+  id         String   @id @default(cuid())
+  binding_id String
+  name       String
+  resource   String
+  action     String
+  created_at DateTime @default(now())
+
+  binding    AppBinding       @relation(fields: [binding_id], references: [id], onDelete: Cascade)
+  role_perms RolePermission[]
+
+  @@unique([binding_id, name])
+}
+
+// ─── Roles (global) ─────────────────────────────────────────────────────────
+
+// Global roles reused across all bindings.
+// When assigning a role to a user for a specific binding, you specify
+// which permissions (from that binding) are part of that assignment.
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String   @default("")
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  // Relations
+  permissions RolePermission[]
+  user_roles  UserRole[]
+}
+
+// ─── Role ↔ Permission (per binding) ──────────────────────────────────────
+
+// Links a global Role to a specific permission from a specific binding.
+// This is where the per-app permission set is defined for each role.
+model RolePermission {
+  id            String   @id @default(cuid())
+  role_id       String
+  permission_id String
+  binding_id    String
+  created_at    DateTime @default(now())
+
+  role       Role              @relation(fields: [role_id], references: [id], onDelete: Cascade)
+  permission BindingPermission @relation(fields: [permission_id], references: [id], onDelete: Cascade)
+
+  @@unique([role_id, permission_id, binding_id])
+}
+
+// ─── User ↔ Role (per binding) ─────────────────────────────────────────────
+
+// Assigns a global role to a user for a specific binding.
+// The actual permissions granted come from RolePermission entries
+// that match this role + this binding.
+model UserRole {
+  id         String   @id @default(cuid())
+  user_id    String
+  role_id    String
+  binding_id String
+  created_at DateTime @default(now())
+
+  user GlobalUser @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  role Role       @relation(fields: [role_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, role_id, binding_id])
+}
+
+// ─── Auth Sessions ───────────────────────────────────────────────────────────
+
+model AuthSession {
+  id         String   @id @default(cuid())
+  user_id    String
+  token      String   @unique
+  expires_at DateTime
+  created_at DateTime @default(now())
+
+  user GlobalUser @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+// ─── Recovery Token ─────────────────────────────────────────────────────────
+
+model RecoveryToken {
+  id         String   @id @default(cuid())
+  user_id    String
+  token      String   @unique
+  expires_at DateTime
+  used       Boolean  @default(false)
+  created_at DateTime @default(now())
+}
+
+// ─── Admin Users (legacy alias para GlobalUser) ─────────────────────────────
+// Deprecated: usar GlobalUser. AdminUser existe por compatibilidade com seed.
+model AdminUser {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  password_hash String
+  created_at    DateTime @default(now())
+}
