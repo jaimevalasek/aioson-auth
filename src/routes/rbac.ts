@@ -267,6 +267,10 @@ rbacRouter.delete('/rbac/roles/:roleId/permissions/:permissionId', async (req, r
 // ─── User ↔ Role (per binding) ────────────────────────────────────────
 
 // POST /:bindingId/rbac/users/:userId/roles — body: { roleId }
+//
+// BR-15/BR-16/AC-15: o role `owner` é reservado pra owner-implicit bypass
+// (Bearer aioson.com → owner em runtime). NUNCA pode ser atribuído via API
+// nem via UI (frontend filtra; backend rejeita aqui pra defesa em profundidade).
 rbacRouter.post('/:bindingId/rbac/users/:userId/roles', async (req, res) => {
   try {
     const { bindingId, userId } = req.params;
@@ -275,6 +279,12 @@ rbacRouter.post('/:bindingId/rbac/users/:userId/roles', async (req, res) => {
     if (!binding.enable_rbac) return res.status(403).json({ error: 'RBAC is not enabled for this binding' });
     const schema = z.object({ roleId: z.string() });
     const { roleId } = schema.parse(req.body);
+    const allRoles = await listRoles();
+    const target = allRoles.find((r) => r.id === roleId);
+    if (!target) return res.status(400).json({ error: 'Role not found' });
+    if (target.name === 'owner') {
+      return res.status(403).json({ error: 'owner_role_reserved', message: 'O role `owner` é reservado e não pode ser atribuído via API.' });
+    }
     await assignUserRole(userId, roleId, bindingId);
     return res.status(201).json({ assigned: true });
   } catch (err) {
