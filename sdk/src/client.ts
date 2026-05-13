@@ -45,6 +45,12 @@ export interface AuthClient {
    */
   me(): Promise<MePayload | null>;
   /**
+   * Atalho server-side: `GET /me/permissions`. Retorna permissions agregadas
+   * fresh do DB sem precisar do payload completo do `/me`. Útil para apps
+   * que validam JWT offline (JWKS) e só precisam confirmar permissions.
+   */
+  mePermissions(): Promise<readonly string[]>;
+  /**
    * Defense-in-depth server-side. Chama `GET /rbac/check`. Use só para
    * ações críticas — para UI condicional, prefira `hasPermission()` que
    * lê o JWT em memória.
@@ -144,13 +150,18 @@ export function createAuthClient(opts: AuthClientOptions): AuthClient {
     method: string,
     path: string,
     body?: unknown,
-    opts2: { skipRetry?: boolean } = {}
+    opts2: { skipRetry?: boolean; authToken?: string } = {}
   ): Promise<T> {
     let response: Response;
     try {
+      const headers: Record<string, string> = {};
+      if (body) headers['Content-Type'] = 'application/json';
+      // Slice D: usa `Authorization: Bearer` em vez de `?token=` (RFC 6750).
+      // O servidor aceita ambos por retro-compat.
+      if (opts2.authToken) headers['Authorization'] = `Bearer ${opts2.authToken}`;
       response = await fetchImpl(`${baseUrl}${path}`, {
         method,
-        headers: body ? { 'Content-Type': 'application/json' } : {},
+        headers,
         body: body ? JSON.stringify(body) : undefined,
       });
     } catch (err) {
@@ -285,15 +296,26 @@ export function createAuthClient(opts: AuthClientOptions): AuthClient {
     await hydrated;
     if (!cachedAccess) return null;
 
-    // Atalho local: se o JWT já está dentro do TTL e tem payload, devolve
-    // direto. /me só vale quando precisamos da validação server-side
-    // (TokenRevocation). Aqui faríamos hit no servidor — mas o caller pode
-    // querer `forceServer`. Por enquanto, sempre vai ao server pra checar
-    // revogação. Otimização futura: skip se exp ainda longe e cache TTL.
+    // Sempre vai ao server pra validar TokenRevocation (defense-in-depth).
+    // Otimização futura: skip se exp longe + cache TTL.
     return await request<MePayload>(
       'GET',
-      `/api/auth/${bindingId}/me?token=${encodeURIComponent(cachedAccess)}`
+      `/api/auth/${bindingId}/me`,
+      undefined,
+      { authToken: cachedAccess }
     );
+  }
+
+  async function mePermissions(): Promise<readonly string[]> {
+    await hydrated;
+    if (!cachedAccess) return [];
+    const res = await request<{ permissions: string[] }>(
+      'GET',
+      `/api/auth/${bindingId}/me/permissions`,
+      undefined,
+      { authToken: cachedAccess }
+    );
+    return res.permissions ?? [];
   }
 
   async function check(permission: string): Promise<boolean> {
@@ -301,7 +323,9 @@ export function createAuthClient(opts: AuthClientOptions): AuthClient {
     if (!cachedAccess) return false;
     const res = await request<{ allowed: boolean }>(
       'GET',
-      `/api/auth/${bindingId}/rbac/check?token=${encodeURIComponent(cachedAccess)}&permission=${encodeURIComponent(permission)}`
+      `/api/auth/${bindingId}/rbac/check?permission=${encodeURIComponent(permission)}`,
+      undefined,
+      { authToken: cachedAccess }
     );
     return !!res.allowed;
   }
@@ -358,6 +382,7 @@ export function createAuthClient(opts: AuthClientOptions): AuthClient {
     resetPassword,
     refresh,
     me,
+    mePermissions,
     check,
     hasPermission,
     getPermissions,

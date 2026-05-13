@@ -114,8 +114,9 @@ app.delete(
 | `client.forgotPassword({ email })` | `Promise<{ sent: boolean }>` | Dispara e-mail (ou log) de recuperação |
 | `client.resetPassword({ token, newPassword })` | `Promise<{ success: boolean }>` | Conclui recuperação |
 | `client.refresh()` | `Promise<AuthSession>` | Re-agrega permissions; idempotente em chamadas concorrentes |
-| `client.me()` | `Promise<MePayload \| null>` | Hit no servidor (valida TokenRevocation) |
-| `client.check(permission)` | `Promise<boolean>` | Defense-in-depth server-side |
+| `client.me()` | `Promise<MePayload \| null>` | Hit no servidor (valida TokenRevocation). Envia `Authorization: Bearer`. |
+| `client.mePermissions()` | `Promise<readonly string[]>` | Atalho do `/me/permissions` — só a lista, fresh do DB. |
+| `client.check(permission)` | `Promise<boolean>` | Defense-in-depth server-side. Envia `Authorization: Bearer`. |
 | `client.hasPermission(name)` | `boolean \| null` | Síncrono, lê JWT em memória. `null` se sem info |
 | `client.getPermissions()` | `readonly string[] \| null` | Síncrono |
 | `client.getAccessToken()` | `Promise<string \| null>` | Refresh automático se expirado |
