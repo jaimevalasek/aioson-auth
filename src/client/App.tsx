@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import SettingsPage from './pages/SettingsPage';
 import BindingsPage from './pages/BindingsPage';
 import DashboardPage from './pages/DashboardPage';
@@ -10,8 +10,12 @@ import AuthPage from './pages/AuthPage';
 import LoginPage from './pages/LoginPage';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
+  const location = useLocation();
   const token = localStorage.getItem('adminToken');
-  if (!token) return <Navigate to="/login" replace />;
+  if (!token) {
+    const redirect = `${location.pathname}${location.search}`;
+    return <Navigate to={`/login?redirect=${encodeURIComponent(redirect)}`} replace />;
+  }
   return <>{children}</>;
 }
 

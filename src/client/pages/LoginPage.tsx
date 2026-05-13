@@ -1,10 +1,23 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+
+function safeRedirectPath(value: string | null) {
+  if (!value || !value.startsWith('/auth/')) return '/auth/dashboard';
+  return value;
+}
 
 export default function LoginPage() {
+  const [searchParams] = useSearchParams();
   const [email, setEmail] = useState('admin@admin.com');
   const [password, setPassword] = useState('12345678');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const redirectPath = safeRedirectPath(searchParams.get('redirect'));
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    document.documentElement.setAttribute('data-mode', 'work');
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -20,7 +33,7 @@ export default function LoginPage() {
       if (!res.ok) throw new Error(data.error || 'Login failed');
       localStorage.setItem('adminToken', data.accessToken);
       localStorage.setItem('adminEmail', data.user.email);
-      window.location.href = '/auth/dashboard';
+      window.location.href = redirectPath;
     } catch (err) {
       setError(String(err));
     } finally {
@@ -29,189 +42,44 @@ export default function LoginPage() {
   }
 
   return (
-    <div
-      data-theme="light"
-      style={{
-        background: 'var(--bg-base)',
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 'var(--space-4)',
-      }}
-    >
-      <div
-        style={{
-          width: '100%',
-          maxWidth: '480px',
-          background: 'var(--bg-surface)',
-          borderRadius: 'var(--radius-2xl)',
-          padding: 'var(--space-10)',
-          boxShadow: 'var(--shadow-lg)',
-          border: '1px solid var(--border-subtle)',
-        }}
-      >
-        <div style={{ textAlign: 'center', marginBottom: 'var(--space-8)' }}>
-          <h1
-            style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: 'var(--text-2xl)',
-              fontWeight: 'var(--weight-semibold)',
-              color: 'var(--text-heading)',
-              letterSpacing: 'var(--tracking-tight)',
-              margin: '0 0 var(--space-2)',
-            }}
-          >
-            AIOSON Auth
-          </h1>
-          <p
-            style={{
-              fontSize: 'var(--text-sm)',
-              color: 'var(--text-secondary)',
-              margin: 0,
-            }}
-          >
-            Painel Administrativo
-          </p>
+    <main className="auth-login" data-theme="dark" data-mode="work">
+      <section className="ao-card auth-login-card" aria-labelledby="login-title">
+        <div className="ao-card__body">
+          <div className="auth-login-brand">
+            <span className="auth-login-mark">A</span>
+            <div>
+              <h1 className="auth-login-title" id="login-title">AIOSON Auth</h1>
+              <p className="auth-login-subtitle">Painel administrativo</p>
+            </div>
+          </div>
+
+          {error && (
+            <div className="ao-alert ao-alert--danger ao-alert--compact auth-message" role="alert">
+              <div className="ao-alert__content">
+                <p className="ao-alert__body">{error}</p>
+              </div>
+            </div>
+          )}
+
+          <form className="auth-login-form" onSubmit={handleSubmit}>
+            <label className="ao-field">
+              <span className="ao-field__label">E-mail</span>
+              <input className="ao-input" type="email" value={email} onChange={(event) => setEmail(event.target.value)} />
+            </label>
+
+            <label className="ao-field">
+              <span className="ao-field__label">Senha</span>
+              <input className="ao-input" type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
+            </label>
+
+            <button className="ao-btn ao-btn--primary ao-btn--lg" type="submit" disabled={loading}>
+              {loading ? 'Entrando' : 'Entrar'}
+            </button>
+          </form>
+
+          <p className="auth-login-hint">Primeiro acesso: admin@admin.com / 12345678</p>
         </div>
-
-        {error && (
-          <div
-            style={{
-              marginBottom: 'var(--space-4)',
-              padding: 'var(--space-3) var(--space-4)',
-              borderRadius: 'var(--radius-lg)',
-              background: 'var(--semantic-red-dim)',
-              color: 'var(--semantic-red)',
-              fontSize: 'var(--text-sm)',
-              fontWeight: 'var(--weight-medium)',
-              textAlign: 'center',
-            }}
-          >
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-          <div>
-            <label
-              style={{
-                display: 'block',
-                fontSize: 'var(--text-sm)',
-                fontWeight: 'var(--weight-medium)',
-                color: 'var(--text-heading)',
-                marginBottom: 'var(--space-2)',
-              }}
-            >
-              E-mail
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              style={{
-                width: '100%',
-                height: 'var(--control-md)',
-                padding: '0 var(--space-4)',
-                background: 'var(--bg-surface)',
-                border: '1px solid var(--border-medium)',
-                borderRadius: 'var(--radius-md)',
-                fontFamily: 'var(--font-body)',
-                fontSize: 'var(--text-base)',
-                color: 'var(--text-heading)',
-                outline: 'none',
-                transition: 'var(--transition-fast)',
-              }}
-              onFocus={(e) => {
-                e.target.style.borderColor = 'var(--accent)';
-                e.target.style.boxShadow = '0 0 0 3px var(--accent-dim)';
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = 'var(--border-medium)';
-                e.target.style.boxShadow = 'none';
-              }}
-            />
-          </div>
-
-          <div>
-            <label
-              style={{
-                display: 'block',
-                fontSize: 'var(--text-sm)',
-                fontWeight: 'var(--weight-medium)',
-                color: 'var(--text-heading)',
-                marginBottom: 'var(--space-2)',
-              }}
-            >
-              Senha
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              style={{
-                width: '100%',
-                height: 'var(--control-md)',
-                padding: '0 var(--space-4)',
-                background: 'var(--bg-surface)',
-                border: '1px solid var(--border-medium)',
-                borderRadius: 'var(--radius-md)',
-                fontFamily: 'var(--font-body)',
-                fontSize: 'var(--text-base)',
-                color: 'var(--text-heading)',
-                outline: 'none',
-                transition: 'var(--transition-fast)',
-              }}
-              onFocus={(e) => {
-                e.target.style.borderColor = 'var(--accent)';
-                e.target.style.boxShadow = '0 0 0 3px var(--accent-dim)';
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = 'var(--border-medium)';
-                e.target.style.boxShadow = 'none';
-              }}
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              width: '100%',
-              height: 'var(--control-md)',
-              background: loading ? 'var(--accent-dim)' : 'var(--accent)',
-              color: 'var(--accent-contrast)',
-              border: 'none',
-              borderRadius: 'var(--radius-lg)',
-              fontFamily: 'var(--font-body)',
-              fontSize: 'var(--text-sm)',
-              fontWeight: 'var(--weight-semibold)',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              transition: 'var(--transition-fast)',
-              marginTop: 'var(--space-2)',
-            }}
-            onMouseEnter={(e) => {
-              if (!loading) (e.target as HTMLButtonElement).style.background = 'var(--accent-hover)';
-            }}
-            onMouseLeave={(e) => {
-              (e.target as HTMLButtonElement).style.background = 'var(--accent)';
-            }}
-          >
-            {loading ? 'Entrando...' : 'Entrar'}
-          </button>
-        </form>
-
-        <p
-          style={{
-            fontSize: 'var(--text-xs)',
-            color: 'var(--text-muted)',
-            textAlign: 'center',
-            marginTop: 'var(--space-6)',
-          }}
-        >
-          Primeiro acesso: admin@admin.com / 12345678
-        </p>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }

@@ -1,498 +1,352 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
 import AuthLayout from '../components/AuthLayout';
+
+interface UserRoleSummary {
+  id: string;
+  binding_id: string;
+  binding_name: string;
+  binding_slug: string;
+  role_id: string;
+  role_name: string;
+}
 
 interface GlobalUser {
   id: string;
   email: string;
   name: string;
   created_at: string;
+  updated_at?: string;
+  roles: UserRoleSummary[];
 }
 
-interface Role {
-  id: string;
+type FormState = {
+  id?: string;
   name: string;
-  description: string;
-}
+  email: string;
+  password: string;
+};
 
-interface Binding {
-  id: string;
-  app_name: string;
-  enable_rbac: boolean;
-}
+const emptyForm: FormState = { name: '', email: '', password: '' };
 
-interface RoleInfo {
-  role: { id: string; name: string; description: string };
-  permissions: string[];
-}
-
-function cardStyle() {
+function adminHeaders(): HeadersInit {
+  const token = localStorage.getItem('adminToken');
   return {
-    background: 'var(--bg-surface)',
-    border: '1px solid var(--border-subtle)',
-    borderRadius: 'var(--radius-xl)',
-    padding: 'var(--space-6)',
-    boxShadow: 'var(--shadow-sm)',
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 }
 
-function inputStyle() {
-  return {
-    width: '100%' as const,
-    height: 'var(--control-md)',
-    padding: '0 var(--space-3)',
-    background: 'var(--bg-base)',
-    border: '1px solid var(--border-medium)',
-    borderRadius: 'var(--radius-md)',
-    fontFamily: 'var(--font-body)',
-    fontSize: 'var(--text-sm)',
-    color: 'var(--text-heading)',
-    outline: 'none',
-  };
+async function readError(response: Response) {
+  const data = await response.json().catch(() => null) as { error?: string } | null;
+  return data?.error ?? `HTTP ${response.status}`;
+}
+
+function formatDate(value: string) {
+  if (!value) return '-';
+  return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value));
+}
+
+function initialsFor(user: Pick<GlobalUser, 'name' | 'email'>) {
+  const source = (user.name || user.email || '?').trim();
+  const parts = source.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  return source.slice(0, 2).toUpperCase();
+}
+
+function avatarColorFor(id: string) {
+  const sum = Array.from(id).reduce((total, char) => total + char.charCodeAt(0), 0);
+  return `ao-avatar--c${(sum % 7) + 1}`;
 }
 
 export default function GlobalUsersPage() {
-  const navigate = useNavigate();
   const [users, setUsers] = useState<GlobalUser[]>([]);
-  const [bindings, setBindings] = useState<Binding[]>([]);
-  const [roles, setRoles] = useState<Role[]>([]);
-  const [userRoles, setUserRoles] = useState<Record<string, RoleInfo[]>>({});
   const [loading, setLoading] = useState(true);
-  const [showCreate, setShowCreate] = useState(false);
-  const [newEmail, setNewEmail] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [newName, setNewName] = useState('');
-  const [selectedRole, setSelectedRole] = useState('');
-  const [selectedBinding, setSelectedBinding] = useState('');
-  const [creating, setCreating] = useState(false);
-  const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [query, setQuery] = useState('');
+  const [form, setForm] = useState<FormState | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<GlobalUser | null>(null);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
-    loadData();
+    void loadUsers();
   }, []);
 
-  async function loadData() {
+  async function loadUsers() {
     setLoading(true);
+    setMessage(null);
     try {
-      const bindingsRes = await fetch('/api/auth/bindings');
-      const bindingsData = bindingsRes.ok ? await bindingsRes.json() : [];
-      const rbacBindings = (bindingsData || []).filter((b: Binding) => b.enable_rbac) as Binding[];
-      setBindings(bindingsData || []);
-
-      // Load all global roles
-      if (rbacBindings.length > 0) {
-        const rolesRes = await fetch(`/api/auth/${rbacBindings[0].id}/rbac/roles`);
-        const rolesData = rolesRes.ok ? await rolesRes.json() : [];
-        setRoles(rolesData || []);
-        setSelectedBinding(rbacBindings[0].id);
-      }
-
-      if (rbacBindings.length === 0) {
-        setUsers([]);
-        setLoading(false);
-        return;
-      }
-
-      // Load users from first RBAC binding
-      const firstBindingId = rbacBindings[0].id;
-      const usersRes = await fetch(`/api/auth/${firstBindingId}/rbac/users`);
-      const usersData = usersRes.ok ? await usersRes.json() : [];
-      setUsers(usersData || []);
-
-      // Load roles for each user per binding
-      const rolesMap: Record<string, RoleInfo[]> = {};
-      for (const user of usersData || []) {
-        for (const binding of rbacBindings) {
-          const userRolesRes = await fetch(`/api/auth/${binding.id}/rbac/users/${user.id}`);
-          if (userRolesRes.ok) {
-            const data = await userRolesRes.json();
-            if (Array.isArray(data) && data.length > 0) {
-              if (!rolesMap[user.id]) rolesMap[user.id] = [];
-              rolesMap[user.id] = [...rolesMap[user.id], ...data];
-            }
-          }
-        }
-      }
-      setUserRoles(rolesMap);
+      const response = await fetch('/api/admin/users', { headers: adminHeaders() });
+      if (!response.ok) throw new Error(await readError(response));
+      const data = await response.json() as GlobalUser[];
+      setUsers(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error(err);
+      setMessage({ type: 'error', text: String(err instanceof Error ? err.message : err) });
     } finally {
       setLoading(false);
     }
   }
 
-  async function createUser() {
-    if (!newEmail || !newPassword) return;
-    setCreating(true);
-    setMsg(null);
-
+  async function saveUser() {
+    if (!form) return;
+    setSaving(true);
+    setMessage(null);
     try {
-      const rbacBindings = bindings.filter((b) => b.enable_rbac);
-      // Usa qualquer binding se não houver RBAC — register é global
-      const anyBinding = bindings[0];
-      const bindingId = anyBinding?.id;
-
-      if (!bindingId) {
-        setMsg({ type: 'error', text: 'Nenhum vínculo encontrado. Cadastre um vínculo primeiro.' });
-        return;
-      }
-
-      // Register user (global — não precisa de RBAC)
-      const res = await fetch(`/api/auth/${bindingId}/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: newEmail, password: newPassword }),
+      const isEditing = Boolean(form.id);
+      const payload: Record<string, string> = {
+        email: form.email.trim(),
+        name: form.name.trim(),
+      };
+      if (form.password.trim()) payload.password = form.password;
+      const response = await fetch(isEditing ? `/api/admin/users/${form.id}` : '/api/admin/users', {
+        method: isEditing ? 'PATCH' : 'POST',
+        headers: adminHeaders(),
+        body: JSON.stringify(payload),
       });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({ error: 'Erro desconhecido' }));
-        setMsg({ type: 'error', text: data.error || 'Erro ao criar usuário' });
-        return;
-      }
-
-      // If RBAC binding and role selected, assign it
-      if (selectedRole && selectedBinding) {
-        const loginRes = await fetch(`/api/auth/${selectedBinding}/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: newEmail, password: newPassword }),
-        });
-        if (loginRes.ok) {
-          const loginData = await loginRes.json();
-          await fetch(`/api/auth/${selectedBinding}/rbac/users/${loginData.user.id}/roles`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ roleId: selectedRole }),
-          });
-        }
-      }
-
-      setNewEmail('');
-      setNewPassword('');
-      setNewName('');
-      setSelectedRole('');
-      setShowCreate(false);
-      setMsg({ type: 'success', text: 'Usuário criado com sucesso.' });
-      await loadData();
+      if (!response.ok) throw new Error(await readError(response));
+      setForm(null);
+      setMessage({ type: 'success', text: isEditing ? 'Operador atualizado.' : 'Operador criado.' });
+      await loadUsers();
     } catch (err) {
-      setMsg({ type: 'error', text: String(err) });
+      setMessage({ type: 'error', text: String(err instanceof Error ? err.message : err) });
     } finally {
-      setCreating(false);
+      setSaving(false);
     }
   }
 
-  async function deleteUser(userId: string) {
-    if (!confirm('Remover este usuário?')) return;
-    const rbacBindings = bindings.filter((b) => b.enable_rbac);
-    if (rbacBindings.length === 0) return;
-    await fetch(`/api/auth/${rbacBindings[0].id}/rbac/users/${userId}`, { method: 'DELETE' });
-    await loadData();
+  async function deleteUser() {
+    if (!deleteTarget) return;
+    setSaving(true);
+    setMessage(null);
+    try {
+      const response = await fetch(`/api/admin/users/${deleteTarget.id}`, {
+        method: 'DELETE',
+        headers: adminHeaders(),
+      });
+      if (!response.ok) throw new Error(await readError(response));
+      setDeleteTarget(null);
+      setMessage({ type: 'success', text: 'Operador removido.' });
+      await loadUsers();
+    } catch (err) {
+      setMessage({ type: 'error', text: String(err instanceof Error ? err.message : err) });
+    } finally {
+      setSaving(false);
+    }
   }
 
-  const rbacBindings = bindings.filter((b) => b.enable_rbac);
+  const filteredUsers = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return users;
+    return users.filter((user) =>
+      user.email.toLowerCase().includes(needle) ||
+      user.name.toLowerCase().includes(needle) ||
+      user.roles.some((role) => role.binding_name.toLowerCase().includes(needle) || role.role_name.toLowerCase().includes(needle))
+    );
+  }, [query, users]);
+
+  const linkedUsers = users.filter((user) => user.roles.length > 0).length;
+  const isEditing = Boolean(form?.id);
+  const isSaveDisabled = saving || !form?.email.trim() || (!isEditing && (form?.password.length ?? 0) < 8);
 
   return (
     <AuthLayout
-      title="Usuários Globais"
-      subtitle="Todos os usuários do sistema. Atribua perfis para cada app."
-      onBack={() => navigate('/auth/dashboard')}
+      title="Operadores"
+      subtitle="Contas globais do aioson-auth. O vínculo de acesso por app continua sendo administrado pelo AIOSON Play."
     >
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 'var(--space-6)' }}>
-        <button
-          onClick={() => setShowCreate(true)}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 'var(--space-2)',
-            height: 'var(--control-md)',
-            padding: '0 var(--space-5)',
-            background: 'var(--accent)',
-            color: '#fff',
-            border: 'none',
-            borderRadius: 'var(--radius-lg)',
-            fontFamily: 'var(--font-body)',
-            fontSize: 'var(--text-sm)',
-            fontWeight: 'var(--weight-semibold)',
-            cursor: 'pointer',
-            transition: 'var(--transition-fast)',
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--accent-hover)')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--accent)')}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-          </svg>
-          Novo Usuário
+      <section className="auth-summary" aria-label="Resumo de operadores">
+        <span className="ao-chip ao-chip--primary">{users.length} contas globais</span>
+        <span className="ao-chip ao-chip--secondary">{linkedUsers} com vínculo ativo</span>
+        <span className="ao-chip">{filteredUsers.length} na visão atual</span>
+      </section>
+
+      <div className="auth-users-toolbar">
+        <input
+          className="ao-input auth-search"
+          type="search"
+          placeholder="Buscar por nome, e-mail, app ou perfil"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          aria-label="Buscar operadores"
+        />
+        <button className="ao-btn ao-btn--primary" onClick={() => setForm(emptyForm)} type="button">
+          Novo operador
         </button>
       </div>
 
-      {msg && (
-        <div style={{
-          marginBottom: 'var(--space-6)',
-          padding: 'var(--space-3) var(--space-4)',
-          borderRadius: 'var(--radius-lg)',
-          fontSize: 'var(--text-sm)',
-          fontWeight: 'var(--weight-medium)',
-          ...(msg.type === 'success'
-            ? { background: 'rgba(81, 207, 167, 0.12)', color: 'rgb(81, 207, 167)' }
-            : { background: 'rgba(239, 68, 68, 0.12)', color: 'rgb(239, 68, 68)' }),
-        }}>
-          {msg.text}
+      {message && (
+        <div className={`ao-alert ao-alert--compact auth-message ${message.type === 'success' ? 'ao-alert--success' : 'ao-alert--danger'}`} role="alert">
+          <div className="ao-alert__content">
+            <p className="ao-alert__body">{message.text}</p>
+          </div>
         </div>
       )}
 
-      {loading ? (
-        <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: 'var(--space-8)' }}>Carregando...</p>
-      ) : rbacBindings.length === 0 ? (
-        <div style={{ ...cardStyle(), textAlign: 'center', padding: 'var(--space-10)' }}>
-          <p style={{ color: 'var(--text-muted)', marginBottom: 'var(--space-2)' }}>
-            Nenhum vínculo com RBAC ativo.
-          </p>
-          <p style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>
-            Crie um vínculo com RBAC para gerenciar usuários.
-          </p>
+      <section className="ao-card ao-card--compact">
+        <div className="ao-card__header">
+          <div>
+            <h2 className="ao-card__title">Usuários cadastrados</h2>
+            <p className="ao-card__subtitle">Gerencie nome, e-mail e senha das contas globais.</p>
+          </div>
+          <button className="ao-btn ao-btn--ghost ao-btn--sm" onClick={() => void loadUsers()} type="button" disabled={loading}>
+            {loading ? 'Atualizando' : 'Atualizar'}
+          </button>
         </div>
-      ) : users.length === 0 ? (
-        <div style={{ ...cardStyle(), textAlign: 'center', padding: 'var(--space-10)' }}>
-          <p style={{ color: 'var(--text-muted)' }}>Nenhum usuário cadastrado.</p>
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-          {users.map((user) => (
-            <div key={user.id} style={{ ...cardStyle() }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontWeight: 'var(--weight-semibold)', color: 'var(--text-heading)', margin: '0 0 2px', fontSize: 'var(--text-sm)' }}>
-                    {user.name || '—'}
-                  </p>
-                  <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: 'var(--text-xs)' }}>{user.email}</p>
-                </div>
-                <button
-                  onClick={() => deleteUser(user.id)}
-                  style={{
-                    padding: 'var(--space-2)',
-                    background: 'transparent',
-                    border: '1px solid var(--border-medium)',
-                    borderRadius: 'var(--radius-md)',
-                    cursor: 'pointer',
-                    color: 'var(--text-muted)',
-                    transition: 'var(--transition-fast)',
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.color = 'rgb(239, 68, 68)')}
-                  onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-                  </svg>
-                </button>
-              </div>
 
-              {/* Roles per binding */}
-              {(userRoles[user.id] || []).length > 0 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', marginTop: 'var(--space-3)' }}>
-                  {(userRoles[user.id] || []).map((ri, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-                      <span style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        padding: '2px var(--space-2)',
-                        background: 'rgba(155, 142, 196, 0.12)',
-                        borderRadius: 'var(--radius-full)',
-                        fontSize: 'var(--text-xs)',
-                        fontWeight: 'var(--weight-medium)',
-                        color: 'var(--semantic-purple)',
-                      }}>
-                        {ri.role.name}
-                      </span>
-                      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
-                        {ri.permissions.length} permissão{ri.permissions.length !== 1 ? 'ões' : ''}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Create modal */}
-      {showCreate && (
-        <div
-          style={{
-            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50,
-          }}
-          onClick={() => setShowCreate(false)}
-        >
-          <div
-            style={{
-              background: 'var(--bg-surface)',
-              borderRadius: 'var(--radius-xl)',
-              padding: 'var(--space-8)',
-              width: '100%',
-              maxWidth: '440px',
-              boxShadow: 'var(--shadow-xl)',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-6)' }}>
-              <div style={{
-                width: '40px', height: '40px', borderRadius: 'var(--radius-lg)',
-                background: 'var(--accent-dim)', display: 'flex',
-                alignItems: 'center', justifyContent: 'center',
-              }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-strong)" strokeWidth="2">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                  <circle cx="12" cy="7" r="4"/>
-                </svg>
-              </div>
-              <div>
-                <h3 style={{
-                  fontFamily: 'var(--font-display)',
-                  fontSize: 'var(--text-lg)',
-                  fontWeight: 'var(--weight-semibold)',
-                  color: 'var(--text-heading)',
-                  margin: 0,
-                }}>
-                  Novo Usuário
-                </h3>
-                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', margin: 0 }}>
-                  O usuário recebe acesso aos apps onde o perfil for atribuído.
-                </p>
-              </div>
-            </div>
-
-            {msg && msg.type === 'error' && (
-              <div style={{
-                marginBottom: 'var(--space-4)',
-                padding: 'var(--space-3)',
-                borderRadius: 'var(--radius-md)',
-                background: 'rgba(239, 68, 68, 0.12)',
-                color: 'rgb(239, 68, 68)',
-                fontSize: 'var(--text-sm)',
-              }}>
-                {msg.text}
-              </div>
-            )}
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-medium)', color: 'var(--text-secondary)', marginBottom: 'var(--space-2)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Nome</label>
-                <input
-                  type="text"
-                  placeholder="Nome completo"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  style={inputStyle()}
-                  onFocus={(e) => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-dim)'; }}
-                  onBlur={(e) => { e.target.style.borderColor = 'var(--border-medium)'; e.target.style.boxShadow = 'none'; }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-medium)', color: 'var(--text-secondary)', marginBottom: 'var(--space-2)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Email</label>
-                <input
-                  type="email"
-                  placeholder="usuario@exemplo.com"
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                  style={inputStyle()}
-                  onFocus={(e) => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-dim)'; }}
-                  onBlur={(e) => { e.target.style.borderColor = 'var(--border-medium)'; e.target.style.boxShadow = 'none'; }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-medium)', color: 'var(--text-secondary)', marginBottom: 'var(--space-2)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Senha</label>
-                <input
-                  type="password"
-                  placeholder="Mínimo 8 caracteres"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  style={inputStyle()}
-                  onFocus={(e) => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-dim)'; }}
-                  onBlur={(e) => { e.target.style.borderColor = 'var(--border-medium)'; e.target.style.boxShadow = 'none'; }}
-                />
-              </div>
-
-              {/* Role assignment — only if roles and RBAC bindings exist */}
-              {roles.length > 0 && rbacBindings.length > 0 && (
-                <>
-                  <div>
-                    <label style={{ display: 'block', fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-medium)', color: 'var(--text-secondary)', marginBottom: 'var(--space-2)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>App</label>
-                    <select
-                      value={selectedBinding}
-                      onChange={(e) => setSelectedBinding(e.target.value)}
-                      style={{ ...inputStyle(), cursor: 'pointer' }}
-                    >
-                      <option value="">Selecione o app...</option>
-                      {rbacBindings.map((b) => (
-                        <option key={b.id} value={b.id}>{b.app_name}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {selectedBinding && (
-                    <div>
-                      <label style={{ display: 'block', fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-medium)', color: 'var(--text-secondary)', marginBottom: 'var(--space-2)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Perfil (opcional)</label>
-                      <select
-                        value={selectedRole}
-                        onChange={(e) => setSelectedRole(e.target.value)}
-                        style={{ ...inputStyle(), cursor: 'pointer' }}
-                      >
-                        <option value="">Nenhum — atribuir depois</option>
-                        {roles.map((r) => (
-                          <option key={r.id} value={r.id}>{r.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-
-            {/* Actions */}
-            <div style={{ display: 'flex', gap: 'var(--space-3)', justifyContent: 'flex-end', marginTop: 'var(--space-6)', paddingTop: 'var(--space-4)', borderTop: '1px solid var(--border-subtle)' }}>
-              <button
-                onClick={() => { setShowCreate(false); setMsg(null); }}
-                style={{
-                  height: 'var(--control-md)',
-                  padding: '0 var(--space-5)',
-                  background: 'var(--bg-elevated)',
-                  color: 'var(--text-secondary)',
-                  border: '1px solid var(--border-medium)',
-                  borderRadius: 'var(--radius-lg)',
-                  fontFamily: 'var(--font-body)',
-                  fontSize: 'var(--text-sm)',
-                  fontWeight: 'var(--weight-medium)',
-                  cursor: 'pointer',
-                }}
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={createUser}
-                disabled={creating || !newEmail || !newPassword}
-                style={{
-                  height: 'var(--control-md)',
-                  padding: '0 var(--space-6)',
-                  background: creating || !newEmail || !newPassword ? 'var(--accent-dim)' : 'var(--accent)',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: 'var(--radius-lg)',
-                  fontFamily: 'var(--font-body)',
-                  fontSize: 'var(--text-sm)',
-                  fontWeight: 'var(--weight-semibold)',
-                  cursor: creating || !newEmail || !newPassword ? 'not-allowed' : 'pointer',
-                  transition: 'var(--transition-fast)',
-                }}
-              >
-                {creating ? 'Criando...' : 'Criar Usuário'}
-              </button>
+        {loading ? (
+          <div className="auth-empty">
+            <div>
+              <h2>Carregando operadores</h2>
+              <p>Buscando contas globais no aioson-auth.</p>
             </div>
           </div>
+        ) : filteredUsers.length === 0 ? (
+          <div className="auth-empty">
+            <div>
+              <h2>Nenhum operador encontrado</h2>
+              <p>Crie a primeira conta global e depois vincule ela a um app pelo AIOSON Play.</p>
+            </div>
+          </div>
+        ) : (
+          <div className="ao-card__body ao-card__body--flush">
+            <div className="ao-table-wrap">
+              <table className="ao-table ao-table--compact">
+                <thead>
+                  <tr>
+                    <th>Operador</th>
+                    <th>Vínculos</th>
+                    <th>Criado em</th>
+                    <th aria-label="Ações" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredUsers.map((user) => (
+                    <tr key={user.id}>
+                      <td>
+                        <div className="auth-user-cell">
+                          <span className={`ao-avatar ao-avatar--initials ao-avatar--sm ${avatarColorFor(user.id)}`} aria-hidden="true">
+                            {initialsFor(user)}
+                          </span>
+                          <div>
+                            <p className="auth-user-name">{user.name || 'Sem nome'}</p>
+                            <p className="auth-user-email">{user.email}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        {user.roles.length === 0 ? (
+                          <p className="auth-table-note">Sem vínculo com apps</p>
+                        ) : (
+                          <div className="auth-role-list">
+                            {user.roles.map((role) => (
+                              <span className="ao-chip ao-chip--primary ao-chip--sm" key={role.id}>
+                                {role.binding_name} / {role.role_name}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </td>
+                      <td className="ao-td--mono">{formatDate(user.created_at)}</td>
+                      <td>
+                        <div className="auth-row-actions">
+                          <button
+                            className="ao-btn ao-btn--ghost ao-btn--sm"
+                            onClick={() => setForm({ id: user.id, name: user.name, email: user.email, password: '' })}
+                            type="button"
+                          >
+                            Editar
+                          </button>
+                          <button className="ao-btn ao-btn--danger ao-btn--sm" onClick={() => setDeleteTarget(user)} type="button">
+                            Remover
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </section>
+
+      {form && (
+        <div className="ao-modal-backdrop ao-modal-backdrop--centered" role="presentation">
+          <section className="ao-modal" role="dialog" aria-modal="true" aria-labelledby="operator-modal-title">
+            <header className="ao-modal__header">
+              <div>
+                <h2 className="ao-modal__title" id="operator-modal-title">
+                  {isEditing ? 'Editar operador' : 'Novo operador'}
+                </h2>
+                <p className="ao-modal__subtitle">
+                  {isEditing ? 'Altere dados básicos ou informe uma nova senha.' : 'A senha é entregue manualmente ao operador.'}
+                </p>
+              </div>
+              <button className="ao-modal__close" onClick={() => setForm(null)} type="button" aria-label="Fechar">
+                ×
+              </button>
+            </header>
+
+            <div className="ao-modal__body">
+              <div className="auth-modal-form">
+                <label className="ao-field">
+                  <span className="ao-field__label">Nome</span>
+                  <input className="ao-input" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
+                </label>
+                <label className="ao-field">
+                  <span className="ao-field__label">E-mail</span>
+                  <input className="ao-input" type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} />
+                </label>
+                <label className="ao-field">
+                  <span className="ao-field__label">Senha {isEditing ? '(opcional)' : ''}</span>
+                  <input
+                    className="ao-input"
+                    type="password"
+                    value={form.password}
+                    onChange={(event) => setForm({ ...form, password: event.target.value })}
+                    minLength={8}
+                    placeholder={isEditing ? 'Deixe em branco para manter' : 'Mínimo 8 caracteres'}
+                  />
+                </label>
+              </div>
+            </div>
+
+            <footer className="ao-modal__footer auth-modal-actions">
+              <button className="ao-btn ao-btn--secondary" onClick={() => setForm(null)} disabled={saving} type="button">
+                Cancelar
+              </button>
+              <button className="ao-btn ao-btn--primary" onClick={() => void saveUser()} disabled={isSaveDisabled} type="button">
+                {saving ? 'Salvando' : 'Salvar'}
+              </button>
+            </footer>
+          </section>
+        </div>
+      )}
+
+      {deleteTarget && (
+        <div className="ao-modal-backdrop ao-modal-backdrop--centered" role="presentation">
+          <section className="ao-modal ao-modal--alert" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title">
+            <header className="ao-modal__header">
+              <div>
+                <h2 className="ao-modal__title" id="delete-modal-title">Remover operador?</h2>
+                <p className="ao-modal__subtitle">Esta ação remove a conta global e revoga tokens nos apps vinculados.</p>
+              </div>
+              <button className="ao-modal__close" onClick={() => setDeleteTarget(null)} type="button" aria-label="Fechar">
+                ×
+              </button>
+            </header>
+            <div className="ao-modal__body">
+              <p className="auth-danger-copy">
+                <strong>{deleteTarget.email}</strong> será removido do aioson-auth.
+              </p>
+            </div>
+            <footer className="ao-modal__footer auth-modal-actions">
+              <button className="ao-btn ao-btn--secondary" onClick={() => setDeleteTarget(null)} disabled={saving} type="button">
+                Cancelar
+              </button>
+              <button className="ao-btn ao-btn--danger" onClick={() => void deleteUser()} disabled={saving} type="button">
+                {saving ? 'Removendo' : 'Remover'}
+              </button>
+            </footer>
+          </section>
         </div>
       )}
     </AuthLayout>
