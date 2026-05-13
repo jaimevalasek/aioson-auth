@@ -33,13 +33,33 @@ export function createApp() {
     crossOriginResourcePolicy: false,
     frameguard: false,
   }));
+  // Slice C (auth-integration-gaps.md): CORS configurável por env. Permite
+  // que apps cloud (Vercel, custom domain, etc.) consumam o aioson-auth sem
+  // mudar código. Formato de `ALLOWED_ORIGINS`:
+  //   - `*` → libera tudo (NÃO usar em produção; só pra dev rápido)
+  //   - lista CSV: `https://app.example.com,https://admin.example.com`
+  //   - cada entry pode começar com `http://` ou `https://`; matching é exato
+  //   - default (env ausente): localhost/127.0.0.1 — comportamento legado.
+  const rawAllowed = process.env['ALLOWED_ORIGINS']?.trim();
+  const allowAny = rawAllowed === '*';
+  const allowedOrigins = rawAllowed && !allowAny
+    ? rawAllowed.split(',').map((s) => s.trim()).filter(Boolean)
+    : null;
+
   app.use(cors({
     origin: (origin, callback) => {
-      if (!origin || origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
+      // Same-origin (curl, server-to-server) e requests sem Origin sempre OK
+      if (!origin) return callback(null, true);
+      if (allowAny) return callback(null, true);
+      if (allowedOrigins) {
+        if (allowedOrigins.includes(origin)) return callback(null, true);
+        return callback(new Error('Not allowed by CORS'));
       }
+      // Fallback legado: localhost/127.0.0.1 em qualquer porta
+      if (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')) {
+        return callback(null, true);
+      }
+      return callback(new Error('Not allowed by CORS'));
     },
     credentials: true,
   }));

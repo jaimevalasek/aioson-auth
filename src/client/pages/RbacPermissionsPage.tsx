@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import AuthLayout from '../components/AuthLayout';
 
@@ -7,6 +7,12 @@ interface Permission {
   name: string;
   resource: string;
   action: string;
+}
+
+interface Role {
+  id: string;
+  name: string;
+  description: string;
 }
 
 function cardStyle() {
@@ -22,17 +28,30 @@ function cardStyle() {
 export default function RbacPermissionsPage() {
   const { bindingId } = useParams<{ bindingId: string }>();
   const [permissions, setPermissions] = useState<Permission[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [newName, setNewName] = useState('');
+  const [nameTouched, setNameTouched] = useState(false);
   const [newResource, setNewResource] = useState('');
   const [newAction, setNewAction] = useState('');
+  const [attachRoleIds, setAttachRoleIds] = useState<Set<string>>(new Set());
+
+  // Auto-fill `name` = `resource:action` enquanto o user não editou manualmente.
+  const autoName = useMemo(
+    () => (newResource && newAction ? `${newResource}:${newAction}` : ''),
+    [newResource, newAction]
+  );
+  useEffect(() => {
+    if (!nameTouched) setNewName(autoName);
+  }, [autoName, nameTouched]);
 
   useEffect(() => {
     if (!bindingId) return;
     loadPermissions();
+    loadRoles();
   }, [bindingId]);
 
   async function loadPermissions() {
@@ -48,6 +67,36 @@ export default function RbacPermissionsPage() {
     }
   }
 
+  async function loadRoles() {
+    if (!bindingId) return;
+    try {
+      const res = await fetch(`/api/auth/${bindingId}/rbac/roles`);
+      if (!res.ok) return;
+      const list: Role[] = await res.json();
+      // BR-15: filtra o role reservado `owner` (não pode receber permissions via UI).
+      setRoles(list.filter((r) => r.name !== 'owner'));
+    } catch {
+      /* lista de roles é nice-to-have — não bloqueia se falhar */
+    }
+  }
+
+  function toggleAttachRole(roleId: string) {
+    setAttachRoleIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(roleId)) next.delete(roleId);
+      else next.add(roleId);
+      return next;
+    });
+  }
+
+  function resetCreateForm() {
+    setNewName('');
+    setNameTouched(false);
+    setNewResource('');
+    setNewAction('');
+    setAttachRoleIds(new Set());
+  }
+
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     if (!bindingId) return;
@@ -60,11 +109,44 @@ export default function RbacPermissionsPage() {
         body: JSON.stringify({ name: newName, resource: newResource, action: newAction }),
       });
       if (!res.ok) throw new Error('Failed to create permission');
+      const created: Permission = await res.json();
+
+      // Associa a permission aos perfis selecionados (inline, estilo Spatie).
+      // Falhas individuais viram warning no message — não rollback da permission.
+      const attachErrors: string[] = [];
+      if (attachRoleIds.size > 0) {
+        await Promise.all(
+          Array.from(attachRoleIds).map(async (roleId) => {
+            try {
+              const r = await fetch(`/api/auth/rbac/roles/${roleId}/permissions`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ permissionId: created.id, bindingId }),
+              });
+              if (!r.ok) attachErrors.push(roleId);
+            } catch {
+              attachErrors.push(roleId);
+            }
+          })
+        );
+      }
+
       setShowCreate(false);
-      setNewName('');
-      setNewResource('');
-      setNewAction('');
-      setMessage({ type: 'success', text: 'Permissão criada.' });
+      resetCreateForm();
+
+      if (attachErrors.length > 0) {
+        setMessage({
+          type: 'error',
+          text: `Permissão criada, mas falhou em associar a ${attachErrors.length} perfil(s). Tente associar manualmente em "Perfis".`,
+        });
+      } else if (attachRoleIds.size > 0) {
+        setMessage({
+          type: 'success',
+          text: `Permissão criada e associada a ${attachRoleIds.size} perfil(s).`,
+        });
+      } else {
+        setMessage({ type: 'success', text: 'Permissão criada.' });
+      }
       await loadPermissions();
     } catch (err) {
       setMessage({ type: 'error', text: String(err) });
@@ -142,15 +224,53 @@ export default function RbacPermissionsPage() {
                   onBlur={(e) => { e.target.style.borderColor = 'var(--border-medium)'; e.target.style.boxShadow = 'none'; }} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-medium)', color: 'var(--text-heading)', marginBottom: 'var(--space-2)' }}>Nome completo</label>
-                <input type="text" required value={newName} onChange={(e) => setNewName(e.target.value)} placeholder={`${newResource}:${newAction}`} style={{ width: '100%', height: 'var(--control-md)', padding: '0 var(--space-4)', background: 'var(--bg-surface)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontFamily: 'var(--font-mono)', fontSize: 'var(--text-base)', color: 'var(--text-heading)', outline: 'none' }}
+                <label style={{ display: 'block', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-medium)', color: 'var(--text-heading)', marginBottom: 'var(--space-2)' }}>
+                  Nome completo
+                  {!nameTouched && newName && (
+                    <span style={{ marginLeft: 'var(--space-2)', fontSize: 'var(--text-xs)', color: 'var(--text-muted)', fontWeight: 'var(--weight-normal)' }}>(auto)</span>
+                  )}
+                </label>
+                <input type="text" required value={newName}
+                  onChange={(e) => { setNewName(e.target.value); setNameTouched(true); }}
+                  placeholder={autoName || 'orders:create'}
+                  style={{ width: '100%', height: 'var(--control-md)', padding: '0 var(--space-4)', background: 'var(--bg-surface)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontFamily: 'var(--font-mono)', fontSize: 'var(--text-base)', color: 'var(--text-heading)', outline: 'none' }}
                   onFocus={(e) => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-dim)'; }}
                   onBlur={(e) => { e.target.style.borderColor = 'var(--border-medium)'; e.target.style.boxShadow = 'none'; }} />
               </div>
             </div>
+
+            {/* Associar a perfis inline (estilo Spatie Laravel-Permission) */}
+            {roles.length > 0 && (
+              <div>
+                <label style={{ display: 'block', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-medium)', color: 'var(--text-heading)', marginBottom: 'var(--space-2)' }}>
+                  Associar a perfis
+                  <span style={{ marginLeft: 'var(--space-2)', fontSize: 'var(--text-xs)', color: 'var(--text-muted)', fontWeight: 'var(--weight-normal)' }}>(opcional)</span>
+                </label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+                  {roles.map((role) => {
+                    const checked = attachRoleIds.has(role.id);
+                    return (
+                      <label key={role.id} title={role.description || undefined} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', padding: 'var(--space-2) var(--space-3)', background: checked ? 'var(--accent-dim)' : 'var(--bg-elevated)', border: `1px solid ${checked ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: 'var(--radius-md)', cursor: 'pointer', fontSize: 'var(--text-sm)', color: checked ? 'var(--accent-strong)' : 'var(--text-secondary)', fontWeight: checked ? 'var(--weight-semibold)' : 'var(--weight-medium)', transition: 'var(--transition-fast)' }}>
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleAttachRole(role.id)}
+                          style={{ width: '14px', height: '14px', accentColor: 'var(--accent)', cursor: 'pointer' }}
+                        />
+                        {role.name}
+                      </label>
+                    );
+                  })}
+                </div>
+                <p style={{ marginTop: 'var(--space-2)', fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+                  Perfis selecionados receberão esta permissão imediatamente após a criação.
+                </p>
+              </div>
+            )}
+
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
               <button type="submit" disabled={creating} style={{ padding: '0 var(--space-5)', height: 'var(--control-md)', background: creating ? 'var(--accent-dim)' : 'var(--accent)', color: 'var(--accent-contrast)', border: 'none', borderRadius: 'var(--radius-lg)', fontFamily: 'var(--font-body)', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-semibold)', cursor: creating ? 'not-allowed' : 'pointer' }}>
-                {creating ? 'Criando...' : 'Criar Permissão'}
+                {creating ? 'Criando...' : attachRoleIds.size > 0 ? `Criar e associar a ${attachRoleIds.size} perfil(s)` : 'Criar Permissão'}
               </button>
             </div>
           </form>
