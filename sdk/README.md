@@ -107,9 +107,12 @@ app.delete(
 | Função / método | Tipo | Notas |
 |---|---|---|
 | `createAuthClient(opts)` | `AuthClient` | Imutável; storage default = `memoryStorage()` |
+| `client.register({ email, password })` | `Promise<RegisterOutput>` | Cria operador; não loga automaticamente |
 | `client.login({ email, password })` | `Promise<AuthSession>` | Persiste tokens; emite `onSessionChange` |
 | `client.loginOAuth({ email, provider, providerId, name? })` | `Promise<AuthSession>` | Para OAuth Google/GitHub |
 | `client.logout()` | `Promise<void>` | Revoga refresh server-side; limpa storage |
+| `client.forgotPassword({ email })` | `Promise<{ sent: boolean }>` | Dispara e-mail (ou log) de recuperação |
+| `client.resetPassword({ token, newPassword })` | `Promise<{ success: boolean }>` | Conclui recuperação |
 | `client.refresh()` | `Promise<AuthSession>` | Re-agrega permissions; idempotente em chamadas concorrentes |
 | `client.me()` | `Promise<MePayload \| null>` | Hit no servidor (valida TokenRevocation) |
 | `client.check(permission)` | `Promise<boolean>` | Defense-in-depth server-side |

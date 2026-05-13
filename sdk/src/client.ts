@@ -4,9 +4,13 @@ import { memoryStorage } from './storage.js';
 import type {
   AuthClientOptions,
   AuthSession,
+  ForgotPasswordInput,
   LoginInput,
   MePayload,
   OAuthInput,
+  RegisterInput,
+  RegisterOutput,
+  ResetPasswordInput,
   SessionListener,
   TokenPayload,
   TokenStorage,
@@ -14,12 +18,21 @@ import type {
 } from './types.js';
 
 export interface AuthClient {
+  /**
+   * Cria conta de operador no binding. Não loga automaticamente — chame
+   * `login()` em seguida se quiser sessão iniciada.
+   */
+  register(input: RegisterInput): Promise<RegisterOutput>;
   /** Faz login email+senha. Persiste tokens no storage. */
   login(input: LoginInput): Promise<AuthSession>;
   /** Faz login OAuth (Google/GitHub) — o app já fez o handshake. */
   loginOAuth(input: OAuthInput): Promise<AuthSession>;
   /** Revoga refresh token e limpa storage. */
   logout(): Promise<void>;
+  /** Dispara e-mail de recuperação (ou loga no servidor se SMTP off). */
+  forgotPassword(input: ForgotPasswordInput): Promise<{ sent: boolean }>;
+  /** Conclui recuperação com o token recebido por e-mail. */
+  resetPassword(input: ResetPasswordInput): Promise<{ success: boolean }>;
   /**
    * Renova o access token usando o refresh persistido. Atualiza storage.
    * Lança `AuthError('refresh_failed')` se refresh inválido/expirado.
@@ -180,6 +193,34 @@ export function createAuthClient(opts: AuthClientOptions): AuthClient {
     return data as T;
   }
 
+  async function register(input: RegisterInput): Promise<RegisterOutput> {
+    return await request<RegisterOutput>(
+      'POST',
+      `/api/auth/${bindingId}/register`,
+      input
+    );
+  }
+
+  async function forgotPassword(
+    input: ForgotPasswordInput
+  ): Promise<{ sent: boolean }> {
+    return await request<{ sent: boolean }>(
+      'POST',
+      `/api/auth/${bindingId}/forgot-password`,
+      input
+    );
+  }
+
+  async function resetPassword(
+    input: ResetPasswordInput
+  ): Promise<{ success: boolean }> {
+    return await request<{ success: boolean }>(
+      'POST',
+      `/api/auth/${bindingId}/reset-password`,
+      input
+    );
+  }
+
   async function login(input: LoginInput): Promise<AuthSession> {
     const session = await request<AuthSession>(
       'POST',
@@ -309,9 +350,12 @@ export function createAuthClient(opts: AuthClientOptions): AuthClient {
   }
 
   return {
+    register,
     login,
     loginOAuth,
     logout,
+    forgotPassword,
+    resetPassword,
     refresh,
     me,
     check,

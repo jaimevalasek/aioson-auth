@@ -7,9 +7,13 @@ export { decodeJwtPayload, isTokenExpired } from './jwt.js';
 export type {
   AuthClientOptions,
   AuthSession,
+  ForgotPasswordInput,
   LoginInput,
   MePayload,
   OAuthInput,
+  RegisterInput,
+  RegisterOutput,
+  ResetPasswordInput,
   SessionListener,
   StorageKey,
   TokenPayload,

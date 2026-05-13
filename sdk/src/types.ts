@@ -47,6 +47,25 @@ export interface OAuthInput {
   name?: string;
 }
 
+export interface RegisterInput {
+  email: string;
+  password: string;
+}
+
+export interface RegisterOutput {
+  userId: string;
+  verified: boolean;
+}
+
+export interface ForgotPasswordInput {
+  email: string;
+}
+
+export interface ResetPasswordInput {
+  token: string;
+  newPassword: string;
+}
+
 export interface AuthClientOptions {
   /** URL base do aioson-auth, ex.: `http://localhost:3001`. */
   baseUrl: string;
