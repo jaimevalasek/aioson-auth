@@ -234,6 +234,15 @@ Content-Type: application/json
 
 ## 4 — Validação de Token
 
+Aceita o JWT via `Authorization: Bearer` (RFC 6750, preferido) ou via
+query `?token=` (retro-compat).
+
+```
+GET /api/auth/:bindingId/me
+Authorization: Bearer eyJhbG...
+```
+
+Equivalente legacy (continua funcionando):
 ```
 GET /api/auth/:bindingId/me?token=eyJhbG...
 ```
@@ -251,6 +260,25 @@ GET /api/auth/:bindingId/me?token=eyJhbG...
 > **Desde 2026-05-13:** o payload do JWT (e portanto a resposta de `/me`) inclui `binding_id` e `permissions` quando o login foi feito contra um binding com RBAC habilitado. Apps podem decidir UI condicional sem chamar `/rbac/check` — basta inspecionar `permissions.includes("X:Y")`. O endpoint `/rbac/check` continua existindo como defense-in-depth server-side para ações críticas. Tokens emitidos antes dessa data continuam válidos sem esses campos (compat retroativo).
 
 **Resposta (401):** `{ "error": "Invalid or expired token" }`
+
+### 4.1 — Atalho `/me/permissions`
+
+Quando seu app só quer permissions agregadas server-side (fresh do DB),
+sem o payload completo do `/me`:
+
+```
+GET /api/auth/:bindingId/me/permissions
+Authorization: Bearer eyJhbG...
+```
+
+**Resposta (200):**
+```json
+{ "permissions": ["orders:create", "orders:read"] }
+```
+
+Útil para apps que validam o JWT offline (futuro JWKS) e só precisam
+de uma fonte de verdade fresca para permissions, sem refazer todo o
+payload do `/me`.
 
 ---
 

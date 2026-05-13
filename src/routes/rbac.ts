@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { verifyAccessToken } from '../actions/AuthAction.js';
 import { getBinding } from '../actions/AppBindingAction.js';
+import { extractAccessToken } from '../lib/extract-token.js';
 import {
   generateTotpSecret,
   verifyTotpSetup,
@@ -31,10 +32,13 @@ export const rbacRouter = Router({ mergeParams: true });
 
 // ─── 2FA Routes ────────────────────────────────────────────────────────
 
+// 2FA endpoints aceitam `Authorization: Bearer <jwt>` (preferido) ou
+// `?token=<jwt>` (legacy) — Slice D.
+
 rbacRouter.post('/:bindingId/2fa/setup', async (req, res) => {
   try {
     const { bindingId } = req.params;
-    const token = req.query['token'] as string | undefined;
+    const token = extractAccessToken(req);
     if (!token) return res.status(401).json({ error: 'Missing token' });
     const payload = await verifyAccessToken(token);
     const result = await generateTotpSecret(bindingId, payload.sub);
@@ -48,7 +52,7 @@ rbacRouter.post('/:bindingId/2fa/setup', async (req, res) => {
 rbacRouter.post('/:bindingId/2fa/verify', async (req, res) => {
   try {
     const { bindingId } = req.params;
-    const token = req.query['token'] as string | undefined;
+    const token = extractAccessToken(req);
     if (!token) return res.status(401).json({ error: 'Missing token' });
     const payload = await verifyAccessToken(token);
     const schema = z.object({ totpToken: z.string().length(6) });
@@ -65,7 +69,7 @@ rbacRouter.post('/:bindingId/2fa/verify', async (req, res) => {
 rbacRouter.post('/:bindingId/2fa/disable', async (req, res) => {
   try {
     const { bindingId } = req.params;
-    const token = req.query['token'] as string | undefined;
+    const token = extractAccessToken(req);
     if (!token) return res.status(401).json({ error: 'Missing token' });
     const payload = await verifyAccessToken(token);
     await disableTotp(bindingId, payload.sub);
@@ -332,10 +336,11 @@ rbacRouter.get('/:bindingId/rbac/users/:userId', async (req, res) => {
 
 // ─── Permission check (for app runtime) ────────────────────────────────
 
+// /rbac/check aceita Bearer header (preferido) ou ?token= (legacy) — Slice D.
 rbacRouter.get('/:bindingId/rbac/check', async (req, res) => {
   try {
     const { bindingId } = req.params;
-    const token = req.query['token'] as string | undefined;
+    const token = extractAccessToken(req);
     const permission = req.query['permission'] as string | undefined;
     if (!token) return res.status(401).json({ error: 'Missing token' });
     if (!permission) return res.status(400).json({ error: 'Missing permission' });

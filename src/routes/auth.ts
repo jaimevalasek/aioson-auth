@@ -11,6 +11,8 @@ import {
 } from '../actions/AuthAction.js';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
+import { extractAccessToken } from '../lib/extract-token.js';
+import { getUserPermissionsForBinding } from '../actions/RbacAction.js';
 
 export const authRouter = Router({ mergeParams: true });
 
@@ -154,14 +156,34 @@ authRouter.post('/:bindingId/reset-password', async (req, res) => {
   }
 });
 
-// GET /api/auth/:bindingId/me?token=xxx
+// GET /api/auth/:bindingId/me
+// Aceita `Authorization: Bearer <jwt>` (preferido) ou `?token=<jwt>` (legacy).
 authRouter.get('/:bindingId/me', async (req, res) => {
   try {
-    const token = req.query['token'] as string | undefined;
+    const token = extractAccessToken(req);
     if (!token) return res.status(401).json({ error: 'Missing token' });
 
     const payload = await verifyAccessToken(token);
     return res.json(payload);
+  } catch (err) {
+    return res.status(401).json({ error: String(err) });
+  }
+});
+
+// GET /api/auth/:bindingId/me/permissions
+// Slice E (auth-integration-gaps.md): atalho pra apps que validam JWT
+// offline (futuro JWKS) e só querem permissions agregadas fresh do server.
+// Bate na mesma fonte de verdade que /rbac/check usa.
+authRouter.get('/:bindingId/me/permissions', async (req, res) => {
+  try {
+    const { bindingId } = req.params;
+    const token = extractAccessToken(req);
+    if (!token) return res.status(401).json({ error: 'Missing token' });
+    const payload = await verifyAccessToken(token);
+    const permissions = await getUserPermissionsForBinding(payload.sub, bindingId).catch(
+      () => []
+    );
+    return res.json({ permissions });
   } catch (err) {
     return res.status(401).json({ error: String(err) });
   }
