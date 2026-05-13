@@ -1,0 +1,61 @@
+/* =============================================================================
+   AIOSON APP UI — COMPONENT · TOOLTIP
+   =============================================================================
+   .ao-tooltip — texto contextual em hover/focus.
+
+   Para tooltips simples, prefira o atributo nativo `title` quando possível.
+   Use .ao-tooltip apenas quando precisar de:
+   - estilo customizado consistente com o DS
+   - conteúdo levemente formatado
+   - controle de posicionamento via JS
+
+   Posicionamento via Floating UI / Popper / Alpine. CSS só estiliza.
+   ============================================================================= */
+
+.ao-tooltip {
+  position: absolute;
+  z-index: var(--ao-z-tooltip);
+  background: var(--neutral-900);
+  color: var(--neutral-100);
+  padding: 4px 8px;
+  border-radius: var(--ao-radius-xs);
+  font-family: var(--ao-font-body);
+  font-size: var(--ao-text-xs);
+  font-weight: 500;
+  line-height: var(--ao-leading-snug);
+  white-space: nowrap;
+  pointer-events: none;
+  max-width: 240px;
+  animation: ao-tooltip-in var(--ao-duration-fast) var(--ao-easing-decelerate);
+}
+
+/* Light theme: invertido */
+:root[data-theme="light"] .ao-tooltip {
+  background: var(--neutral-800);
+  color: var(--neutral-50);
+}
+
+@keyframes ao-tooltip-in {
+  from { opacity: 0; transform: translateY(-2px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ao-tooltip { animation: none; }
+}
+
+/* Variante para tooltips com texto longo (multi-linha) */
+.ao-tooltip--multiline {
+  white-space: normal;
+  max-width: 240px;
+  text-align: center;
+}
+
+/* Arrow (opcional, requer setup adicional via JS) */
+.ao-tooltip__arrow {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: inherit;
+  transform: rotate(45deg);
+}

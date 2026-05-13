@@ -1,0 +1,254 @@
+/* =============================================================================
+   AIOSON APP UI — COMPONENT · BUTTONS
+   =============================================================================
+   .ao-btn — botão base com 4 variantes e 3 tamanhos.
+
+   Variantes: --primary, --secondary, --ghost, --danger
+   Tamanhos:  --sm (28px), --md (34px default), --lg (38px)
+   Estados:   :hover, :active, :focus-visible, :disabled, --loading
+
+   Acessibilidade:
+   - focus-visible com outline 2px e offset
+   - disabled com cursor not-allowed e opacity reduzida
+   - prefers-reduced-motion respeitado nas transições
+   ============================================================================= */
+
+.ao-btn {
+  /* Reset */
+  appearance: none;
+  border: 1px solid transparent;
+  margin: 0;
+  font-family: var(--ao-font-body);
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+
+  /* Layout */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ao-space-2);
+  white-space: nowrap;
+
+  /* Default size = md */
+  height: 34px;
+  padding: 0 var(--ao-space-4);
+  font-size: var(--ao-text-md);
+  font-weight: 500;
+  line-height: 1;
+  border-radius: var(--ao-radius-sm);
+
+  /* Cor base (será sobrescrita por variantes) */
+  background: var(--ao-surface);
+  color: var(--ao-text);
+
+  transition:
+    background var(--ao-duration-fast) var(--ao-easing-standard),
+    border-color var(--ao-duration-fast) var(--ao-easing-standard),
+    color var(--ao-duration-fast) var(--ao-easing-standard),
+    box-shadow var(--ao-duration-fast) var(--ao-easing-standard),
+    transform var(--ao-duration-fast) var(--ao-easing-standard);
+}
+
+/* Focus acessível em todos os botões */
+.ao-btn:focus-visible {
+  outline: 2px solid var(--ao-primary);
+  outline-offset: 2px;
+}
+
+/* Disabled */
+.ao-btn:disabled,
+.ao-btn[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Active feedback sutil */
+.ao-btn:not(:disabled):active {
+  transform: translateY(1px);
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .ao-btn { transition: none; }
+  .ao-btn:not(:disabled):active { transform: none; }
+}
+
+/* -----------------------------------------------------------------
+   ÍCONE INTERNO
+   ----------------------------------------------------------------- */
+.ao-btn__icon {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  font-size: 16px;
+}
+
+.ao-btn--sm .ao-btn__icon { font-size: 14px; }
+.ao-btn--lg .ao-btn__icon { font-size: 18px; }
+
+/* -----------------------------------------------------------------
+   VARIANTES
+   ----------------------------------------------------------------- */
+
+/* Primary — ação principal (cyan) */
+.ao-btn--primary {
+  background: var(--ao-primary);
+  color: var(--ao-primary-on);
+  border-color: transparent;
+}
+.ao-btn--primary:not(:disabled):hover {
+  background: var(--ao-primary-hover);
+}
+.ao-btn--primary:not(:disabled):active {
+  background: var(--ao-primary-pressed);
+}
+
+/* Secondary — ação secundária (violet) */
+.ao-btn--secondary {
+  background: var(--ao-secondary);
+  color: var(--ao-text-inverse);
+  border-color: transparent;
+}
+.ao-btn--secondary:not(:disabled):hover {
+  background: var(--ao-secondary-hover);
+}
+
+/* Ghost — sem fundo, borda discreta */
+.ao-btn--ghost {
+  background: transparent;
+  color: var(--ao-text-soft);
+  border-color: var(--ao-border-strong);
+}
+.ao-btn--ghost:not(:disabled):hover {
+  background: var(--ao-surface-hover);
+  color: var(--ao-text);
+  border-color: var(--ao-border-strong);
+}
+
+/* Danger — ações destrutivas */
+.ao-btn--danger {
+  background: var(--ao-danger);
+  color: var(--ao-text-inverse);
+  border-color: transparent;
+}
+.ao-btn--danger:not(:disabled):hover {
+  filter: brightness(1.1);
+}
+.ao-btn--danger:focus-visible {
+  outline-color: var(--ao-danger);
+}
+
+/* Subtle — mais leve que ghost (sem borda) */
+.ao-btn--subtle {
+  background: transparent;
+  color: var(--ao-text-soft);
+  border-color: transparent;
+}
+.ao-btn--subtle:not(:disabled):hover {
+  background: var(--ao-surface-hover);
+  color: var(--ao-text);
+}
+
+/* -----------------------------------------------------------------
+   TAMANHOS
+   ----------------------------------------------------------------- */
+
+.ao-btn--sm {
+  height: 28px;
+  padding: 0 var(--ao-space-3);
+  font-size: var(--ao-text-sm);
+  border-radius: var(--ao-radius-xs);
+}
+
+.ao-btn--lg {
+  height: 38px;
+  padding: 0 var(--ao-space-5);
+  font-size: var(--ao-text-md);
+}
+
+/* Brand mode pode ter botão XL para hero */
+.ao-btn--xl {
+  height: 48px;
+  padding: 0 var(--ao-space-6);
+  font-size: var(--ao-text-lg);
+  border-radius: var(--ao-radius-md);
+}
+
+/* -----------------------------------------------------------------
+   MODIFICADORES
+   ----------------------------------------------------------------- */
+
+/* Apenas ícone (sem texto) */
+.ao-btn--icon-only {
+  width: 34px;
+  padding: 0;
+}
+.ao-btn--icon-only.ao-btn--sm { width: 28px; }
+.ao-btn--icon-only.ao-btn--lg { width: 38px; }
+
+/* Ocupa largura total */
+.ao-btn--block {
+  width: 100%;
+}
+
+/* Loading state */
+.ao-btn--loading {
+  position: relative;
+  pointer-events: none;
+  color: transparent !important;
+}
+
+.ao-btn--loading::after {
+  content: "";
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  color: var(--ao-primary-on);
+  animation: ao-btn-spin 0.6s linear infinite;
+}
+
+.ao-btn--ghost.ao-btn--loading::after { color: var(--ao-text-soft); }
+.ao-btn--subtle.ao-btn--loading::after { color: var(--ao-text-soft); }
+
+@keyframes ao-btn-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ao-btn--loading::after { animation: none; }
+}
+
+/* -----------------------------------------------------------------
+   GROUP — botões agrupados (segmented control)
+   ----------------------------------------------------------------- */
+
+.ao-btn-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  border-radius: var(--ao-radius-sm);
+  overflow: hidden;
+}
+
+.ao-btn-group .ao-btn {
+  border-radius: 0;
+}
+
+.ao-btn-group .ao-btn:first-child {
+  border-top-left-radius: var(--ao-radius-sm);
+  border-bottom-left-radius: var(--ao-radius-sm);
+}
+
+.ao-btn-group .ao-btn:last-child {
+  border-top-right-radius: var(--ao-radius-sm);
+  border-bottom-right-radius: var(--ao-radius-sm);
+}
+
+.ao-btn-group .ao-btn + .ao-btn {
+  border-left: none;
+}

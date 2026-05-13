@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark" data-mode="work">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AIOSON App UI — Dashboard Mockup (CRM)</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- Em produção, substitua por:
+     <link rel="stylesheet" href="../tokens/index.css">
+     <link rel="stylesheet" href="../components/index.css">
+     <link rel="stylesheet" href="../charts/palette.css">
+-->
+<style>
+/* ==========================================================================
+   TOKENS — primitive
+   ========================================================================== */
+:root {
+  --cyan-300: #67E8F9; --cyan-400: #22D3EE; --cyan-500: #06B6D4; --cyan-600: #0891B2;
+  --violet-300: #C4B5FD; --violet-400: #A78BFA; --violet-500: #8B5CF6; --violet-600: #7C3AED;
+  --neutral-0: #FFFFFF; --neutral-50: #FAFAFA; --neutral-100: #F4F4F5; --neutral-200: #E4E4E7;
+  --neutral-300: #D4D4D8; --neutral-400: #A1A1AA; --neutral-500: #71717A; --neutral-600: #52525B;
+  --neutral-700: #3F3F46; --neutral-800: #27272A; --neutral-900: #18181B; --neutral-950: #0A0E1A; --neutral-1000: #050814;
+  --green-400: #4ADE80; --green-500: #22C55E; --green-600: #16A34A;
+  --amber-400: #FBBF24; --amber-500: #F59E0B; --amber-600: #D97706;
+  --red-400: #F87171; --red-500: #EF4444; --red-600: #DC2626;
+  --blue-400: #60A5FA; --blue-500: #3B82F6; --blue-600: #2563EB;
+  --plasma-400: #C084FC; --plasma-500: #B63CFF; --plasma-600: #A020F0;
+
+  --ao-space-1: 4px; --ao-space-2: 8px; --ao-space-3: 12px; --ao-space-4: 16px;
+  --ao-space-5: 20px; --ao-space-6: 24px; --ao-space-8: 32px; --ao-space-10: 40px;
+  --ao-space-12: 48px; --ao-space-16: 64px;
+  --ao-text-xs: 10px; --ao-text-sm: 11px; --ao-text-base: 12px; --ao-text-md: 13px;
+  --ao-text-lg: 15px; --ao-text-xl: 18px; --ao-text-2xl: 22px; --ao-text-3xl: 28px; --ao-text-4xl: 36px;
+  --ao-leading-tight: 1.2; --ao-leading-snug: 1.35; --ao-leading-base: 1.5; --ao-leading-relaxed: 1.6;
+  --ao-tracking-tight: -0.03em; --ao-tracking-base: 0; --ao-tracking-wide: 0.04em; --ao-tracking-wider: 0.08em;
+  --ao-font-heading: 'Sora', system-ui, sans-serif;
+  --ao-font-body: 'Inter', system-ui, sans-serif;
+  --ao-font-mono: 'JetBrains Mono', monospace;
+  --ao-radius-xs: 4px; --ao-radius-sm: 6px; --ao-radius-md: 8px; --ao-radius-lg: 12px; --ao-radius-full: 999px;
+  --ao-duration-fast: 120ms; --ao-duration-base: 200ms; --ao-duration-slow: 320ms;
+  --ao-easing-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ao-easing-decelerate: cubic-bezier(0, 0, 0.2, 1);
+  --ao-easing-accelerate: cubic-bezier(0.4, 0, 1, 1);
+  --ao-z-base: 1; --ao-z-sticky: 100; --ao-z-dropdown: 1000;
+  --ao-z-tooltip: 1100; --ao-z-modal: 1200; --ao-z-drawer: 1150; --ao-z-toast: 1300;
+}
+
+/* ==========================================================================
+   SEMANTIC — dark/work
+   ========================================================================== */
+:root[data-theme="dark"][data-mode="work"] {
+  --ao-bg: var(--neutral-950);
+  --ao-surface: var(--neutral-900);
+  --ao-surface-hover: var(--neutral-800);
+  --ao-surface-elevated: var(--neutral-900);
+  --ao-border: var(--neutral-800);
+  --ao-border-subtle: rgba(63, 63, 70, 0.5);
+  --ao-border-strong: var(--neutral-700);
+
+  --ao-text: var(--neutral-50);
+  --ao-text-soft: var(--neutral-300);
+  --ao-text-muted: var(--neutral-500);
+  --ao-text-inverse: var(--neutral-900);
+
+  --ao-primary: var(--cyan-400);
+  --ao-primary-on: var(--neutral-950);
+  --ao-primary-hover: var(--cyan-300);
+  --ao-primary-soft: rgba(34, 211, 238, 0.15);
+
+  --ao-secondary: var(--violet-400);
+  --ao-secondary-on: var(--neutral-950);
+  --ao-secondary-soft: rgba(167, 139, 250, 0.15);
+
+  --ao-accent: var(--plasma-400);
+  --ao-accent-soft: rgba(192, 132, 252, 0.15);
+
+  --ao-success: var(--green-400);
+  --ao-success-soft: rgba(74, 222, 128, 0.15);
+  --ao-warning: var(--amber-400);
+  --ao-warning-soft: rgba(251, 191, 36, 0.15);
+  --ao-danger: var(--red-400);
+  --ao-danger-soft: rgba(248, 113, 113, 0.15);
+  --ao-info: var(--blue-400);
+  --ao-info-soft: rgba(96, 165, 250, 0.15);
+
+  --ao-shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+  --ao-shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+  --ao-shadow-lg: 0 12px 32px rgba(0,0,0,0.5);
+
+  font-size: var(--ao-text-base);
+}
+
+:root[data-theme="light"][data-mode="work"] {
+  --ao-bg: var(--neutral-50);
+  --ao-surface: var(--neutral-0);
+  --ao-surface-hover: var(--neutral-100);
+  --ao-surface-elevated: var(--neutral-0);
+  --ao-border: var(--neutral-200);
+  --ao-border-subtle: var(--neutral-200);
+  --ao-border-strong: var(--neutral-300);
+
+  --ao-text: var(--neutral-900);
+  --ao-text-soft: var(--neutral-700);
+  --ao-text-muted: var(--neutral-500);
+  --ao-text-inverse: var(--neutral-0);
+
+  --ao-primary: var(--cyan-600);
+  --ao-primary-on: var(--neutral-0);
+  --ao-primary-hover: var(--cyan-500);
+  --ao-primary-soft: rgba(8, 145, 178, 0.12);
+
+  --ao-secondary: var(--violet-600);
+  --ao-secondary-on: var(--neutral-0);
+  --ao-secondary-soft: rgba(124, 58, 237, 0.12);
+
+  --ao-accent: var(--plasma-600);
+  --ao-accent-soft: rgba(160, 32, 240, 0.12);
+
+  --ao-success: var(--green-600);
+  --ao-success-soft: rgba(22, 163, 74, 0.12);
+  --ao-warning: var(--amber-600);
+  --ao-warning-soft: rgba(217, 119, 6, 0.12);
+  --ao-danger: var(--red-600);
+  --ao-danger-soft: rgba(220, 38, 38, 0.12);
+  --ao-info: var(--blue-600);
+  --ao-info-soft: rgba(37, 99, 235, 0.12);
+
+  --ao-shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --ao-shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  --ao-shadow-lg: 0 12px 32px rgba(0,0,0,0.12);
+
+  font-size: var(--ao-text-base);
+}
+
+/* ==========================================================================
+   BASE
+   ========================================================================== */
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: var(--ao-font-body);
+  background: var(--ao-bg);
+  color: var(--ao-text);
+  line-height: var(--ao-leading-relaxed);
+  font-size: var(--ao-text-md);
+}
+h1, h2, h3, h4 { font-family: var(--ao-font-heading); margin: 0; letter-spacing: var(--ao-tracking-tight); }
+
+/* ==========================================================================
+   COMPONENTES (resumo dos relevantes pra mockup)
+   ========================================================================== */
+
+/* Buttons */
+.ao-btn {
+  appearance: none; border: 1px solid transparent; cursor: pointer;
+  font-family: var(--ao-font-body); font-size: var(--ao-text-md); font-weight: 500;
+  height: 32px; padding: 0 var(--ao-space-3); border-radius: var(--ao-radius-sm);
+  display: inline-flex; align-items: center; gap: var(--ao-space-2);
+  background: transparent; color: var(--ao-text);
+  transition: all var(--ao-duration-fast) var(--ao-easing-standard);
+}
+.ao-btn:hover { background: var(--ao-surface-hover); }
+.ao-btn:focus-visible { outline: 2px solid var(--ao-primary); outline-offset: 2px; }
+.ao-btn--primary { background: var(--ao-primary); color: var(--ao-primary-on); border-color: var(--ao-primary); }
+.ao-btn--primary:hover { background: var(--ao-primary-hover); border-color: var(--ao-primary-hover); }
+.ao-btn--ghost { background: transparent; color: var(--ao-text); border-color: var(--ao-border-strong); }
+.ao-btn--sm { height: 26px; font-size: var(--ao-text-sm); padding: 0 var(--ao-space-2); }
+
+/* Appbar */
+.ao-appbar {
+  display: flex; align-items: center; gap: var(--ao-space-4); height: 56px;
+  padding: 0 var(--ao-space-5); background: var(--ao-surface);
+  border-bottom: 1px solid var(--ao-border); position: sticky; top: 0; z-index: var(--ao-z-sticky);
+}
+.ao-appbar__brand { display: flex; align-items: center; gap: var(--ao-space-2); text-decoration: none; color: var(--ao-text); font-family: var(--ao-font-heading); font-weight: 600; font-size: var(--ao-text-md); }
+.ao-appbar__brand-logo { width: 28px; height: 28px; border-radius: var(--ao-radius-xs); background: linear-gradient(135deg, var(--ao-primary), var(--ao-secondary)); display: grid; place-items: center; color: var(--neutral-950); font-weight: 700; }
+.ao-appbar__nav { display: flex; gap: var(--ao-space-1); margin-left: var(--ao-space-4); }
+.ao-appbar__link { color: var(--ao-text-soft); font-size: var(--ao-text-md); font-weight: 500; text-decoration: none; padding: 6px var(--ao-space-3); border-radius: var(--ao-radius-xs); transition: all var(--ao-duration-fast); }
+.ao-appbar__link:hover { background: var(--ao-surface-hover); color: var(--ao-text); }
+.ao-appbar__link--active { color: var(--ao-primary); background: var(--ao-primary-soft); }
+.ao-appbar__spacer { flex: 1; }
+.ao-appbar__user { display: flex; align-items: center; gap: var(--ao-space-2); padding: 4px 8px 4px 4px; border-radius: var(--ao-radius-full); cursor: pointer; }
+.ao-appbar__user:hover { background: var(--ao-surface-hover); }
+
+/* Breadcrumb */
+.ao-breadcrumb { font-size: var(--ao-text-sm); }
+.ao-breadcrumb__list { display: flex; gap: 4px; list-style: none; margin: 0; padding: 0; align-items: center; }
+.ao-breadcrumb__item { color: var(--ao-text-soft); display: flex; align-items: center; gap: 4px; }
+.ao-breadcrumb__item + .ao-breadcrumb__item::before { content: "/"; color: var(--ao-text-muted); margin-right: 4px; }
+.ao-breadcrumb__link { color: var(--ao-text-soft); text-decoration: none; }
+.ao-breadcrumb__link:hover { color: var(--ao-text); }
+.ao-breadcrumb__item[aria-current="page"] { color: var(--ao-text); font-weight: 500; }
+
+/* Card */
+.ao-card {
+  background: var(--ao-surface); border: 1px solid var(--ao-border);
+  border-radius: var(--ao-radius-md);
+}
+.ao-card__header { display: flex; align-items: center; justify-content: space-between; padding: var(--ao-space-3) var(--ao-space-4); border-bottom: 1px solid var(--ao-border); }
+.ao-card__title { font-size: var(--ao-text-md); font-weight: 600; margin: 0; }
+.ao-card__body { padding: var(--ao-space-4); }
+
+/* KPI */
+.ao-kpi {
+  background: var(--ao-surface); border: 1px solid var(--ao-border);
+  border-radius: var(--ao-radius-md); padding: var(--ao-space-4) var(--ao-space-5);
+  display: flex; flex-direction: column; gap: var(--ao-space-2); position: relative;
+}
+.ao-kpi__head { display: flex; align-items: center; justify-content: space-between; gap: var(--ao-space-2); }
+.ao-kpi__label { font-size: var(--ao-text-xs); font-weight: 600; text-transform: uppercase; letter-spacing: var(--ao-tracking-wider); color: var(--ao-text-muted); margin: 0; }
+.ao-kpi__value { font-family: var(--ao-font-heading); font-size: var(--ao-text-3xl); font-weight: 600; line-height: var(--ao-leading-tight); color: var(--ao-text); font-variant-numeric: tabular-nums; margin: 0; }
+.ao-kpi__unit { font-size: var(--ao-text-md); color: var(--ao-text-soft); margin-left: 4px; }
+.ao-kpi__sub { font-size: var(--ao-text-sm); color: var(--ao-text-soft); margin: 0; }
+.ao-kpi__delta { display: inline-flex; align-items: center; gap: 4px; font-size: var(--ao-text-sm); font-weight: 600; font-variant-numeric: tabular-nums; }
+.ao-kpi__delta--up { color: var(--ao-success); }
+.ao-kpi__delta--down { color: var(--ao-danger); }
+.ao-kpi--primary { border-left: 3px solid var(--ao-primary); }
+.ao-kpi--success { border-left: 3px solid var(--ao-success); }
+.ao-kpi--warning { border-left: 3px solid var(--ao-warning); }
+.ao-kpi--info { border-left: 3px solid var(--ao-info); }
+.ao-kpi-grid { display: grid; gap: var(--ao-space-3); grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.ao-kpi__chart { height: 40px; margin-top: var(--ao-space-2); }
+.ao-kpi__chart svg { width: 100%; height: 100%; }
+
+/* Status pill */
+.ao-status-pill {
+  display: inline-flex; align-items: center; gap: 6px; height: 22px;
+  padding: 0 var(--ao-space-2); border-radius: var(--ao-radius-xs);
+  font-size: var(--ao-text-xs); font-weight: 600; text-transform: uppercase;
+  letter-spacing: var(--ao-tracking-wide); white-space: nowrap;
+  background: var(--ao-surface-hover); color: var(--ao-text-soft);
+  border: 1px solid var(--ao-border);
+}
+.ao-status-pill--qualified { background: var(--ao-primary-soft); color: var(--ao-primary); border-color: var(--ao-primary); }
+.ao-status-pill--negotiation { background: var(--ao-warning-soft); color: var(--ao-warning); border-color: var(--ao-warning); }
+.ao-status-pill--won { background: var(--ao-success-soft); color: var(--ao-success); border-color: var(--ao-success); }
+.ao-status-pill--new { background: var(--ao-info-soft); color: var(--ao-info); border-color: var(--ao-info); }
+.ao-status-pill__icon { font-size: 9px; }
+
+/* Avatar */
+.ao-avatar {
+  position: relative; display: inline-flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; border-radius: 50%; background: var(--ao-surface-hover);
+  color: var(--ao-text-soft); font-size: var(--ao-text-sm); font-weight: 600;
+  flex-shrink: 0; user-select: none;
+}
+.ao-avatar--xs { width: 20px; height: 20px; font-size: var(--ao-text-xs); }
+.ao-avatar--sm { width: 28px; height: 28px; font-size: var(--ao-text-xs); }
+.ao-avatar--c1 { background: var(--ao-primary-soft); color: var(--ao-primary); }
+.ao-avatar--c2 { background: var(--ao-secondary-soft); color: var(--ao-secondary); }
+.ao-avatar--c3 { background: var(--ao-success-soft); color: var(--ao-success); }
+.ao-avatar--c4 { background: var(--ao-warning-soft); color: var(--ao-warning); }
+
+/* Table */
+.ao-table-wrap { width: 100%; overflow-x: auto; border: 1px solid var(--ao-border); border-radius: var(--ao-radius-md); background: var(--ao-surface); }
+.ao-table { width: 100%; border-collapse: collapse; font-size: var(--ao-text-md); color: var(--ao-text); }
+.ao-table thead { background: var(--ao-bg); border-bottom: 1px solid var(--ao-border); }
+.ao-table th { padding: var(--ao-space-3) var(--ao-space-4); text-align: left; font-size: var(--ao-text-xs); font-weight: 600; text-transform: uppercase; letter-spacing: var(--ao-tracking-wider); color: var(--ao-text-muted); white-space: nowrap; }
+.ao-table td { padding: var(--ao-space-3) var(--ao-space-4); border-bottom: 1px solid var(--ao-border-subtle); vertical-align: middle; }
+.ao-table tbody tr:hover { background: var(--ao-surface-hover); }
+.ao-table .ao-td--num { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--ao-font-mono); font-size: var(--ao-text-sm); }
+.ao-table--compact th, .ao-table--compact td { padding: var(--ao-space-2) var(--ao-space-3); }
+
+/* Kanban */
+.ao-kanban { display: flex; gap: var(--ao-space-3); align-items: flex-start; overflow-x: auto; padding-bottom: var(--ao-space-3); }
+.ao-kanban__column { flex: 0 0 280px; background: var(--ao-bg); border: 1px solid var(--ao-border); border-radius: var(--ao-radius-md); display: flex; flex-direction: column; max-height: 480px; }
+.ao-kanban__column-header { display: flex; align-items: center; gap: var(--ao-space-2); padding: var(--ao-space-3); border-bottom: 1px solid var(--ao-border); }
+.ao-kanban__column-color { width: 8px; height: 8px; border-radius: 50%; }
+.ao-kanban__column-color--info { background: var(--ao-info); }
+.ao-kanban__column-color--cyan { background: var(--ao-primary); }
+.ao-kanban__column-color--warning { background: var(--ao-warning); }
+.ao-kanban__column-color--success { background: var(--ao-success); }
+.ao-kanban__column-title { font-family: var(--ao-font-heading); font-size: var(--ao-text-sm); font-weight: 600; text-transform: uppercase; letter-spacing: var(--ao-tracking-wide); margin: 0; flex: 1; }
+.ao-kanban__column-count { display: inline-flex; align-items: center; justify-content: center; height: 20px; min-width: 24px; padding: 0 6px; background: var(--ao-surface-hover); color: var(--ao-text-soft); border-radius: var(--ao-radius-full); font-size: var(--ao-text-xs); font-weight: 600; }
+.ao-kanban__column-body { flex: 1; overflow-y: auto; padding: var(--ao-space-2); display: flex; flex-direction: column; gap: var(--ao-space-2); }
+.ao-kanban__card { background: var(--ao-surface); border: 1px solid var(--ao-border); border-radius: var(--ao-radius-sm); padding: var(--ao-space-3); cursor: grab; display: flex; flex-direction: column; gap: var(--ao-space-2); position: relative; transition: all var(--ao-duration-fast); }
+.ao-kanban__card:hover { border-color: var(--ao-border-strong); box-shadow: var(--ao-shadow-sm); }
+.ao-kanban__card-title { font-size: var(--ao-text-md); font-weight: 500; margin: 0; line-height: var(--ao-leading-snug); }
+.ao-kanban__card-meta { display: flex; align-items: center; justify-content: space-between; gap: var(--ao-space-2); font-size: var(--ao-text-xs); color: var(--ao-text-muted); }
+.ao-kanban__card-value { font-family: var(--ao-font-mono); font-size: var(--ao-text-sm); font-weight: 600; color: var(--ao-success); }
+
+/* Timeline */
+.ao-timeline { list-style: none; margin: 0; padding: 0; }
+.ao-timeline__item { position: relative; display: flex; gap: var(--ao-space-3); padding-bottom: var(--ao-space-4); }
+.ao-timeline__item::before { content: ""; position: absolute; left: 11px; top: 24px; bottom: 0; width: 2px; background: var(--ao-border); }
+.ao-timeline__item:last-child { padding-bottom: 0; }
+.ao-timeline__item:last-child::before { display: none; }
+.ao-timeline__dot { position: relative; width: 24px; height: 24px; border-radius: 50%; background: var(--ao-surface); border: 2px solid var(--ao-border-strong); flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; z-index: 1; }
+.ao-timeline__dot--success { background: var(--ao-success); border-color: var(--ao-success); color: var(--neutral-950); }
+.ao-timeline__dot--info { background: var(--ao-info); border-color: var(--ao-info); color: var(--neutral-950); }
+.ao-timeline__content { flex: 1; padding-top: 2px; }
+.ao-timeline__head { display: flex; align-items: baseline; gap: var(--ao-space-2); flex-wrap: wrap; margin-bottom: 4px; }
+.ao-timeline__author { font-weight: 600; font-size: var(--ao-text-md); }
+.ao-timeline__action { color: var(--ao-text-soft); font-size: var(--ao-text-md); }
+.ao-timeline__date { color: var(--ao-text-muted); font-size: var(--ao-text-sm); margin-left: auto; }
+
+/* Page layout helpers */
+.page { padding: var(--ao-space-6); max-width: 1280px; margin: 0 auto; }
+.page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--ao-space-4); margin-bottom: var(--ao-space-6); flex-wrap: wrap; }
+.page-head h1 { font-size: var(--ao-text-2xl); margin: var(--ao-space-1) 0 0; }
+.page-actions { display: flex; gap: var(--ao-space-2); }
+.section { margin-bottom: var(--ao-space-8); }
+.section-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: var(--ao-space-3); }
+.section-head h2 { font-size: var(--ao-text-lg); font-weight: 600; }
+.grid-2 { display: grid; grid-template-columns: 2fr 1fr; gap: var(--ao-space-3); }
+@media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } }
+
+/* Theme toggle (canto inferior) */
+.toggle-pill {
+  position: fixed; bottom: var(--ao-space-4); right: var(--ao-space-4);
+  z-index: 9999; display: flex; gap: 4px; padding: 4px;
+  background: var(--ao-surface-elevated); border: 1px solid var(--ao-border);
+  border-radius: var(--ao-radius-full); box-shadow: var(--ao-shadow-lg);
+}
+.toggle-pill button {
+  appearance: none; border: none; background: transparent; color: var(--ao-text-soft);
+  font: 500 var(--ao-text-sm) var(--ao-font-body); padding: 6px 12px;
+  border-radius: var(--ao-radius-full); cursor: pointer;
+}
+.toggle-pill button[aria-pressed="true"] { background: var(--ao-primary); color: var(--ao-primary-on); }
+</style>
+</head>
+<body>
+
+<header class="ao-appbar">
+  <a href="#" class="ao-appbar__brand">
+    <div class="ao-appbar__brand-logo">A</div>
+    AIOSON CRM
+  </a>
+  <nav class="ao-appbar__nav">
+    <a class="ao-appbar__link ao-appbar__link--active">Dashboard</a>
+    <a class="ao-appbar__link">Pipeline</a>
+    <a class="ao-appbar__link">Contatos</a>
+    <a class="ao-appbar__link">Relatórios</a>
+  </nav>
+  <div class="ao-appbar__spacer"></div>
+  <div class="ao-appbar__user">
+    <div class="ao-avatar ao-avatar--sm ao-avatar--c1">JV</div>
+    <span style="font-size: var(--ao-text-sm); font-weight: 500;">Jaime</span>
+  </div>
+</header>
+
+<main class="page">
+
+  <!-- Page header com breadcrumb -->
+  <div class="page-head">
+    <div>
+      <nav class="ao-breadcrumb">
+        <ol class="ao-breadcrumb__list">
+          <li class="ao-breadcrumb__item"><a class="ao-breadcrumb__link">Home</a></li>
+          <li class="ao-breadcrumb__item" aria-current="page">Visão geral</li>
+        </ol>
+      </nav>
+      <h1>Visão geral</h1>
+    </div>
+    <div class="page-actions">
+      <button class="ao-btn ao-btn--ghost">Exportar</button>
+      <button class="ao-btn ao-btn--primary">+ Novo lead</button>
+    </div>
+  </div>
+
+  <!-- KPI Grid (Fase 3) -->
+  <section class="section">
+    <div class="ao-kpi-grid">
+      <div class="ao-kpi ao-kpi--primary">
+        <div class="ao-kpi__head">
+          <p class="ao-kpi__label">Leads ativos</p>
+          <span class="ao-kpi__delta ao-kpi__delta--up">↑ 12%</span>
+        </div>
+        <p class="ao-kpi__value">142</p>
+        <div class="ao-kpi__chart">
+          <svg viewBox="0 0 100 40" preserveAspectRatio="none">
+            <polyline fill="none" stroke="var(--ao-primary)" stroke-width="2"
+              points="0,30 15,28 30,22 45,18 60,20 75,12 90,8 100,10"/>
+          </svg>
+        </div>
+      </div>
+
+      <div class="ao-kpi ao-kpi--success">
+        <div class="ao-kpi__head">
+          <p class="ao-kpi__label">Receita do mês</p>
+          <span class="ao-kpi__delta ao-kpi__delta--up">↑ 8%</span>
+        </div>
+        <p class="ao-kpi__value">R$ 84,2<span class="ao-kpi__unit">k</span></p>
+        <p class="ao-kpi__sub">vs R$ 76k mês anterior</p>
+      </div>
+
+      <div class="ao-kpi ao-kpi--warning">
+        <p class="ao-kpi__label">Em negociação</p>
+        <p class="ao-kpi__value">23 <span class="ao-kpi__unit">leads</span></p>
+        <p class="ao-kpi__sub">R$ 198k em pipeline</p>
+      </div>
+
+      <div class="ao-kpi ao-kpi--info">
+        <div class="ao-kpi__head">
+          <p class="ao-kpi__label">Taxa de conversão</p>
+          <span class="ao-kpi__delta ao-kpi__delta--down">↓ 2pp</span>
+        </div>
+        <p class="ao-kpi__value">28<span class="ao-kpi__unit">%</span></p>
+        <p class="ao-kpi__sub">média 60 dias</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tabela + Timeline lado a lado -->
+  <div class="grid-2 section">
+
+    <!-- Tabela de leads (Fase 3) -->
+    <div>
+      <div class="section-head">
+        <h2>Leads recentes</h2>
+        <button class="ao-btn ao-btn--ghost ao-btn--sm">Ver todos →</button>
+      </div>
+
+      <div class="ao-table-wrap">
+        <table class="ao-table ao-table--compact">
+          <thead>
+            <tr>
+              <th>Lead</th>
+              <th>Status</th>
+              <th>Owner</th>
+              <th class="ao-td--num">Valor</th>
+              <th>Atividade</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Acme Corp</strong></td>
+              <td><span class="ao-status-pill ao-status-pill--negotiation"><span class="ao-status-pill__icon">●</span>Negociação</span></td>
+              <td><div style="display:flex;align-items:center;gap:6px"><span class="ao-avatar ao-avatar--xs ao-avatar--c1">AS</span><span style="font-size: var(--ao-text-sm)">Ana Silva</span></div></td>
+              <td class="ao-td--num">R$ 12.400</td>
+              <td style="color: var(--ao-text-soft); font-size: var(--ao-text-sm)">2h atrás</td>
+            </tr>
+            <tr>
+              <td><strong>TechStart Ltda</strong></td>
+              <td><span class="ao-status-pill ao-status-pill--qualified"><span class="ao-status-pill__icon">●</span>Qualificado</span></td>
+              <td><div style="display:flex;align-items:center;gap:6px"><span class="ao-avatar ao-avatar--xs ao-avatar--c2">PR</span><span style="font-size: var(--ao-text-sm)">Pedro Rocha</span></div></td>
+              <td class="ao-td--num">R$ 4.800</td>
+              <td style="color: var(--ao-text-soft); font-size: var(--ao-text-sm)">5h atrás</td>
+            </tr>
+            <tr>
+              <td><strong>Global Imports</strong></td>
+              <td><span class="ao-status-pill ao-status-pill--won"><span class="ao-status-pill__icon">●</span>Ganho</span></td>
+              <td><div style="display:flex;align-items:center;gap:6px"><span class="ao-avatar ao-avatar--xs ao-avatar--c3">MC</span><span style="font-size: var(--ao-text-sm)">Maria C.</span></div></td>
+              <td class="ao-td--num">R$ 28.000</td>
+              <td style="color: var(--ao-text-soft); font-size: var(--ao-text-sm)">ontem</td>
+            </tr>
+            <tr>
+              <td><strong>Studio Café</strong></td>
+              <td><span class="ao-status-pill ao-status-pill--new"><span class="ao-status-pill__icon">●</span>Novo</span></td>
+              <td><div style="display:flex;align-items:center;gap:6px"><span class="ao-avatar ao-avatar--xs ao-avatar--c4">JV</span><span style="font-size: var(--ao-text-sm)">Jaime V.</span></div></td>
+              <td class="ao-td--num">R$ 1.200</td>
+              <td style="color: var(--ao-text-soft); font-size: var(--ao-text-sm)">há 2 dias</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Timeline (Fase 6) -->
+    <div>
+      <div class="section-head">
+        <h2>Atividade recente</h2>
+      </div>
+
+      <div class="ao-card">
+        <div class="ao-card__body">
+          <ul class="ao-timeline">
+            <li class="ao-timeline__item">
+              <span class="ao-timeline__dot ao-timeline__dot--success">✓</span>
+              <div class="ao-timeline__content">
+                <div class="ao-timeline__head">
+                  <span class="ao-timeline__author">Maria C.</span>
+                  <span class="ao-timeline__action">fechou Global Imports</span>
+                  <span class="ao-timeline__date">2h</span>
+                </div>
+              </div>
+            </li>
+            <li class="ao-timeline__item">
+              <span class="ao-timeline__dot ao-timeline__dot--info">@</span>
+              <div class="ao-timeline__content">
+                <div class="ao-timeline__head">
+                  <span class="ao-timeline__author">Ana Silva</span>
+                  <span class="ao-timeline__action">enviou proposta para Acme</span>
+                  <span class="ao-timeline__date">3h</span>
+                </div>
+              </div>
+            </li>
+            <li class="ao-timeline__item">
+              <span class="ao-timeline__dot"></span>
+              <div class="ao-timeline__content">
+                <div class="ao-timeline__head">
+                  <span class="ao-timeline__author">Pedro R.</span>
+                  <span class="ao-timeline__action">qualificou TechStart</span>
+                  <span class="ao-timeline__date">5h</span>
+                </div>
+              </div>
+            </li>
+            <li class="ao-timeline__item">
+              <span class="ao-timeline__dot"></span>
+              <div class="ao-timeline__content">
+                <div class="ao-timeline__head">
+                  <span class="ao-timeline__author">Sistema</span>
+                  <span class="ao-timeline__action">importou 12 leads</span>
+                  <span class="ao-timeline__date">ontem</span>
+                </div>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pipeline / Kanban (Fase 6) -->
+  <section class="section">
+    <div class="section-head">
+      <h2>Pipeline</h2>
+      <button class="ao-btn ao-btn--ghost ao-btn--sm">Filtrar</button>
+    </div>
+
+    <div class="ao-kanban">
+      <div class="ao-kanban__column">
+        <div class="ao-kanban__column-header">
+          <span class="ao-kanban__column-color ao-kanban__column-color--info"></span>
+          <h3 class="ao-kanban__column-title">Novos</h3>
+          <span class="ao-kanban__column-count">8</span>
+        </div>
+        <div class="ao-kanban__column-body">
+          <article class="ao-kanban__card">
+            <h4 class="ao-kanban__card-title">Studio Café — Brand kit</h4>
+            <div class="ao-kanban__card-meta">
+              <span class="ao-avatar ao-avatar--xs ao-avatar--c4">JV</span>
+              <span class="ao-kanban__card-value">R$ 1.2k</span>
+            </div>
+          </article>
+          <article class="ao-kanban__card">
+            <h4 class="ao-kanban__card-title">FastShip Ltda — Site institucional</h4>
+            <div class="ao-kanban__card-meta">
+              <span class="ao-avatar ao-avatar--xs ao-avatar--c1">AS</span>
+              <span class="ao-kanban__card-value">R$ 6.4k</span>
+            </div>
+          </article>
+          <article class="ao-kanban__card">
+            <h4 class="ao-kanban__card-title">Padaria Doce Pão — Cardápio</h4>
+            <div class="ao-kanban__card-meta">
+              <span class="ao-avatar ao-avatar--xs ao-avatar--c2">PR</span>
+              <span class="ao-kanban__card-value">R$ 800</span>
+            </div>
+          </article>
+        </div>
+      </div>
+
+      <div class="ao-kanban__column">
+        <div class="ao-kanban__column-header">
+          <span class="ao-kanban__column-color ao-kanban__column-color--cyan"></span>
+          <h3 class="ao-kanban__column-title">Qualificados</h3>
+          <span class="ao-kanban__column-count">5</span>
+        </div>
+        <div class="ao-kanban__column-body">
+          <article class="ao-kanban__card">
+            <h4 class="ao-kanban__card-title">TechStart — 50 licenças</h4>
+            <div class="ao-kanban__card-meta">
+              <span class="ao-avatar ao-avatar--xs ao-avatar--c2">PR</span>
+              <span class="ao-kanban__card-value">R$ 4.8k</span>
+            </div>
+          </article>
+          <article class="ao-kanban__card">
+            <h4 class="ao-kanban__card-title">Editora Fluxo — Ebook bundle</h4>
+            <div class="ao-kanban__card-meta">
+              <span class="ao-avatar ao-avatar--xs ao-avatar--c3">MC</span>
+              <span class="ao-kanban__card-value">R$ 9.2k</span>
+            </div>
+          </article>
+        </div>
+      </div>
+
+      <div class="ao-kanban__column">
+        <div class="ao-kanban__column-header">
+          <span class="ao-kanban__column-color ao-kanban__column-color--warning"></span>
+          <h3 class="ao-kanban__column-title">Negociação</h3>
+          <span class="ao-kanban__column-count">3</span>
+        </div>
+        <div class="ao-kanban__column-body">
+          <article class="ao-kanban__card">
+            <h4 class="ao-kanban__card-title">Acme Corp — Plano Pro</h4>
+            <div class="ao-kanban__card-meta">
+              <span class="ao-avatar ao-avatar--xs ao-avatar--c1">AS</span>
+              <span class="ao-kanban__card-value">R$ 12.4k</span>
+            </div>
+          </article>
+          <article class="ao-kanban__card">
+            <h4 class="ao-kanban__card-title">VetClinic — Sistema completo</h4>
+            <div class="ao-kanban__card-meta">
+              <span class="ao-avatar ao-avatar--xs ao-avatar--c4">JV</span>
+              <span class="ao-kanban__card-value">R$ 18.6k</span>
+            </div>
+          </article>
+        </div>
+      </div>
+
+      <div class="ao-kanban__column">
+        <div class="ao-kanban__column-header">
+          <span class="ao-kanban__column-color ao-kanban__column-color--success"></span>
+          <h3 class="ao-kanban__column-title">Ganhos</h3>
+          <span class="ao-kanban__column-count">2</span>
+        </div>
+        <div class="ao-kanban__column-body">
+          <article class="ao-kanban__card">
+            <h4 class="ao-kanban__card-title">Global Imports — Anual</h4>
+            <div class="ao-kanban__card-meta">
+              <span class="ao-avatar ao-avatar--xs ao-avatar--c3">MC</span>
+              <span class="ao-kanban__card-value">R$ 28k</span>
+            </div>
+          </article>
+          <article class="ao-kanban__card">
+            <h4 class="ao-kanban__card-title">Restaurante Sabor — Site</h4>
+            <div class="ao-kanban__card-meta">
+              <span class="ao-avatar ao-avatar--xs ao-avatar--c1">AS</span>
+              <span class="ao-kanban__card-value">R$ 3.2k</span>
+            </div>
+          </article>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- Theme toggle inferior -->
+<div class="toggle-pill">
+  <button data-theme="dark" aria-pressed="true">Dark</button>
+  <button data-theme="light" aria-pressed="false">Light</button>
+</div>
+
+<script>
+document.querySelectorAll('.toggle-pill button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const theme = btn.dataset.theme;
+    document.documentElement.setAttribute('data-theme', theme);
+    document.querySelectorAll('.toggle-pill button').forEach(b => {
+      b.setAttribute('aria-pressed', b.dataset.theme === theme ? 'true' : 'false');
+    });
+  });
+});
+</script>
+</body>
+</html>

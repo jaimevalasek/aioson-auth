@@ -47,3 +47,4 @@ build/
 mappings/
 .claude/
 .gemini/
+aioson-logs/

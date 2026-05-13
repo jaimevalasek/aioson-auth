@@ -1,0 +1,211 @@
+/* =============================================================================
+   AIOSON APP UI — COMPONENT · TABS
+   =============================================================================
+   .ao-tabs — navegação entre views/seções.
+
+   Variantes:
+   - default: underline
+   - --pill: tabs em forma de pill com fundo
+   - --vertical: tabs verticais (sidebar de filtros, settings)
+
+   Estados:
+   - default
+   - --active (selecionado)
+   - :hover
+   - :focus-visible
+   - :disabled
+
+   Acessibilidade:
+   - Use role="tablist" no .ao-tabs
+   - Use role="tab" + aria-selected nos .ao-tab
+   - Use role="tabpanel" no painel correspondente
+   ============================================================================= */
+
+.ao-tabs {
+  display: flex;
+  align-items: center;
+  gap: var(--ao-space-1);
+  border-bottom: 1px solid var(--ao-border);
+  position: relative;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* -----------------------------------------------------------------
+   .ao-tab — botão individual
+   ----------------------------------------------------------------- */
+
+.ao-tab {
+  appearance: none;
+  border: none;
+  background: transparent;
+  margin: 0;
+  height: 34px;
+  padding: 0 var(--ao-space-3);
+  font-family: var(--ao-font-body);
+  font-size: var(--ao-text-md);
+  font-weight: 500;
+  color: var(--ao-text-soft);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ao-space-2);
+  white-space: nowrap;
+  position: relative;
+  transition:
+    color var(--ao-duration-fast) var(--ao-easing-standard),
+    background var(--ao-duration-fast) var(--ao-easing-standard);
+  border-radius: var(--ao-radius-xs) var(--ao-radius-xs) 0 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px; /* aproximar 1px para sobrepor a linha do ao-tabs */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ao-tab { transition: none; }
+}
+
+.ao-tab__icon {
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.ao-tab__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 18px;
+  min-width: 20px;
+  padding: 0 6px;
+  font-size: var(--ao-text-xs);
+  font-weight: 600;
+  background: var(--ao-surface-hover);
+  color: var(--ao-text-soft);
+  border-radius: var(--ao-radius-full);
+}
+
+/* Hover */
+.ao-tab:hover:not([disabled]) {
+  color: var(--ao-text);
+}
+
+/* Focus */
+.ao-tab:focus-visible {
+  outline: 2px solid var(--ao-primary);
+  outline-offset: -2px;
+  border-radius: var(--ao-radius-xs);
+}
+
+/* Active */
+.ao-tab--active,
+.ao-tab[aria-selected="true"] {
+  color: var(--ao-primary);
+  border-bottom-color: var(--ao-primary);
+}
+
+.ao-tab--active .ao-tab__count,
+.ao-tab[aria-selected="true"] .ao-tab__count {
+  background: var(--ao-primary-soft);
+  color: var(--ao-primary);
+}
+
+/* Disabled */
+.ao-tab:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* -----------------------------------------------------------------
+   VARIANTE: --pill
+   Tabs em pill ao invés de underline — útil para filtros
+   ----------------------------------------------------------------- */
+
+.ao-tabs--pill {
+  border-bottom: none;
+  background: var(--ao-surface);
+  padding: var(--ao-space-1);
+  border-radius: var(--ao-radius-md);
+  border: 1px solid var(--ao-border);
+  display: inline-flex;
+}
+
+.ao-tabs--pill .ao-tab {
+  height: 28px;
+  padding: 0 var(--ao-space-3);
+  border-bottom: none;
+  border-radius: var(--ao-radius-xs);
+  margin-bottom: 0;
+  font-size: var(--ao-text-sm);
+}
+
+.ao-tabs--pill .ao-tab:hover:not([disabled]) {
+  background: var(--ao-surface-hover);
+}
+
+.ao-tabs--pill .ao-tab--active,
+.ao-tabs--pill .ao-tab[aria-selected="true"] {
+  background: var(--ao-primary-soft);
+  color: var(--ao-primary);
+  border-bottom: none;
+}
+
+/* -----------------------------------------------------------------
+   VARIANTE: --vertical
+   ----------------------------------------------------------------- */
+
+.ao-tabs--vertical {
+  flex-direction: column;
+  align-items: stretch;
+  border-bottom: none;
+  border-right: 1px solid var(--ao-border);
+  width: 200px;
+  padding-right: var(--ao-space-2);
+}
+
+.ao-tabs--vertical .ao-tab {
+  justify-content: flex-start;
+  width: 100%;
+  height: 32px;
+  border-bottom: none;
+  border-right: 2px solid transparent;
+  margin-bottom: 0;
+  margin-right: -1px;
+  border-radius: var(--ao-radius-xs) 0 0 var(--ao-radius-xs);
+}
+
+.ao-tabs--vertical .ao-tab--active,
+.ao-tabs--vertical .ao-tab[aria-selected="true"] {
+  border-bottom-color: transparent;
+  border-right-color: var(--ao-primary);
+  background: var(--ao-primary-soft);
+}
+
+/* -----------------------------------------------------------------
+   PANEL — conteúdo de cada tab
+   ----------------------------------------------------------------- */
+
+.ao-tab-panel {
+  display: none;
+  padding: var(--ao-space-4) 0;
+}
+
+.ao-tab-panel--active,
+.ao-tab-panel[aria-hidden="false"] {
+  display: block;
+}
+
+/* Animação suave ao trocar (opcional) */
+.ao-tab-panel--active {
+  animation: ao-tab-fade var(--ao-duration-base) var(--ao-easing-decelerate);
+}
+
+@keyframes ao-tab-fade {
+  from { opacity: 0; transform: translateY(-2px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ao-tab-panel--active { animation: none; }
+}

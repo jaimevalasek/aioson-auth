@@ -1,0 +1,101 @@
+/* =============================================================================
+   AIOSON APP UI — SEMANTIC TOKENS · LIGHT + WORK
+   =============================================================================
+   Aplicado em: <html data-theme="light" data-mode="work">
+
+   Contexto de uso: dashboards light, CRM light, áreas operacionais
+   com preferência por tema claro, formulários light.
+
+   Características:
+   - Paleta suavizada e profunda (cyan-600, violet-600)
+   - Sombras sutis em vez de glows
+   - Background super suave (#FAFAFA — não branco hospital)
+   - Bordas marcadas para hierarquia em fundo claro
+   - Tipografia compacta 12px com line-height 1.6
+   ============================================================================= */
+
+:root[data-theme="light"][data-mode="work"] {
+
+  /* -----------------------------------------------------------------
+     SURFACES & BACKGROUNDS
+     ----------------------------------------------------------------- */
+  --ao-bg:               #FAFAFA;
+  --ao-surface:          #FFFFFF;
+  --ao-surface-elevated: #FFFFFF;
+  --ao-surface-hover:    #F4F4F5;
+
+  /* -----------------------------------------------------------------
+     TEXT
+     ----------------------------------------------------------------- */
+  --ao-text:         #0F172A;
+  --ao-text-soft:    #475569;
+  --ao-text-muted:   #94A3B8;
+  --ao-text-inverse: #FFFFFF;
+
+  /* -----------------------------------------------------------------
+     BORDERS
+     ----------------------------------------------------------------- */
+  --ao-border:        rgba(15, 23, 42, 0.08);
+  --ao-border-strong: rgba(15, 23, 42, 0.16);
+  --ao-border-subtle: rgba(15, 23, 42, 0.04);
+  --ao-border-focus:  var(--cyan-600);
+
+  /* -----------------------------------------------------------------
+     PRIMARY — Cyan profundo (#0891B2)
+     ----------------------------------------------------------------- */
+  --ao-primary:         var(--cyan-600);   /* #0891B2 */
+  --ao-primary-hover:   var(--cyan-700);   /* #0E7490 */
+  --ao-primary-pressed: var(--cyan-800);   /* #155E75 */
+  --ao-primary-soft:    rgba(8, 145, 178, 0.10);
+  --ao-primary-on:      #FFFFFF;
+
+  /* -----------------------------------------------------------------
+     SECONDARY — Violet médio (#7C3AED)
+     ----------------------------------------------------------------- */
+  --ao-secondary:       var(--violet-600);  /* #7C3AED */
+  --ao-secondary-hover: var(--violet-700);  /* #6D28D9 */
+  --ao-secondary-soft:  rgba(124, 58, 237, 0.10);
+
+  /* -----------------------------------------------------------------
+     ACCENT — Plasma médio (#9333EA)
+     ----------------------------------------------------------------- */
+  --ao-accent:      var(--plasma-700);  /* #9333EA */
+  --ao-accent-soft: rgba(147, 51, 234, 0.10);
+
+  /* -----------------------------------------------------------------
+     SEMANTIC STATES
+     ----------------------------------------------------------------- */
+  --ao-success:      var(--green-600);   /* #16A34A */
+  --ao-success-soft: rgba(22, 163, 74, 0.10);
+  --ao-warning:      var(--amber-600);   /* #D97706 */
+  --ao-warning-soft: rgba(217, 119, 6, 0.10);
+  --ao-danger:       var(--red-600);     /* #DC2626 */
+  --ao-danger-soft:  rgba(220, 38, 38, 0.10);
+  --ao-info:         var(--blue-600);    /* #2563EB */
+  --ao-info-soft:    rgba(37, 99, 235, 0.10);
+
+  /* -----------------------------------------------------------------
+     EFFECTS — Glows neutralizados; sombras sutis e suaves
+     ----------------------------------------------------------------- */
+  --ao-glow-cyan:   none;
+  --ao-glow-violet: none;
+  --ao-glow-plasma: none;
+
+  --ao-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --ao-shadow-md: 0 4px 12px rgba(15, 23, 42, 0.06);
+  --ao-shadow-lg: 0 16px 32px rgba(15, 23, 42, 0.08);
+
+  /* -----------------------------------------------------------------
+     OVERLAYS
+     ----------------------------------------------------------------- */
+  --ao-overlay:        rgba(15, 23, 42, 0.5);
+  --ao-overlay-strong: rgba(15, 23, 42, 0.7);
+
+  /* -----------------------------------------------------------------
+     GRADIENTS — minimizados
+     ----------------------------------------------------------------- */
+  --ao-gradient-primary: linear-gradient(135deg, var(--cyan-600) 0%, var(--violet-600) 100%);
+  --ao-gradient-accent:  linear-gradient(135deg, var(--violet-600) 0%, var(--plasma-700) 100%);
+  --ao-gradient-radial:  none;
+
+}

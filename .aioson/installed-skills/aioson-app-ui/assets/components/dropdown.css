@@ -1,0 +1,129 @@
+/* =============================================================================
+   AIOSON APP UI — COMPONENT · DROPDOWN MENU
+   =============================================================================
+   .ao-dropdown — menu de ações ancorado a um trigger.
+
+   Estrutura:
+   .ao-dropdown
+     .ao-dropdown__item (clicável)
+     .ao-dropdown__divider (linha separadora)
+     .ao-dropdown__group-title (label de seção)
+
+   Posicionamento via JS. CSS apenas estiliza.
+   ============================================================================= */
+
+.ao-dropdown {
+  position: absolute;
+  z-index: var(--ao-z-dropdown);
+  min-width: 180px;
+  background: var(--ao-surface-elevated);
+  border: 1px solid var(--ao-border);
+  border-radius: var(--ao-radius-md);
+  box-shadow: var(--ao-shadow-md);
+  padding: 4px;
+  animation: ao-dropdown-in var(--ao-duration-fast) var(--ao-easing-decelerate);
+}
+
+@keyframes ao-dropdown-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ao-dropdown { animation: none; }
+}
+
+/* -----------------------------------------------------------------
+   ITEM
+   ----------------------------------------------------------------- */
+
+.ao-dropdown__item {
+  appearance: none;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: var(--ao-space-2);
+  padding: var(--ao-space-2) var(--ao-space-3);
+  font-family: var(--ao-font-body);
+  font-size: var(--ao-text-md);
+  color: var(--ao-text);
+  border-radius: var(--ao-radius-xs);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background var(--ao-duration-fast) var(--ao-easing-standard);
+  white-space: nowrap;
+}
+
+.ao-dropdown__item:hover:not([disabled]),
+.ao-dropdown__item:focus-visible {
+  background: var(--ao-surface-hover);
+  outline: none;
+}
+
+.ao-dropdown__item:focus-visible {
+  outline: 2px solid var(--ao-primary);
+  outline-offset: -2px;
+}
+
+.ao-dropdown__item:disabled,
+.ao-dropdown__item[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.ao-dropdown__item-icon {
+  font-size: 14px;
+  color: var(--ao-text-muted);
+  flex-shrink: 0;
+}
+
+.ao-dropdown__item-shortcut {
+  margin-left: auto;
+  font-family: var(--ao-font-mono);
+  font-size: var(--ao-text-xs);
+  color: var(--ao-text-muted);
+}
+
+/* Variant --danger (delete, destructive) */
+.ao-dropdown__item--danger {
+  color: var(--ao-danger);
+}
+
+.ao-dropdown__item--danger .ao-dropdown__item-icon {
+  color: var(--ao-danger);
+}
+
+.ao-dropdown__item--danger:hover:not([disabled]) {
+  background: var(--ao-danger-soft);
+}
+
+/* -----------------------------------------------------------------
+   DIVIDER
+   ----------------------------------------------------------------- */
+
+.ao-dropdown__divider {
+  height: 1px;
+  background: var(--ao-border);
+  margin: 4px 0;
+}
+
+/* -----------------------------------------------------------------
+   GROUP TITLE
+   ----------------------------------------------------------------- */
+
+.ao-dropdown__group-title {
+  padding: 6px var(--ao-space-3) 4px;
+  font-size: var(--ao-text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: var(--ao-tracking-wider);
+  color: var(--ao-text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ao-dropdown__item { transition: none; }
+}

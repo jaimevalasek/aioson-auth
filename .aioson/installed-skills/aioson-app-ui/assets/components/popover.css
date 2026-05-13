@@ -1,0 +1,59 @@
+/* =============================================================================
+   AIOSON APP UI — COMPONENT · POPOVER
+   =============================================================================
+   .ao-popover — pequeno painel ancorado a um trigger (não modal).
+
+   Diferença vs Tooltip: popover tem conteúdo rico (botões, links).
+   Diferença vs Modal: popover não bloqueia interação fora dele.
+
+   Posicionamento: feito via JS (Floating UI / Popper) ou Alpine.
+   CSS apenas estiliza o container.
+   ============================================================================= */
+
+.ao-popover {
+  position: absolute;
+  z-index: var(--ao-z-dropdown);
+  background: var(--ao-surface-elevated);
+  border: 1px solid var(--ao-border);
+  border-radius: var(--ao-radius-md);
+  box-shadow: var(--ao-shadow-md);
+  padding: var(--ao-space-3) var(--ao-space-4);
+  font-size: var(--ao-text-md);
+  color: var(--ao-text);
+  max-width: 320px;
+  animation: ao-popover-in var(--ao-duration-fast) var(--ao-easing-decelerate);
+}
+
+@keyframes ao-popover-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ao-popover { animation: none; }
+}
+
+.ao-popover__title {
+  font-size: var(--ao-text-md);
+  font-weight: 600;
+  color: var(--ao-text);
+  margin: 0 0 4px;
+}
+
+.ao-popover__body {
+  font-size: var(--ao-text-sm);
+  color: var(--ao-text-soft);
+  margin: 0;
+  line-height: var(--ao-leading-relaxed);
+}
+
+.ao-popover__actions {
+  display: flex;
+  gap: var(--ao-space-2);
+  margin-top: var(--ao-space-3);
+}
+
+/* Variante --compact (sem padding interno extra) */
+.ao-popover--compact {
+  padding: var(--ao-space-1);
+}

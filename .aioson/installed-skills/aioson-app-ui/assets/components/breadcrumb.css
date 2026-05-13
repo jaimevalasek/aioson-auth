@@ -1,0 +1,88 @@
+/* =============================================================================
+   AIOSON APP UI — COMPONENT · BREADCRUMB
+   =============================================================================
+   .ao-breadcrumb — trilha hierárquica de navegação.
+
+   Estrutura:
+   <nav class="ao-breadcrumb" aria-label="Breadcrumb">
+     <ol class="ao-breadcrumb__list">
+       <li class="ao-breadcrumb__item">
+         <a class="ao-breadcrumb__link">Home</a>
+       </li>
+       <li class="ao-breadcrumb__item">
+         <a class="ao-breadcrumb__link">CRM</a>
+       </li>
+       <li class="ao-breadcrumb__item ao-breadcrumb__item--current" aria-current="page">
+         Lead 1234
+       </li>
+     </ol>
+   </nav>
+   ============================================================================= */
+
+.ao-breadcrumb {
+  font-family: var(--ao-font-body);
+  font-size: var(--ao-text-sm);
+}
+
+.ao-breadcrumb__list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: 4px;
+}
+
+.ao-breadcrumb__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ao-text-soft);
+}
+
+.ao-breadcrumb__item + .ao-breadcrumb__item::before {
+  content: "/";
+  color: var(--ao-text-muted);
+  margin-right: 4px;
+  font-weight: 400;
+}
+
+.ao-breadcrumb__link {
+  color: var(--ao-text-soft);
+  text-decoration: none;
+  padding: 2px 4px;
+  border-radius: var(--ao-radius-xs);
+  transition: color var(--ao-duration-fast), background var(--ao-duration-fast);
+}
+
+.ao-breadcrumb__link:hover {
+  color: var(--ao-text);
+  background: var(--ao-surface-hover);
+}
+
+.ao-breadcrumb__link:focus-visible {
+  outline: 2px solid var(--ao-primary);
+  outline-offset: 1px;
+}
+
+.ao-breadcrumb__icon {
+  font-size: 14px;
+  color: var(--ao-text-muted);
+}
+
+.ao-breadcrumb__item--current,
+.ao-breadcrumb__item[aria-current="page"] {
+  color: var(--ao-text);
+  font-weight: 500;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ao-breadcrumb__link { transition: none; }
+}
+
+/* Variante --chevron (separador é seta) */
+.ao-breadcrumb--chevron .ao-breadcrumb__item + .ao-breadcrumb__item::before {
+  content: "›";
+  font-size: 14px;
+}

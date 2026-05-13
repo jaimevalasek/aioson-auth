@@ -1,0 +1,101 @@
+/* =============================================================================
+   AIOSON APP UI — SEMANTIC TOKENS · DARK + BRAND
+   =============================================================================
+   Aplicado em: <html data-theme="dark" data-mode="brand">
+
+   Contexto de uso: landing pages, login, splash screens, onboarding,
+   áreas onde a identidade visual da marca é o foco principal.
+
+   Características:
+   - Paleta vibrante (cyan electric, violet luminous, plasma)
+   - Glow effects visíveis
+   - Gradientes radiais e bordas brilhantes
+   - Tipografia display generosa
+   - Mantém identidade da v1.0
+   ============================================================================= */
+
+:root[data-theme="dark"][data-mode="brand"] {
+
+  /* -----------------------------------------------------------------
+     SURFACES & BACKGROUNDS
+     ----------------------------------------------------------------- */
+  --ao-bg:               #050814;
+  --ao-surface:          #0B1120;
+  --ao-surface-elevated: #10172A;
+  --ao-surface-hover:    #161E33;
+
+  /* -----------------------------------------------------------------
+     TEXT
+     ----------------------------------------------------------------- */
+  --ao-text:         #F2F5F9;
+  --ao-text-soft:    #B0B8C9;
+  --ao-text-muted:   #6F7891;
+  --ao-text-inverse: #050814;
+
+  /* -----------------------------------------------------------------
+     BORDERS
+     ----------------------------------------------------------------- */
+  --ao-border:        rgba(255, 255, 255, 0.08);
+  --ao-border-strong: rgba(255, 255, 255, 0.16);
+  --ao-border-subtle: rgba(255, 255, 255, 0.04);
+  --ao-border-focus:  var(--cyan-electric);
+
+  /* -----------------------------------------------------------------
+     PRIMARY — Electric Cyan (vibrante, brand identity)
+     ----------------------------------------------------------------- */
+  --ao-primary:         var(--cyan-electric);     /* #00E5FF */
+  --ao-primary-hover:   #33EAFF;
+  --ao-primary-pressed: #00B8D4;
+  --ao-primary-soft:    rgba(0, 229, 255, 0.12);
+  --ao-primary-on:      #050814;
+
+  /* -----------------------------------------------------------------
+     SECONDARY — Luminous Violet
+     ----------------------------------------------------------------- */
+  --ao-secondary:       var(--violet-luminous);   /* #8A5CFF */
+  --ao-secondary-hover: #A07CFF;
+  --ao-secondary-soft:  rgba(138, 92, 255, 0.12);
+
+  /* -----------------------------------------------------------------
+     ACCENT — Plasma Violet (saturação extrema)
+     ----------------------------------------------------------------- */
+  --ao-accent:      #B63CFF;
+  --ao-accent-soft: rgba(182, 60, 255, 0.14);
+
+  /* -----------------------------------------------------------------
+     SEMANTIC STATES
+     ----------------------------------------------------------------- */
+  --ao-success:      var(--green-400);
+  --ao-success-soft: rgba(74, 222, 128, 0.12);
+  --ao-warning:      var(--amber-400);
+  --ao-warning-soft: rgba(251, 191, 36, 0.12);
+  --ao-danger:       var(--red-400);
+  --ao-danger-soft:  rgba(248, 113, 113, 0.12);
+  --ao-info:         var(--blue-400);
+  --ao-info-soft:    rgba(96, 165, 250, 0.12);
+
+  /* -----------------------------------------------------------------
+     EFFECTS — Glows VISÍVEIS no brand mode
+     ----------------------------------------------------------------- */
+  --ao-glow-cyan:   0 0 32px rgba(0, 229, 255, 0.35), 0 0 8px rgba(0, 229, 255, 0.5);
+  --ao-glow-violet: 0 0 32px rgba(138, 92, 255, 0.35), 0 0 8px rgba(138, 92, 255, 0.5);
+  --ao-glow-plasma: 0 0 32px rgba(182, 60, 255, 0.35), 0 0 8px rgba(182, 60, 255, 0.5);
+
+  --ao-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --ao-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --ao-shadow-lg: 0 24px 48px rgba(0, 0, 0, 0.55);
+
+  /* -----------------------------------------------------------------
+     OVERLAYS
+     ----------------------------------------------------------------- */
+  --ao-overlay:        rgba(5, 8, 20, 0.7);
+  --ao-overlay-strong: rgba(5, 8, 20, 0.9);
+
+  /* -----------------------------------------------------------------
+     GRADIENTS — uso em hero, cards de destaque
+     ----------------------------------------------------------------- */
+  --ao-gradient-primary: linear-gradient(135deg, var(--cyan-electric) 0%, var(--violet-luminous) 100%);
+  --ao-gradient-accent:  linear-gradient(135deg, var(--violet-luminous) 0%, #B63CFF 100%);
+  --ao-gradient-radial:  radial-gradient(circle at top right, rgba(0, 229, 255, 0.15), transparent 60%);
+
+}

@@ -1,0 +1,192 @@
+/* =============================================================================
+   AIOSON APP UI — COMPONENT · DRAWER
+   =============================================================================
+   .ao-drawer — painel lateral (right ou left).
+
+   Diferença vs Modal:
+   - Modal: centrado, foco na tarefa
+   - Drawer: lateral, mantém contexto da página visível
+
+   Variantes:
+   - --right (default): vem da direita
+   - --left: vem da esquerda
+   - --top, --bottom: vertical (mobile-friendly)
+   - --sm (320px), default (400px), --lg (560px), --full (90vw)
+   ============================================================================= */
+
+.ao-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--ao-z-drawer);
+  background: rgba(0, 0, 0, 0.4);
+  animation: ao-drawer-backdrop-in var(--ao-duration-base) var(--ao-easing-decelerate);
+}
+
+@keyframes ao-drawer-backdrop-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+:root[data-theme="light"] .ao-drawer-backdrop {
+  background: rgba(15, 23, 42, 0.3);
+}
+
+.ao-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 400px;
+  max-width: 100vw;
+  background: var(--ao-surface-elevated);
+  border-left: 1px solid var(--ao-border);
+  box-shadow: var(--ao-shadow-lg);
+  z-index: calc(var(--ao-z-drawer) + 1);
+  display: flex;
+  flex-direction: column;
+  animation: ao-drawer-in-right var(--ao-duration-slow) var(--ao-easing-decelerate);
+}
+
+@keyframes ao-drawer-in-right {
+  from { transform: translateX(100%); }
+  to   { transform: none; }
+}
+
+@keyframes ao-drawer-in-left {
+  from { transform: translateX(-100%); }
+  to   { transform: none; }
+}
+
+@keyframes ao-drawer-in-top {
+  from { transform: translateY(-100%); }
+  to   { transform: none; }
+}
+
+@keyframes ao-drawer-in-bottom {
+  from { transform: translateY(100%); }
+  to   { transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ao-drawer-backdrop,
+  .ao-drawer { animation: none; }
+}
+
+/* -----------------------------------------------------------------
+   POSIÇÕES
+   ----------------------------------------------------------------- */
+
+.ao-drawer--left {
+  right: auto;
+  left: 0;
+  border-left: none;
+  border-right: 1px solid var(--ao-border);
+  animation-name: ao-drawer-in-left;
+}
+
+.ao-drawer--top {
+  right: 0;
+  bottom: auto;
+  width: auto;
+  height: auto;
+  max-height: 80vh;
+  border-left: none;
+  border-bottom: 1px solid var(--ao-border);
+  animation-name: ao-drawer-in-top;
+}
+
+.ao-drawer--bottom {
+  top: auto;
+  right: 0;
+  width: auto;
+  height: auto;
+  max-height: 80vh;
+  border-left: none;
+  border-top: 1px solid var(--ao-border);
+  border-radius: var(--ao-radius-lg) var(--ao-radius-lg) 0 0;
+  animation-name: ao-drawer-in-bottom;
+}
+
+/* -----------------------------------------------------------------
+   TAMANHOS
+   ----------------------------------------------------------------- */
+
+.ao-drawer--sm   { width: 320px; }
+.ao-drawer--lg   { width: 560px; }
+.ao-drawer--full { width: 90vw; }
+
+/* -----------------------------------------------------------------
+   ESTRUTURA INTERNA (mesma do modal)
+   ----------------------------------------------------------------- */
+
+.ao-drawer__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ao-space-3);
+  padding: var(--ao-space-4) var(--ao-space-5);
+  border-bottom: 1px solid var(--ao-border);
+  flex-shrink: 0;
+}
+
+.ao-drawer__title {
+  font-family: var(--ao-font-heading);
+  font-size: var(--ao-text-lg);
+  font-weight: 600;
+  color: var(--ao-text);
+  margin: 0;
+}
+
+.ao-drawer__subtitle {
+  font-size: var(--ao-text-sm);
+  color: var(--ao-text-soft);
+  margin: 4px 0 0;
+}
+
+.ao-drawer__close {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--ao-text-muted);
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--ao-radius-xs);
+  font-size: 16px;
+  flex-shrink: 0;
+  transition: background var(--ao-duration-fast), color var(--ao-duration-fast);
+}
+
+.ao-drawer__close:hover {
+  background: var(--ao-surface-hover);
+  color: var(--ao-text);
+}
+
+.ao-drawer__close:focus-visible {
+  outline: 2px solid var(--ao-primary);
+  outline-offset: 1px;
+}
+
+.ao-drawer__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--ao-space-5);
+}
+
+.ao-drawer__body--flush {
+  padding: 0;
+}
+
+.ao-drawer__footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--ao-space-2);
+  padding: var(--ao-space-3) var(--ao-space-5);
+  border-top: 1px solid var(--ao-border);
+  background: var(--ao-bg);
+  flex-shrink: 0;
+}

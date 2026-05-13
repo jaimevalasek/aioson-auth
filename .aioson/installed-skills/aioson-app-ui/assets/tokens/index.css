@@ -1,0 +1,24 @@
+/* =============================================================================
+   AIOSON APP UI — TOKENS · INDEX
+   =============================================================================
+   Agregador de todos os tokens. Importe este arquivo no seu projeto
+   para ter acesso a todos os tokens em todos os contextos.
+
+   Uso típico:
+     @import './aioson-app-ui/assets/tokens/index.css';
+
+   Após importar, ative um contexto no <html>:
+     <html data-theme="dark"  data-mode="brand">  <!-- landing -->
+     <html data-theme="dark"  data-mode="work">   <!-- dashboard -->
+     <html data-theme="light" data-mode="brand">  <!-- landing light -->
+     <html data-theme="light" data-mode="work">   <!-- dashboard light -->
+
+   Os tokens primitive ficam sempre disponíveis (não dependem de contexto).
+   Os tokens semantic (--ao-*) mudam conforme o contexto ativo.
+   ============================================================================= */
+
+@import './primitive.css';
+@import './dark-brand.css';
+@import './dark-work.css';
+@import './light-brand.css';
+@import './light-work.css';

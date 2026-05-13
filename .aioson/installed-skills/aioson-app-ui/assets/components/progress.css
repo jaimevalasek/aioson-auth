@@ -1,0 +1,163 @@
+/* =============================================================================
+   AIOSON APP UI — COMPONENT · PROGRESS
+   =============================================================================
+   .ao-progress — barra de progresso linear.
+
+   Variantes:
+   - default (cyan primary)
+   - --secondary, --success, --warning, --danger
+   - --indeterminate (animação contínua, valor desconhecido)
+   - --sm (4px), default (8px), --lg (12px)
+   - --striped (textura listrada)
+
+   Estrutura:
+   .ao-progress
+     .ao-progress__bar (preenchimento, width via inline style ou CSS var)
+   ============================================================================= */
+
+.ao-progress {
+  display: block;
+  width: 100%;
+  height: 8px;
+  background: var(--ao-surface-hover);
+  border-radius: var(--ao-radius-full);
+  overflow: hidden;
+  position: relative;
+}
+
+.ao-progress__bar {
+  height: 100%;
+  background: var(--ao-primary);
+  border-radius: inherit;
+  transition: width var(--ao-duration-base) var(--ao-easing-standard);
+  position: relative;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ao-progress__bar { transition: none; }
+}
+
+/* -----------------------------------------------------------------
+   TAMANHOS
+   ----------------------------------------------------------------- */
+
+.ao-progress--sm { height: 4px; }
+.ao-progress--lg { height: 12px; }
+
+/* -----------------------------------------------------------------
+   VARIANTES SEMÂNTICAS
+   ----------------------------------------------------------------- */
+
+.ao-progress--secondary .ao-progress__bar { background: var(--ao-secondary); }
+.ao-progress--success   .ao-progress__bar { background: var(--ao-success); }
+.ao-progress--warning   .ao-progress__bar { background: var(--ao-warning); }
+.ao-progress--danger    .ao-progress__bar { background: var(--ao-danger); }
+
+/* -----------------------------------------------------------------
+   STRIPED (listrada)
+   ----------------------------------------------------------------- */
+
+.ao-progress--striped .ao-progress__bar {
+  background-image: linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.2) 25%,
+    transparent 25%,
+    transparent 50%,
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(255, 255, 255, 0.2) 75%,
+    transparent 75%,
+    transparent
+  );
+  background-size: 16px 16px;
+}
+
+.ao-progress--striped.ao-progress--animated .ao-progress__bar {
+  animation: ao-progress-stripe 1s linear infinite;
+}
+
+@keyframes ao-progress-stripe {
+  0%   { background-position: 0 0; }
+  100% { background-position: 16px 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ao-progress--striped.ao-progress--animated .ao-progress__bar { animation: none; }
+}
+
+/* -----------------------------------------------------------------
+   INDETERMINATE (animação contínua)
+   ----------------------------------------------------------------- */
+
+.ao-progress--indeterminate .ao-progress__bar {
+  width: 30%;
+  animation: ao-progress-indeterminate 1.5s ease-in-out infinite;
+}
+
+@keyframes ao-progress-indeterminate {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ao-progress--indeterminate .ao-progress__bar {
+    animation: none;
+    width: 50%;
+  }
+}
+
+/* -----------------------------------------------------------------
+   LABEL (texto de progresso opcional)
+   ----------------------------------------------------------------- */
+
+.ao-progress-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ao-progress-block__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--ao-text-sm);
+}
+
+.ao-progress-block__label {
+  color: var(--ao-text);
+  font-weight: 500;
+}
+
+.ao-progress-block__value {
+  color: var(--ao-text-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+/* =============================================================================
+   .ao-progress-circle — variante circular (radial)
+   Usar com SVG: <svg class="ao-progress-circle" ...>
+   ============================================================================= */
+
+.ao-progress-circle {
+  display: inline-block;
+  width: 48px;
+  height: 48px;
+  transform: rotate(-90deg);
+}
+
+.ao-progress-circle__track {
+  fill: none;
+  stroke: var(--ao-surface-hover);
+  stroke-width: 4;
+}
+
+.ao-progress-circle__bar {
+  fill: none;
+  stroke: var(--ao-primary);
+  stroke-width: 4;
+  stroke-linecap: round;
+  transition: stroke-dashoffset var(--ao-duration-base) var(--ao-easing-standard);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ao-progress-circle__bar { transition: none; }
+}

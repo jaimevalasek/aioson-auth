@@ -1,0 +1,196 @@
+/* =============================================================================
+   AIOSON APP UI — COMPONENT · TIMELINE
+   =============================================================================
+   .ao-timeline — sequência cronológica de eventos.
+
+   Estrutura:
+   .ao-timeline
+     .ao-timeline__item
+       .ao-timeline__dot (marcador)
+       .ao-timeline__content
+         .ao-timeline__head (autor + meta + data)
+         .ao-timeline__body
+       .ao-timeline__line (linha conectora — automática via ::before)
+
+   Variantes:
+   - default (vertical com dot)
+   - --condensed (espaçamento menor)
+   - --activity (estilo log de atividades, mais compacto)
+
+   Estados especiais por dot:
+   - dot--success/warning/danger/info para tipos de evento
+   - dot--icon (com ícone Phosphor dentro)
+   ============================================================================= */
+
+.ao-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+
+.ao-timeline__item {
+  position: relative;
+  display: flex;
+  gap: var(--ao-space-3);
+  padding-bottom: var(--ao-space-4);
+}
+
+.ao-timeline__item:last-child {
+  padding-bottom: 0;
+}
+
+/* Linha conectora vertical */
+.ao-timeline__item::before {
+  content: "";
+  position: absolute;
+  left: 11px; /* (24 - 2) / 2 — alinhado com center do dot 24px */
+  top: 24px;
+  bottom: 0;
+  width: 2px;
+  background: var(--ao-border);
+}
+
+.ao-timeline__item:last-child::before {
+  display: none;
+}
+
+/* -----------------------------------------------------------------
+   DOT (marcador)
+   ----------------------------------------------------------------- */
+
+.ao-timeline__dot {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--ao-surface);
+  border: 2px solid var(--ao-border-strong);
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  z-index: 1;
+}
+
+/* Variantes coloridas */
+.ao-timeline__dot--primary {
+  background: var(--ao-primary);
+  border-color: var(--ao-primary);
+  color: var(--ao-primary-on);
+}
+
+.ao-timeline__dot--success {
+  background: var(--ao-success);
+  border-color: var(--ao-success);
+  color: var(--ao-text-inverse);
+}
+
+.ao-timeline__dot--warning {
+  background: var(--ao-warning);
+  border-color: var(--ao-warning);
+  color: var(--ao-text-inverse);
+}
+
+.ao-timeline__dot--danger {
+  background: var(--ao-danger);
+  border-color: var(--ao-danger);
+  color: var(--ao-text-inverse);
+}
+
+.ao-timeline__dot--info {
+  background: var(--ao-info);
+  border-color: var(--ao-info);
+  color: var(--ao-text-inverse);
+}
+
+/* Dot que contém um avatar pequeno */
+.ao-timeline__dot--avatar {
+  width: 32px;
+  height: 32px;
+  border-width: 0;
+  background: transparent;
+  padding: 0;
+  overflow: hidden;
+}
+
+.ao-timeline__item:has(.ao-timeline__dot--avatar)::before {
+  left: 15px;
+  top: 32px;
+}
+
+/* -----------------------------------------------------------------
+   CONTENT
+   ----------------------------------------------------------------- */
+
+.ao-timeline__content {
+  flex: 1;
+  min-width: 0;
+  padding-top: 2px;
+}
+
+.ao-timeline__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--ao-space-2);
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.ao-timeline__author {
+  font-weight: 600;
+  color: var(--ao-text);
+  font-size: var(--ao-text-md);
+}
+
+.ao-timeline__action {
+  color: var(--ao-text-soft);
+  font-size: var(--ao-text-md);
+}
+
+.ao-timeline__date {
+  color: var(--ao-text-muted);
+  font-size: var(--ao-text-sm);
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.ao-timeline__body {
+  font-size: var(--ao-text-md);
+  color: var(--ao-text-soft);
+  line-height: var(--ao-leading-relaxed);
+}
+
+.ao-timeline__body p { margin: 0 0 var(--ao-space-2); }
+.ao-timeline__body p:last-child { margin-bottom: 0; }
+
+/* -----------------------------------------------------------------
+   VARIANTE --condensed
+   ----------------------------------------------------------------- */
+
+.ao-timeline--condensed .ao-timeline__item {
+  padding-bottom: var(--ao-space-3);
+}
+
+.ao-timeline--condensed .ao-timeline__dot {
+  width: 16px;
+  height: 16px;
+  border-width: 1.5px;
+}
+
+.ao-timeline--condensed .ao-timeline__item::before {
+  left: 7px;
+  top: 18px;
+}
+
+/* -----------------------------------------------------------------
+   VARIANTE --activity (log de eventos do sistema)
+   ----------------------------------------------------------------- */
+
+.ao-timeline--activity .ao-timeline__head {
+  font-size: var(--ao-text-sm);
+}
+
+.ao-timeline--activity .ao-timeline__author { font-size: var(--ao-text-sm); }
+.ao-timeline--activity .ao-timeline__action { font-size: var(--ao-text-sm); }

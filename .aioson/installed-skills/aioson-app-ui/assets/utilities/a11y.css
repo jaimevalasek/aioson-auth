@@ -1,0 +1,128 @@
+/* =============================================================================
+   AIOSON APP UI — UTILITIES · A11Y
+   =============================================================================
+   Helpers de acessibilidade.
+
+   Inclui:
+   - .ao-sr-only — esconde visualmente, mantém leitor de tela
+   - .ao-not-sr-only — reverte sr-only (para combinar com :focus)
+   - .ao-skip-link — link "pular para conteúdo principal"
+   - .ao-focus-ring — força anel de foco padronizado
+   ============================================================================= */
+
+/* Screen-reader only — visível só para tecnologia assistiva */
+.ao-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Reverte sr-only — útil em :focus para mostrar o item */
+.ao-not-sr-only {
+  position: static;
+  width: auto;
+  height: auto;
+  padding: 0;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+/* -----------------------------------------------------------------
+   SKIP LINK
+   ----------------------------------------------------------------- */
+
+.ao-skip-link {
+  position: absolute;
+  left: var(--ao-space-3);
+  top: var(--ao-space-3);
+  z-index: var(--ao-z-modal);
+  padding: var(--ao-space-2) var(--ao-space-3);
+  background: var(--ao-primary);
+  color: var(--ao-primary-on);
+  font-family: var(--ao-font-body);
+  font-size: var(--ao-text-md);
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: var(--ao-radius-xs);
+  box-shadow: var(--ao-shadow-md);
+  transform: translateY(-200%);
+  transition: transform var(--ao-duration-fast) var(--ao-easing-decelerate);
+}
+
+.ao-skip-link:focus,
+.ao-skip-link:focus-visible {
+  transform: none;
+  outline: 2px solid var(--ao-primary-on);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ao-skip-link { transition: none; }
+}
+
+/* -----------------------------------------------------------------
+   FOCUS RING — força anel de foco em qualquer elemento
+   ----------------------------------------------------------------- */
+
+.ao-focus-ring:focus-visible {
+  outline: 2px solid var(--ao-primary);
+  outline-offset: 2px;
+  border-radius: var(--ao-radius-xs);
+}
+
+/* -----------------------------------------------------------------
+   FOCUS TRAP — marca um container de modal/drawer
+   (uso conjunto com lib JS, ex: focus-trap)
+   ----------------------------------------------------------------- */
+
+[data-ao-focus-trap] {
+  outline: none;
+}
+
+/* -----------------------------------------------------------------
+   VISUALLY-HIDDEN BUT FOCUSABLE
+   Para botões/links importantes que só aparecem ao receber foco
+   ----------------------------------------------------------------- */
+
+.ao-focus-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.ao-focus-only:focus,
+.ao-focus-only:focus-visible {
+  position: static;
+  width: auto;
+  height: auto;
+  padding: var(--ao-space-2) var(--ao-space-3);
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+/* -----------------------------------------------------------------
+   HIGH CONTRAST PREFERENCE
+   ----------------------------------------------------------------- */
+
+@media (prefers-contrast: more) {
+  :root {
+    --ao-border: var(--ao-text);
+    --ao-border-strong: var(--ao-text);
+  }
+}

@@ -1,0 +1,178 @@
+/* =============================================================================
+   AIOSON APP UI — COMPONENT · MULTISELECT
+   =============================================================================
+   .ao-multiselect — combobox que aceita múltiplas seleções (chips).
+
+   Estrutura:
+   .ao-multiselect
+     .ao-multiselect__control (área visível com chips + input)
+       .ao-multiselect__chip (item selecionado removível)
+       .ao-multiselect__input (input para busca)
+     .ao-multiselect__menu (dropdown — herda estilo de combobox)
+   ============================================================================= */
+
+.ao-multiselect {
+  position: relative;
+  width: 100%;
+}
+
+.ao-multiselect__control {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-height: 34px;
+  padding: 4px;
+  background: var(--ao-surface);
+  border: 1px solid var(--ao-border-strong);
+  border-radius: var(--ao-radius-sm);
+  cursor: text;
+  transition:
+    border-color var(--ao-duration-fast) var(--ao-easing-standard),
+    box-shadow var(--ao-duration-fast) var(--ao-easing-standard);
+}
+
+.ao-multiselect__control:hover {
+  border-color: var(--ao-text-muted);
+}
+
+.ao-multiselect--focused .ao-multiselect__control {
+  border-color: var(--ao-primary);
+  box-shadow: 0 0 0 3px var(--ao-primary-soft);
+}
+
+.ao-multiselect[aria-invalid="true"] .ao-multiselect__control,
+.ao-multiselect--error .ao-multiselect__control {
+  border-color: var(--ao-danger);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ao-multiselect__control { transition: none; }
+}
+
+/* -----------------------------------------------------------------
+   CHIP (selected item)
+   ----------------------------------------------------------------- */
+
+.ao-multiselect__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 6px;
+  height: 22px;
+  background: var(--ao-primary-soft);
+  color: var(--ao-primary);
+  border-radius: var(--ao-radius-xs);
+  font-size: var(--ao-text-sm);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.ao-multiselect__chip-remove {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: currentColor;
+  opacity: 0.7;
+  cursor: pointer;
+  padding: 0;
+  width: 14px;
+  height: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 12px;
+  transition: opacity var(--ao-duration-fast);
+}
+
+.ao-multiselect__chip-remove:hover {
+  opacity: 1;
+}
+
+.ao-multiselect__chip-remove:focus-visible {
+  outline: 1px solid currentColor;
+  opacity: 1;
+}
+
+/* -----------------------------------------------------------------
+   INPUT (área de digitação)
+   ----------------------------------------------------------------- */
+
+.ao-multiselect__input {
+  flex: 1;
+  min-width: 80px;
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--ao-text);
+  font-family: var(--ao-font-body);
+  font-size: var(--ao-text-md);
+  padding: 0 4px;
+  height: 24px;
+  outline: none;
+}
+
+.ao-multiselect__input::placeholder {
+  color: var(--ao-text-muted);
+}
+
+/* -----------------------------------------------------------------
+   MENU — herda de combobox
+   ----------------------------------------------------------------- */
+
+.ao-multiselect__menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: var(--ao-z-dropdown);
+  max-height: 280px;
+  overflow-y: auto;
+  background: var(--ao-surface-elevated);
+  border: 1px solid var(--ao-border);
+  border-radius: var(--ao-radius-sm);
+  box-shadow: var(--ao-shadow-md);
+  padding: 4px;
+  display: none;
+}
+
+.ao-multiselect--open .ao-multiselect__menu {
+  display: block;
+}
+
+.ao-multiselect__option {
+  padding: var(--ao-space-2) var(--ao-space-3);
+  font-size: var(--ao-text-md);
+  color: var(--ao-text);
+  border-radius: var(--ao-radius-xs);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: var(--ao-space-2);
+}
+
+.ao-multiselect__option:hover,
+.ao-multiselect__option--active {
+  background: var(--ao-surface-hover);
+}
+
+.ao-multiselect__option--selected {
+  color: var(--ao-primary);
+  font-weight: 500;
+}
+
+.ao-multiselect__option--selected::before {
+  content: "✓";
+  color: var(--ao-primary);
+  margin-right: 4px;
+}
+
+.ao-multiselect__placeholder {
+  color: var(--ao-text-muted);
+  font-size: var(--ao-text-md);
+  padding: 0 4px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+}

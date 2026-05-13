@@ -1,0 +1,87 @@
+/* =============================================================================
+   AIOSON APP UI — COMPONENT · USER CARD
+   =============================================================================
+   .ao-user-card — bloco compacto de identificação de usuário
+   (nome + meta + avatar + ação opcional).
+
+   Uso típico: lista de membros do time, atribuição de lead, owners de tarefa.
+
+   Estrutura:
+   .ao-user-card
+     .ao-avatar (componente avatar)
+     .ao-user-card__info
+       .ao-user-card__name
+       .ao-user-card__meta
+     .ao-user-card__action (opcional, alinhado à direita)
+   ============================================================================= */
+
+.ao-user-card {
+  display: flex;
+  align-items: center;
+  gap: var(--ao-space-3);
+  padding: var(--ao-space-2) var(--ao-space-3);
+  border-radius: var(--ao-radius-sm);
+}
+
+.ao-user-card__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.ao-user-card__name {
+  font-family: var(--ao-font-body);
+  font-weight: 600;
+  font-size: var(--ao-text-md);
+  color: var(--ao-text);
+  margin: 0;
+  line-height: var(--ao-leading-snug);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ao-user-card__meta {
+  font-size: var(--ao-text-sm);
+  color: var(--ao-text-soft);
+  margin: 2px 0 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ao-user-card__action {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+/* -----------------------------------------------------------------
+   VARIANTE --interactive (clicável, com hover)
+   ----------------------------------------------------------------- */
+
+.ao-user-card--interactive {
+  cursor: pointer;
+  transition: background var(--ao-duration-fast) var(--ao-easing-standard);
+}
+
+.ao-user-card--interactive:hover {
+  background: var(--ao-surface-hover);
+}
+
+.ao-user-card--interactive:focus-visible {
+  outline: 2px solid var(--ao-primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ao-user-card--interactive { transition: none; }
+}
+
+/* -----------------------------------------------------------------
+   VARIANTE --bordered (com card frame completo)
+   ----------------------------------------------------------------- */
+
+.ao-user-card--bordered {
+  background: var(--ao-surface);
+  border: 1px solid var(--ao-border);
+  padding: var(--ao-space-3) var(--ao-space-4);
+}

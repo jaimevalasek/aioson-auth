@@ -1,0 +1,64 @@
+/* =============================================================================
+   AIOSON APP UI — COMPONENTS · INDEX
+   =============================================================================
+   Atalho que importa todos os componentes do design system.
+
+   Para tree-shaking ótimo, prefira importar apenas os componentes que usar:
+     @import './components/buttons.css';
+     @import './components/inputs.css';
+
+   Este arquivo é um conveniência para projetos que querem tudo de uma vez.
+   ============================================================================= */
+
+/* -----------------------------------------------------------------
+   FASE 2 — Componentes fundamentais
+   ----------------------------------------------------------------- */
+@import './buttons.css';
+@import './cards.css';
+@import './chips.css';
+@import './inputs.css';
+@import './tabs.css';
+@import './alerts.css';
+@import './sidebar.css';
+
+/* -----------------------------------------------------------------
+   FASE 3 — Data display
+   ----------------------------------------------------------------- */
+@import './tables.css';
+@import './kpi.css';
+@import './skeleton.css';
+@import './progress.css';
+
+/* -----------------------------------------------------------------
+   FASE 4 — Forms
+   ----------------------------------------------------------------- */
+@import './toggle.css';
+@import './checkbox.css';
+@import './radio.css';
+@import './datepicker.css';
+@import './combobox.css';
+@import './multiselect.css';
+@import './fileupload.css';
+
+/* -----------------------------------------------------------------
+   FASE 5 — Overlays + Navigation
+   ----------------------------------------------------------------- */
+@import './modal.css';
+@import './drawer.css';
+@import './popover.css';
+@import './tooltip.css';
+@import './dropdown.css';
+@import './toast.css';
+@import './appbar.css';
+@import './breadcrumb.css';
+@import './pagination.css';
+
+/* -----------------------------------------------------------------
+   FASE 6 — CRM-específicos
+   ----------------------------------------------------------------- */
+@import './avatar.css';
+@import './timeline.css';
+@import './kanban.css';
+@import './comment.css';
+@import './user-card.css';
+@import './status-pill.css';

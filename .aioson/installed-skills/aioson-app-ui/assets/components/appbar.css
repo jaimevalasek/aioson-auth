@@ -1,0 +1,157 @@
+/* =============================================================================
+   AIOSON APP UI — COMPONENT · APPBAR (TOP NAVIGATION)
+   =============================================================================
+   .ao-appbar — barra de navegação superior do app.
+
+   Estrutura:
+   .ao-appbar
+     .ao-appbar__brand (logo + nome)
+     .ao-appbar__nav (links principais)
+     .ao-appbar__actions (search, user menu, notifications)
+   ============================================================================= */
+
+.ao-appbar {
+  display: flex;
+  align-items: center;
+  gap: var(--ao-space-4);
+  height: 56px;
+  padding: 0 var(--ao-space-5);
+  background: var(--ao-surface);
+  border-bottom: 1px solid var(--ao-border);
+  position: sticky;
+  top: 0;
+  z-index: var(--ao-z-sticky);
+}
+
+/* -----------------------------------------------------------------
+   BRAND
+   ----------------------------------------------------------------- */
+
+.ao-appbar__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--ao-space-2);
+  text-decoration: none;
+  color: var(--ao-text);
+  font-family: var(--ao-font-heading);
+  font-weight: 600;
+  font-size: var(--ao-text-md);
+  letter-spacing: var(--ao-tracking-tight);
+  flex-shrink: 0;
+}
+
+.ao-appbar__brand:hover { color: var(--ao-primary); }
+
+.ao-appbar__brand-logo {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--ao-radius-xs);
+  background: linear-gradient(135deg, var(--ao-primary), var(--ao-secondary));
+  display: grid;
+  place-items: center;
+  color: var(--ao-text-inverse);
+  font-weight: 700;
+}
+
+/* -----------------------------------------------------------------
+   NAV (links principais)
+   ----------------------------------------------------------------- */
+
+.ao-appbar__nav {
+  display: flex;
+  align-items: center;
+  gap: var(--ao-space-1);
+  margin-left: var(--ao-space-4);
+}
+
+.ao-appbar__link {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--ao-text-soft);
+  font-family: var(--ao-font-body);
+  font-size: var(--ao-text-md);
+  font-weight: 500;
+  text-decoration: none;
+  padding: 6px var(--ao-space-3);
+  border-radius: var(--ao-radius-xs);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ao-space-2);
+  transition: background var(--ao-duration-fast), color var(--ao-duration-fast);
+  cursor: pointer;
+}
+
+.ao-appbar__link:hover {
+  background: var(--ao-surface-hover);
+  color: var(--ao-text);
+}
+
+.ao-appbar__link:focus-visible {
+  outline: 2px solid var(--ao-primary);
+  outline-offset: 2px;
+}
+
+.ao-appbar__link--active,
+.ao-appbar__link[aria-current="page"] {
+  color: var(--ao-primary);
+  background: var(--ao-primary-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ao-appbar__link { transition: none; }
+}
+
+/* -----------------------------------------------------------------
+   SPACER + ACTIONS
+   ----------------------------------------------------------------- */
+
+.ao-appbar__spacer { flex: 1; }
+
+.ao-appbar__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--ao-space-1);
+  flex-shrink: 0;
+}
+
+.ao-appbar__search {
+  width: 280px;
+}
+
+/* -----------------------------------------------------------------
+   USER AREA (avatar + nome)
+   ----------------------------------------------------------------- */
+
+.ao-appbar__user {
+  display: flex;
+  align-items: center;
+  gap: var(--ao-space-2);
+  padding: 4px 8px 4px 4px;
+  border-radius: var(--ao-radius-full);
+  cursor: pointer;
+  transition: background var(--ao-duration-fast);
+}
+
+.ao-appbar__user:hover {
+  background: var(--ao-surface-hover);
+}
+
+.ao-appbar__user:focus-visible {
+  outline: 2px solid var(--ao-primary);
+  outline-offset: 2px;
+}
+
+.ao-appbar__user-name {
+  font-size: var(--ao-text-sm);
+  font-weight: 500;
+  color: var(--ao-text);
+}
+
+/* Versão compacta para mobile */
+@media (max-width: 768px) {
+  .ao-appbar { padding: 0 var(--ao-space-3); }
+  .ao-appbar__nav { display: none; }
+  .ao-appbar__search { display: none; }
+  .ao-appbar__user-name { display: none; }
+}

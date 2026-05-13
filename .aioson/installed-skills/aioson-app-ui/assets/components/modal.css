@@ -1,0 +1,209 @@
+/* =============================================================================
+   AIOSON APP UI — COMPONENT · MODAL (DIALOG)
+   =============================================================================
+   .ao-modal — overlay para confirmações, formulários, detalhes.
+
+   Estrutura:
+   .ao-modal-backdrop
+     .ao-modal
+       .ao-modal__header
+         .ao-modal__title
+         .ao-modal__close
+       .ao-modal__body
+       .ao-modal__footer
+
+   Tamanhos: --sm (400px), default (520px), --lg (720px), --xl (960px), --full
+   ============================================================================= */
+
+.ao-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--ao-z-modal);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: var(--ao-space-8) var(--ao-space-4);
+  overflow-y: auto;
+  animation: ao-modal-backdrop-in var(--ao-duration-base) var(--ao-easing-decelerate);
+}
+
+@keyframes ao-modal-backdrop-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Light theme: backdrop mais sutil */
+:root[data-theme="light"] .ao-modal-backdrop {
+  background: rgba(15, 23, 42, 0.4);
+}
+
+.ao-modal {
+  background: var(--ao-surface-elevated);
+  border: 1px solid var(--ao-border);
+  border-radius: var(--ao-radius-lg);
+  box-shadow: var(--ao-shadow-lg);
+  width: 100%;
+  max-width: 520px;
+  max-height: calc(100vh - var(--ao-space-16));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: ao-modal-in var(--ao-duration-slow) var(--ao-easing-decelerate);
+  margin: auto;
+}
+
+@keyframes ao-modal-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ao-modal-backdrop,
+  .ao-modal { animation: none; }
+}
+
+/* -----------------------------------------------------------------
+   HEADER
+   ----------------------------------------------------------------- */
+
+.ao-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ao-space-3);
+  padding: var(--ao-space-4) var(--ao-space-5);
+  border-bottom: 1px solid var(--ao-border);
+}
+
+.ao-modal__title {
+  font-family: var(--ao-font-heading);
+  font-size: var(--ao-text-lg);
+  font-weight: 600;
+  color: var(--ao-text);
+  margin: 0;
+  letter-spacing: var(--ao-tracking-tight);
+}
+
+.ao-modal__close {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--ao-text-muted);
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--ao-radius-xs);
+  font-size: 16px;
+  transition: background var(--ao-duration-fast), color var(--ao-duration-fast);
+}
+
+.ao-modal__close:hover {
+  background: var(--ao-surface-hover);
+  color: var(--ao-text);
+}
+
+.ao-modal__close:focus-visible {
+  outline: 2px solid var(--ao-primary);
+  outline-offset: 1px;
+}
+
+/* -----------------------------------------------------------------
+   BODY
+   ----------------------------------------------------------------- */
+
+.ao-modal__body {
+  padding: var(--ao-space-5);
+  flex: 1;
+  overflow-y: auto;
+  color: var(--ao-text);
+  font-size: var(--ao-text-md);
+  line-height: var(--ao-leading-relaxed);
+}
+
+.ao-modal__body--flush {
+  padding: 0;
+}
+
+/* -----------------------------------------------------------------
+   FOOTER
+   ----------------------------------------------------------------- */
+
+.ao-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--ao-space-2);
+  padding: var(--ao-space-3) var(--ao-space-5);
+  border-top: 1px solid var(--ao-border);
+  background: var(--ao-bg);
+}
+
+.ao-modal__footer--space-between {
+  justify-content: space-between;
+}
+
+/* -----------------------------------------------------------------
+   TAMANHOS
+   ----------------------------------------------------------------- */
+
+.ao-modal--sm  { max-width: 400px; }
+.ao-modal--lg  { max-width: 720px; }
+.ao-modal--xl  { max-width: 960px; }
+
+.ao-modal--full {
+  max-width: calc(100vw - var(--ao-space-8));
+  max-height: calc(100vh - var(--ao-space-8));
+}
+
+/* -----------------------------------------------------------------
+   VARIANTE --centered (vertical center)
+   ----------------------------------------------------------------- */
+
+.ao-modal-backdrop--centered {
+  align-items: center;
+}
+
+/* -----------------------------------------------------------------
+   ALERT VARIANT (modal de confirmação simples)
+   ----------------------------------------------------------------- */
+
+.ao-modal--alert {
+  text-align: center;
+}
+
+.ao-modal--alert .ao-modal__body {
+  padding: var(--ao-space-6) var(--ao-space-5);
+}
+
+.ao-modal__alert-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  margin: 0 auto var(--ao-space-3);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  background: var(--ao-warning-soft);
+  color: var(--ao-warning);
+}
+
+.ao-modal__alert-icon--danger {
+  background: var(--ao-danger-soft);
+  color: var(--ao-danger);
+}
+
+.ao-modal__alert-icon--success {
+  background: var(--ao-success-soft);
+  color: var(--ao-success);
+}
+
+.ao-modal__alert-icon--info {
+  background: var(--ao-info-soft);
+  color: var(--ao-info);
+}

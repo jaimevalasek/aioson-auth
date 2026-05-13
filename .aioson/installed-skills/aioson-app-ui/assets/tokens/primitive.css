@@ -1,0 +1,224 @@
+/* =============================================================================
+   AIOSON APP UI — PRIMITIVE TOKENS (Camada 1)
+   =============================================================================
+   Valores brutos. Nunca usar diretamente em componentes.
+   Componentes consomem apenas tokens semantic (Camada 2).
+
+   Estes tokens NÃO mudam com tema/modo. São constantes do sistema.
+   ============================================================================= */
+
+:root {
+
+  /* -----------------------------------------------------------------
+     CYAN — Cor primária da marca AIOSON
+     ----------------------------------------------------------------- */
+  --cyan-50:  #ECFEFF;
+  --cyan-100: #CFFAFE;
+  --cyan-200: #A5F3FC;
+  --cyan-300: #67E8F9;
+  --cyan-400: #22D3EE;  /* primary work-dark */
+  --cyan-500: #06B6D4;
+  --cyan-600: #0891B2;  /* primary work-light */
+  --cyan-700: #0E7490;
+  --cyan-800: #155E75;
+  --cyan-900: #164E63;
+
+  /* -----------------------------------------------------------------
+     VIOLET — Cor secundária da marca AIOSON
+     ----------------------------------------------------------------- */
+  --violet-50:  #F5F3FF;
+  --violet-100: #EDE9FE;
+  --violet-200: #DDD6FE;
+  --violet-300: #C4B5FD;
+  --violet-400: #A78BFA;  /* secondary work-dark */
+  --violet-500: #8B5CF6;
+  --violet-600: #7C3AED;  /* secondary work-light */
+  --violet-700: #6D28D9;
+  --violet-800: #5B21B6;
+  --violet-900: #4C1D95;
+
+  /* -----------------------------------------------------------------
+     NEUTRAL — Backgrounds, surfaces, borders, text
+     ----------------------------------------------------------------- */
+  --neutral-0:    #FFFFFF;
+  --neutral-50:   #FAFAFA;
+  --neutral-100:  #F4F4F5;
+  --neutral-200:  #E4E4E7;
+  --neutral-300:  #D4D4D8;
+  --neutral-400:  #A1A1AA;
+  --neutral-500:  #71717A;
+  --neutral-600:  #52525B;
+  --neutral-700:  #3F3F46;
+  --neutral-800:  #27272A;
+  --neutral-900:  #18181B;
+  --neutral-950:  #0A0E1A;
+  --neutral-1000: #050814;
+
+  /* -----------------------------------------------------------------
+     GREEN — Success states
+     ----------------------------------------------------------------- */
+  --green-50:  #F0FDF4;
+  --green-100: #DCFCE7;
+  --green-200: #BBF7D0;
+  --green-300: #86EFAC;
+  --green-400: #4ADE80;
+  --green-500: #22C55E;
+  --green-600: #16A34A;
+  --green-700: #15803D;
+  --green-800: #166534;
+  --green-900: #14532D;
+
+  /* -----------------------------------------------------------------
+     AMBER — Warning states
+     ----------------------------------------------------------------- */
+  --amber-50:  #FFFBEB;
+  --amber-100: #FEF3C7;
+  --amber-200: #FDE68A;
+  --amber-300: #FCD34D;
+  --amber-400: #FBBF24;
+  --amber-500: #F59E0B;
+  --amber-600: #D97706;
+  --amber-700: #B45309;
+  --amber-800: #92400E;
+  --amber-900: #78350F;
+
+  /* -----------------------------------------------------------------
+     RED — Danger / error states
+     ----------------------------------------------------------------- */
+  --red-50:  #FEF2F2;
+  --red-100: #FEE2E2;
+  --red-200: #FECACA;
+  --red-300: #FCA5A5;
+  --red-400: #F87171;
+  --red-500: #EF4444;
+  --red-600: #DC2626;
+  --red-700: #B91C1C;
+  --red-800: #991B1B;
+  --red-900: #7F1D1D;
+
+  /* -----------------------------------------------------------------
+     BLUE — Info states / neutral accents
+     ----------------------------------------------------------------- */
+  --blue-50:  #EFF6FF;
+  --blue-100: #DBEAFE;
+  --blue-200: #BFDBFE;
+  --blue-300: #93C5FD;
+  --blue-400: #60A5FA;
+  --blue-500: #3B82F6;
+  --blue-600: #2563EB;
+  --blue-700: #1D4ED8;
+  --blue-800: #1E40AF;
+  --blue-900: #1E3A8A;
+
+  /* -----------------------------------------------------------------
+     ACCENT — Plasma violet (saturação alta para brand mode)
+     ----------------------------------------------------------------- */
+  --plasma-400: #C084FC;
+  --plasma-500: #B63CFF;  /* accent brand-dark */
+  --plasma-600: #A020F0;  /* accent brand-light */
+  --plasma-700: #9333EA;  /* accent work-light */
+
+  /* -----------------------------------------------------------------
+     ELECTRIC CYAN — Variante vibrante para brand mode
+     ----------------------------------------------------------------- */
+  --cyan-electric: #00E5FF;  /* primary brand-dark */
+  --cyan-deep:     #00B8D4;  /* primary brand-light */
+
+  /* -----------------------------------------------------------------
+     LUMINOUS VIOLET — Variante vibrante para brand mode
+     ----------------------------------------------------------------- */
+  --violet-luminous: #8A5CFF;  /* secondary brand-dark */
+  --violet-deep:     #7C3FE6;  /* secondary brand-light */
+
+  /* =================================================================
+     TOKENS NEUTROS (não dependem de tema/modo)
+     Spacing, radius, motion, breakpoints, z-index, fontes
+     ================================================================= */
+
+  /* -----------------------------------------------------------------
+     SPACING — escala compacta (work-first)
+     ----------------------------------------------------------------- */
+  --ao-space-1:   4px;
+  --ao-space-2:   8px;
+  --ao-space-3:   12px;
+  --ao-space-4:   16px;
+  --ao-space-5:   20px;
+  --ao-space-6:   24px;
+  --ao-space-8:   32px;
+  --ao-space-10:  40px;
+  --ao-space-12:  48px;
+  --ao-space-16:  64px;  /* hero spacing — brand mode only */
+  --ao-space-20:  80px;  /* section spacing — brand mode only */
+
+  /* -----------------------------------------------------------------
+     TYPOGRAPHY — escalas (work mode usa todas; brand expande)
+     ----------------------------------------------------------------- */
+  --ao-text-xs:   10px;
+  --ao-text-sm:   11px;
+  --ao-text-base: 12px;   /* work mode body padrão */
+  --ao-text-md:   13px;
+  --ao-text-lg:   15px;
+  --ao-text-xl:   18px;
+  --ao-text-2xl:  22px;
+  --ao-text-3xl:  28px;
+  --ao-text-4xl:  36px;   /* brand H1 */
+  --ao-text-5xl:  44px;   /* brand display sm */
+  --ao-text-6xl:  64px;   /* brand display lg */
+
+  --ao-leading-tight:   1.2;
+  --ao-leading-snug:    1.35;
+  --ao-leading-base:    1.5;
+  --ao-leading-relaxed: 1.6;
+
+  --ao-tracking-tight: -0.03em;
+  --ao-tracking-base:  0;
+  --ao-tracking-wide:  0.04em;
+  --ao-tracking-wider: 0.08em;
+
+  --ao-font-heading: 'Sora', system-ui, sans-serif;
+  --ao-font-body:    'Inter', system-ui, sans-serif;
+  --ao-font-mono:    'JetBrains Mono', ui-monospace, monospace;
+
+  /* -----------------------------------------------------------------
+     RADIUS
+     ----------------------------------------------------------------- */
+  --ao-radius-xs:   4px;   /* chips, tags, badges */
+  --ao-radius-sm:   6px;   /* buttons, inputs */
+  --ao-radius-md:   8px;   /* cards work mode (teto) */
+  --ao-radius-lg:   12px;  /* modais, drawers */
+  --ao-radius-xl:   16px;  /* hero cards brand only */
+  --ao-radius-2xl:  22px;  /* brand mode cards (compatibilidade v1) */
+  --ao-radius-full: 9999px;
+
+  /* -----------------------------------------------------------------
+     Z-INDEX
+     ----------------------------------------------------------------- */
+  --ao-z-base:     10;
+  --ao-z-dropdown: 100;
+  --ao-z-sticky:   200;
+  --ao-z-drawer:   300;
+  --ao-z-modal:    400;
+  --ao-z-toast:    500;
+  --ao-z-tooltip:  600;
+
+  /* -----------------------------------------------------------------
+     MOTION
+     ----------------------------------------------------------------- */
+  --ao-duration-fast: 120ms;
+  --ao-duration-base: 200ms;
+  --ao-duration-slow: 320ms;
+
+  --ao-easing-standard:   cubic-bezier(0.2, 0, 0, 1);
+  --ao-easing-decelerate: cubic-bezier(0, 0, 0.2, 1);
+  --ao-easing-accelerate: cubic-bezier(0.4, 0, 1, 1);
+
+  /* -----------------------------------------------------------------
+     BREAKPOINTS (referência — usar em @media queries)
+     ----------------------------------------------------------------- */
+  --ao-bp-sm:  640px;
+  --ao-bp-md:  768px;
+  --ao-bp-lg:  1024px;
+  --ao-bp-xl:  1280px;
+  --ao-bp-2xl: 1536px;
+
+}

@@ -1,0 +1,54 @@
+/* =============================================================================
+   AIOSON APP UI — CHARTS · PALETTE
+   =============================================================================
+   Paleta categórica ordenada para charts (Chart.js, ApexCharts, ECharts).
+
+   8 cores + variantes alpha para áreas/fills.
+
+   Uso em JS:
+     const styles = getComputedStyle(document.documentElement);
+     const color1 = styles.getPropertyValue('--ao-chart-1').trim();
+
+   A paleta muda automaticamente conforme tema/modo via CSS vars.
+   ============================================================================= */
+
+:root {
+  /* Categórica — ordem por frequência de uso */
+  --ao-chart-1: var(--ao-primary);    /* cyan */
+  --ao-chart-2: var(--ao-secondary);  /* violet */
+  --ao-chart-3: var(--ao-success);    /* green */
+  --ao-chart-4: var(--ao-warning);    /* amber */
+  --ao-chart-5: var(--ao-info);       /* blue */
+  --ao-chart-6: var(--ao-accent);     /* plasma */
+  --ao-chart-7: var(--ao-danger);     /* red */
+  --ao-chart-8: var(--ao-text-soft);  /* neutral */
+
+  /* Alpha versions para área/fill (translúcidas) */
+  --ao-chart-1-fill: var(--ao-primary-soft);
+  --ao-chart-2-fill: var(--ao-secondary-soft);
+  --ao-chart-3-fill: var(--ao-success-soft);
+  --ao-chart-4-fill: var(--ao-warning-soft);
+  --ao-chart-5-fill: var(--ao-info-soft);
+  --ao-chart-6-fill: var(--ao-accent-soft);
+  --ao-chart-7-fill: var(--ao-danger-soft);
+
+  /* Cores de eixo, grid, tooltip */
+  --ao-chart-axis: var(--ao-text-muted);
+  --ao-chart-grid: var(--ao-border-subtle);
+  --ao-chart-tooltip-bg: var(--ao-surface-elevated);
+  --ao-chart-tooltip-text: var(--ao-text);
+  --ao-chart-tooltip-border: var(--ao-border-strong);
+
+  /* Sequencial (heatmaps, density) — escala cyan */
+  --ao-chart-seq-0: var(--ao-surface-hover);
+  --ao-chart-seq-1: rgba(34, 211, 238, 0.20);
+  --ao-chart-seq-2: rgba(34, 211, 238, 0.40);
+  --ao-chart-seq-3: rgba(34, 211, 238, 0.60);
+  --ao-chart-seq-4: rgba(34, 211, 238, 0.80);
+  --ao-chart-seq-5: var(--ao-primary);
+
+  /* Divergente (success/danger via neutro) */
+  --ao-chart-div-neg: var(--ao-danger);
+  --ao-chart-div-mid: var(--ao-text-muted);
+  --ao-chart-div-pos: var(--ao-success);
+}

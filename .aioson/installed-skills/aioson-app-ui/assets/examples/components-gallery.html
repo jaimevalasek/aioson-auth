@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark" data-mode="work">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AIOSON App UI — Components Gallery (Fase 2)</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+
+<!-- Em produção, substitua estes inline blocks por:
+     <link rel="stylesheet" href="../tokens/index.css">
+     <link rel="stylesheet" href="../components/index.css">
+-->
+<style>
+/* ===== TOKENS (mesmo conteúdo de tokens/*.css) ===== */
+:root {
+  --cyan-50: #ECFEFF; --cyan-100: #CFFAFE; --cyan-200: #A5F3FC; --cyan-300: #67E8F9;
+  --cyan-400: #22D3EE; --cyan-500: #06B6D4; --cyan-600: #0891B2; --cyan-700: #0E7490;
+  --cyan-800: #155E75; --cyan-900: #164E63;
+  --violet-50: #F5F3FF; --violet-100: #EDE9FE; --violet-200: #DDD6FE; --violet-300: #C4B5FD;
+  --violet-400: #A78BFA; --violet-500: #8B5CF6; --violet-600: #7C3AED; --violet-700: #6D28D9;
+  --neutral-0: #FFFFFF; --neutral-50: #FAFAFA; --neutral-100: #F4F4F5; --neutral-200: #E4E4E7;
+  --neutral-300: #D4D4D8; --neutral-400: #A1A1AA; --neutral-500: #71717A; --neutral-600: #52525B;
+  --neutral-700: #3F3F46; --neutral-800: #27272A; --neutral-900: #18181B; --neutral-950: #0A0E1A;
+  --neutral-1000: #050814;
+  --green-400: #4ADE80; --green-500: #22C55E; --green-600: #16A34A;
+  --amber-400: #FBBF24; --amber-500: #F59E0B; --amber-600: #D97706;
+  --red-400: #F87171; --red-500: #EF4444; --red-600: #DC2626;
+  --blue-400: #60A5FA; --blue-500: #3B82F6; --blue-600: #2563EB;
+  --plasma-400: #C084FC; --plasma-500: #B63CFF; --plasma-600: #A020F0; --plasma-700: #9333EA;
+  --cyan-electric: #00E5FF; --cyan-deep: #00B8D4;
+  --violet-luminous: #8A5CFF; --violet-deep: #7C3FE6;
+
+  --ao-space-1: 4px; --ao-space-2: 8px; --ao-space-3: 12px; --ao-space-4: 16px;
+  --ao-space-5: 20px; --ao-space-6: 24px; --ao-space-8: 32px; --ao-space-10: 40px;
+  --ao-space-12: 48px; --ao-space-16: 64px; --ao-space-20: 80px;
+
+  --ao-text-xs: 10px; --ao-text-sm: 11px; --ao-text-base: 12px; --ao-text-md: 13px;
+  --ao-text-lg: 15px; --ao-text-xl: 18px; --ao-text-2xl: 22px; --ao-text-3xl: 28px;
+  --ao-text-4xl: 36px; --ao-text-5xl: 44px; --ao-text-6xl: 64px;
+  --ao-leading-tight: 1.2; --ao-leading-snug: 1.35; --ao-leading-base: 1.5; --ao-leading-relaxed: 1.6;
+  --ao-tracking-tight: -0.03em; --ao-tracking-base: 0; --ao-tracking-wide: 0.04em; --ao-tracking-wider: 0.08em;
+  --ao-font-heading: 'Sora', system-ui, sans-serif;
+  --ao-font-body: 'Inter', system-ui, sans-serif;
+  --ao-font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --ao-radius-xs: 4px; --ao-radius-sm: 6px; --ao-radius-md: 8px;
+  --ao-radius-lg: 12px; --ao-radius-xl: 16px; --ao-radius-2xl: 22px; --ao-radius-full: 9999px;
+
+  --ao-z-base: 10; --ao-z-dropdown: 100; --ao-z-sticky: 200; --ao-z-drawer: 300;
+  --ao-z-modal: 400; --ao-z-toast: 500; --ao-z-tooltip: 600;
+  --ao-duration-fast: 120ms; --ao-duration-base: 200ms; --ao-duration-slow: 320ms;
+  --ao-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ao-easing-decelerate: cubic-bezier(0, 0, 0.2, 1);
+  --ao-easing-accelerate: cubic-bezier(0.4, 0, 1, 1);
+}
+
+:root[data-theme="dark"][data-mode="brand"] {
+  --ao-bg: #050814; --ao-surface: #0B1120; --ao-surface-elevated: #10172A; --ao-surface-hover: #161E33;
+  --ao-text: #F2F5F9; --ao-text-soft: #B0B8C9; --ao-text-muted: #6F7891; --ao-text-inverse: #050814;
+  --ao-border: rgba(255,255,255,0.08); --ao-border-strong: rgba(255,255,255,0.16);
+  --ao-border-subtle: rgba(255,255,255,0.04); --ao-border-focus: var(--cyan-electric);
+  --ao-primary: var(--cyan-electric); --ao-primary-hover: #33EAFF; --ao-primary-pressed: #00B8D4;
+  --ao-primary-soft: rgba(0,229,255,0.12); --ao-primary-on: #050814;
+  --ao-secondary: var(--violet-luminous); --ao-secondary-hover: #A07CFF; --ao-secondary-soft: rgba(138,92,255,0.12);
+  --ao-accent: #B63CFF; --ao-accent-soft: rgba(182,60,255,0.14);
+  --ao-success: var(--green-400); --ao-success-soft: rgba(74,222,128,0.12);
+  --ao-warning: var(--amber-400); --ao-warning-soft: rgba(251,191,36,0.12);
+  --ao-danger: var(--red-400); --ao-danger-soft: rgba(248,113,113,0.12);
+  --ao-info: var(--blue-400); --ao-info-soft: rgba(96,165,250,0.12);
+  --ao-glow-cyan: 0 0 32px rgba(0,229,255,0.35), 0 0 8px rgba(0,229,255,0.5);
+  --ao-glow-violet: 0 0 32px rgba(138,92,255,0.35), 0 0 8px rgba(138,92,255,0.5);
+  --ao-shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+  --ao-shadow-md: 0 8px 24px rgba(0,0,0,0.45);
+  --ao-shadow-lg: 0 24px 48px rgba(0,0,0,0.55);
+}
+
+:root[data-theme="dark"][data-mode="work"] {
+  --ao-bg: #0A0E1A; --ao-surface: #10141F; --ao-surface-elevated: #161B28; --ao-surface-hover: #1A2030;
+  --ao-text: #E2E8F0; --ao-text-soft: #94A3B8; --ao-text-muted: #64748B; --ao-text-inverse: #0F172A;
+  --ao-border: rgba(255,255,255,0.06); --ao-border-strong: rgba(255,255,255,0.12);
+  --ao-border-subtle: rgba(255,255,255,0.03); --ao-border-focus: var(--cyan-400);
+  --ao-primary: var(--cyan-400); --ao-primary-hover: var(--cyan-300); --ao-primary-pressed: var(--cyan-500);
+  --ao-primary-soft: rgba(34,211,238,0.10); --ao-primary-on: #0A0E1A;
+  --ao-secondary: var(--violet-400); --ao-secondary-hover: var(--violet-300); --ao-secondary-soft: rgba(167,139,250,0.10);
+  --ao-accent: var(--plasma-400); --ao-accent-soft: rgba(192,132,252,0.10);
+  --ao-success: var(--green-400); --ao-success-soft: rgba(74,222,128,0.10);
+  --ao-warning: var(--amber-400); --ao-warning-soft: rgba(251,191,36,0.10);
+  --ao-danger: var(--red-400); --ao-danger-soft: rgba(248,113,113,0.10);
+  --ao-info: var(--blue-400); --ao-info-soft: rgba(96,165,250,0.10);
+  --ao-glow-cyan: none; --ao-glow-violet: none;
+  --ao-shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+  --ao-shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+  --ao-shadow-lg: 0 16px 32px rgba(0,0,0,0.45);
+}
+
+:root[data-theme="light"][data-mode="brand"] {
+  --ao-bg: #F8FAFC; --ao-surface: #FFFFFF; --ao-surface-elevated: #FFFFFF; --ao-surface-hover: #F1F5F9;
+  --ao-text: #0F172A; --ao-text-soft: #475569; --ao-text-muted: #94A3B8; --ao-text-inverse: #FFFFFF;
+  --ao-border: rgba(15,23,42,0.10); --ao-border-strong: rgba(15,23,42,0.18);
+  --ao-border-subtle: rgba(15,23,42,0.05); --ao-border-focus: var(--cyan-deep);
+  --ao-primary: var(--cyan-deep); --ao-primary-hover: #00A0BE; --ao-primary-pressed: #008CA8;
+  --ao-primary-soft: rgba(0,184,212,0.10); --ao-primary-on: #FFFFFF;
+  --ao-secondary: var(--violet-deep); --ao-secondary-hover: #6B30D5; --ao-secondary-soft: rgba(124,63,230,0.10);
+  --ao-accent: #A020F0; --ao-accent-soft: rgba(160,32,240,0.10);
+  --ao-success: var(--green-600); --ao-success-soft: rgba(22,163,74,0.10);
+  --ao-warning: var(--amber-600); --ao-warning-soft: rgba(217,119,6,0.10);
+  --ao-danger: var(--red-600); --ao-danger-soft: rgba(220,38,38,0.10);
+  --ao-info: var(--blue-600); --ao-info-soft: rgba(37,99,235,0.10);
+  --ao-glow-cyan: 0 8px 24px rgba(0,184,212,0.20);
+  --ao-glow-violet: 0 8px 24px rgba(124,63,230,0.20);
+  --ao-shadow-sm: 0 1px 2px rgba(15,23,42,0.06);
+  --ao-shadow-md: 0 8px 24px rgba(15,23,42,0.08);
+  --ao-shadow-lg: 0 24px 48px rgba(15,23,42,0.12);
+}
+
+:root[data-theme="light"][data-mode="work"] {
+  --ao-bg: #FAFAFA; --ao-surface: #FFFFFF; --ao-surface-elevated: #FFFFFF; --ao-surface-hover: #F4F4F5;
+  --ao-text: #0F172A; --ao-text-soft: #475569; --ao-text-muted: #94A3B8; --ao-text-inverse: #FFFFFF;
+  --ao-border: rgba(15,23,42,0.08); --ao-border-strong: rgba(15,23,42,0.16);
+  --ao-border-subtle: rgba(15,23,42,0.04); --ao-border-focus: var(--cyan-600);
+  --ao-primary: var(--cyan-600); --ao-primary-hover: var(--cyan-700); --ao-primary-pressed: var(--cyan-800);
+  --ao-primary-soft: rgba(8,145,178,0.10); --ao-primary-on: #FFFFFF;
+  --ao-secondary: var(--violet-600); --ao-secondary-hover: var(--violet-700); --ao-secondary-soft: rgba(124,58,237,0.10);
+  --ao-accent: var(--plasma-700); --ao-accent-soft: rgba(147,51,234,0.10);
+  --ao-success: var(--green-600); --ao-success-soft: rgba(22,163,74,0.10);
+  --ao-warning: var(--amber-600); --ao-warning-soft: rgba(217,119,6,0.10);
+  --ao-danger: var(--red-600); --ao-danger-soft: rgba(220,38,38,0.10);
+  --ao-info: var(--blue-600); --ao-info-soft: rgba(37,99,235,0.10);
+  --ao-glow-cyan: none; --ao-glow-violet: none;
+  --ao-shadow-sm: 0 1px 2px rgba(15,23,42,0.04);
+  --ao-shadow-md: 0 4px 12px rgba(15,23,42,0.06);
+  --ao-shadow-lg: 0 16px 32px rgba(15,23,42,0.08);
+}
+</style>
+
+<!-- ===== COMPONENT STYLES ===== -->
+<style>
+/* === BUTTONS === */
+.ao-btn{appearance:none;border:1px solid transparent;margin:0;font-family:var(--ao-font-body);text-decoration:none;cursor:pointer;user-select:none;display:inline-flex;align-items:center;justify-content:center;gap:var(--ao-space-2);white-space:nowrap;height:34px;padding:0 var(--ao-space-4);font-size:var(--ao-text-md);font-weight:500;line-height:1;border-radius:var(--ao-radius-sm);background:var(--ao-surface);color:var(--ao-text);transition:background var(--ao-duration-fast) var(--ao-easing-standard),border-color var(--ao-duration-fast) var(--ao-easing-standard),color var(--ao-duration-fast) var(--ao-easing-standard),box-shadow var(--ao-duration-fast) var(--ao-easing-standard),transform var(--ao-duration-fast) var(--ao-easing-standard)}
+.ao-btn:focus-visible{outline:2px solid var(--ao-primary);outline-offset:2px}
+.ao-btn:disabled,.ao-btn[aria-disabled="true"]{opacity:.5;cursor:not-allowed;pointer-events:none}
+.ao-btn:not(:disabled):active{transform:translateY(1px)}
+.ao-btn__icon{display:inline-flex;align-items:center;flex-shrink:0;font-size:16px}
+.ao-btn--sm .ao-btn__icon{font-size:14px}
+.ao-btn--lg .ao-btn__icon{font-size:18px}
+.ao-btn--primary{background:var(--ao-primary);color:var(--ao-primary-on)}
+.ao-btn--primary:not(:disabled):hover{background:var(--ao-primary-hover)}
+.ao-btn--primary:not(:disabled):active{background:var(--ao-primary-pressed)}
+.ao-btn--secondary{background:var(--ao-secondary);color:var(--ao-text-inverse)}
+.ao-btn--secondary:not(:disabled):hover{background:var(--ao-secondary-hover)}
+.ao-btn--ghost{background:transparent;color:var(--ao-text-soft);border-color:var(--ao-border-strong)}
+.ao-btn--ghost:not(:disabled):hover{background:var(--ao-surface-hover);color:var(--ao-text)}
+.ao-btn--subtle{background:transparent;color:var(--ao-text-soft)}
+.ao-btn--subtle:not(:disabled):hover{background:var(--ao-surface-hover);color:var(--ao-text)}
+.ao-btn--danger{background:var(--ao-danger);color:var(--ao-text-inverse)}
+.ao-btn--danger:not(:disabled):hover{filter:brightness(1.1)}
+.ao-btn--danger:focus-visible{outline-color:var(--ao-danger)}
+.ao-btn--sm{height:28px;padding:0 var(--ao-space-3);font-size:var(--ao-text-sm);border-radius:var(--ao-radius-xs)}
+.ao-btn--lg{height:38px;padding:0 var(--ao-space-5)}
+.ao-btn--icon-only{width:34px;padding:0}
+.ao-btn--icon-only.ao-btn--sm{width:28px}
+.ao-btn--block{width:100%}
+.ao-btn--loading{position:relative;pointer-events:none;color:transparent !important}
+.ao-btn--loading::after{content:"";position:absolute;width:14px;height:14px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;color:var(--ao-primary-on);animation:ao-btn-spin .6s linear infinite}
+@keyframes ao-btn-spin{to{transform:rotate(360deg)}}
+.ao-btn-group{display:inline-flex;border-radius:var(--ao-radius-sm);overflow:hidden}
+.ao-btn-group .ao-btn{border-radius:0}
+.ao-btn-group .ao-btn:first-child{border-top-left-radius:var(--ao-radius-sm);border-bottom-left-radius:var(--ao-radius-sm)}
+.ao-btn-group .ao-btn:last-child{border-top-right-radius:var(--ao-radius-sm);border-bottom-right-radius:var(--ao-radius-sm)}
+.ao-btn-group .ao-btn+.ao-btn{border-left:none}
+
+/* === CARDS === */
+.ao-card{background:var(--ao-surface);border:1px solid var(--ao-border);border-radius:var(--ao-radius-md);box-shadow:var(--ao-shadow-sm);overflow:hidden;transition:border-color var(--ao-duration-base) var(--ao-easing-standard),box-shadow var(--ao-duration-base) var(--ao-easing-standard)}
+.ao-card__header{padding:var(--ao-space-4) var(--ao-space-5);border-bottom:1px solid var(--ao-border);display:flex;align-items:center;justify-content:space-between;gap:var(--ao-space-3)}
+.ao-card__title{margin:0;font-family:var(--ao-font-heading);font-size:var(--ao-text-md);font-weight:600;color:var(--ao-text);letter-spacing:var(--ao-tracking-tight)}
+.ao-card__subtitle{margin:0;font-size:var(--ao-text-sm);color:var(--ao-text-soft)}
+.ao-card__body{padding:var(--ao-space-5)}
+.ao-card__footer{padding:var(--ao-space-3) var(--ao-space-5);border-top:1px solid var(--ao-border);display:flex;align-items:center;justify-content:flex-end;gap:var(--ao-space-2);background:var(--ao-bg)}
+.ao-card--cyan{border-color:var(--ao-primary-soft)}
+.ao-card--cyan .ao-card__title{color:var(--ao-primary)}
+.ao-card--violet{border-color:var(--ao-secondary-soft)}
+.ao-card--violet .ao-card__title{color:var(--ao-secondary)}
+.ao-card--hero{border-radius:var(--ao-radius-xl);border-color:var(--ao-border-strong);box-shadow:var(--ao-glow-cyan),var(--ao-shadow-md)}
+.ao-card--hero .ao-card__body{padding:var(--ao-space-8)}
+.ao-card--interactive{cursor:pointer}
+.ao-card--interactive:hover{border-color:var(--ao-border-strong);box-shadow:var(--ao-shadow-md)}
+
+/* === CHIPS === */
+.ao-chip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 var(--ao-space-2);border-radius:var(--ao-radius-full);font-family:var(--ao-font-body);font-size:var(--ao-text-sm);font-weight:500;line-height:1;border:1px solid var(--ao-border);background:var(--ao-surface-hover);color:var(--ao-text-soft);white-space:nowrap;user-select:none}
+.ao-chip__icon{display:inline-flex;font-size:12px;flex-shrink:0}
+.ao-chip__dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
+.ao-chip--primary{background:var(--ao-primary-soft);color:var(--ao-primary);border-color:transparent}
+.ao-chip--secondary{background:var(--ao-secondary-soft);color:var(--ao-secondary);border-color:transparent}
+.ao-chip--success{background:var(--ao-success-soft);color:var(--ao-success);border-color:transparent}
+.ao-chip--warning{background:var(--ao-warning-soft);color:var(--ao-warning);border-color:transparent}
+.ao-chip--danger{background:var(--ao-danger-soft);color:var(--ao-danger);border-color:transparent}
+.ao-chip--info{background:var(--ao-info-soft);color:var(--ao-info);border-color:transparent}
+.ao-chip--accent{background:var(--ao-accent-soft);color:var(--ao-accent);border-color:transparent}
+.ao-chip--solid.ao-chip--primary{background:var(--ao-primary);color:var(--ao-primary-on)}
+.ao-chip--solid.ao-chip--success{background:var(--ao-success);color:var(--ao-text-inverse)}
+.ao-chip--solid.ao-chip--danger{background:var(--ao-danger);color:var(--ao-text-inverse)}
+.ao-chip--sm{height:20px;font-size:var(--ao-text-xs);padding:0 var(--ao-space-2)}
+.ao-chip--lg{height:28px;font-size:var(--ao-text-md);padding:0 var(--ao-space-3)}
+.ao-chip--removable{padding-right:4px}
+.ao-chip__remove{appearance:none;border:none;background:transparent;color:currentColor;opacity:.6;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;padding:0;border-radius:50%;margin-left:2px;transition:opacity var(--ao-duration-fast),background var(--ao-duration-fast)}
+.ao-chip__remove:hover{opacity:1;background:rgba(255,255,255,.1)}
+:root[data-theme="light"] .ao-chip__remove:hover{background:rgba(15,23,42,.08)}
+
+/* === INPUTS === */
+.ao-input,.ao-textarea,.ao-select{appearance:none;display:block;width:100%;height:34px;padding:0 var(--ao-space-3);font-family:var(--ao-font-body);font-size:var(--ao-text-md);line-height:1.5;color:var(--ao-text);background:var(--ao-surface);border:1px solid var(--ao-border-strong);border-radius:var(--ao-radius-sm);transition:border-color var(--ao-duration-fast) var(--ao-easing-standard),box-shadow var(--ao-duration-fast) var(--ao-easing-standard);box-sizing:border-box}
+.ao-textarea{height:auto;min-height:80px;padding:var(--ao-space-2) var(--ao-space-3);resize:vertical;line-height:var(--ao-leading-relaxed)}
+.ao-input::placeholder,.ao-textarea::placeholder{color:var(--ao-text-muted);opacity:1}
+.ao-input:hover:not(:disabled):not([readonly]),.ao-textarea:hover:not(:disabled):not([readonly]),.ao-select:hover:not(:disabled):not([readonly]){border-color:var(--ao-text-muted)}
+.ao-input:focus,.ao-textarea:focus,.ao-select:focus{outline:none;border-color:var(--ao-primary);box-shadow:0 0 0 3px var(--ao-primary-soft)}
+.ao-input:disabled,.ao-textarea:disabled,.ao-select:disabled{background:var(--ao-surface-hover);color:var(--ao-text-muted);cursor:not-allowed;border-color:var(--ao-border)}
+.ao-input[readonly],.ao-textarea[readonly]{background:var(--ao-surface-hover);cursor:default}
+.ao-input[aria-invalid="true"]{border-color:var(--ao-danger)}
+.ao-input[aria-invalid="true"]:focus{box-shadow:0 0 0 3px var(--ao-danger-soft)}
+.ao-select{padding-right:var(--ao-space-8);background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path fill='none' stroke='%2394A3B8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' d='M3 4.5l3 3 3-3'/></svg>");background-repeat:no-repeat;background-position:right var(--ao-space-3) center;background-size:12px;cursor:pointer}
+.ao-field{display:flex;flex-direction:column;gap:var(--ao-space-1);margin-bottom:var(--ao-space-4)}
+.ao-field__label{font-size:var(--ao-text-sm);font-weight:500;color:var(--ao-text);display:flex;align-items:center;gap:4px}
+.ao-field__required{color:var(--ao-danger);font-weight:600}
+.ao-field__helper{font-size:var(--ao-text-sm);color:var(--ao-text-soft);line-height:1.5}
+.ao-field__error{font-size:var(--ao-text-sm);color:var(--ao-danger);display:flex;align-items:center;gap:4px;line-height:1.5}
+.ao-field__error::before{content:"⚠";font-size:var(--ao-text-md)}
+.ao-input-group{position:relative;display:flex;align-items:center}
+.ao-input-group .ao-input{flex:1}
+.ao-input-group__prefix{position:absolute;left:var(--ao-space-3);color:var(--ao-text-muted);font-size:var(--ao-text-md);pointer-events:none;display:inline-flex;align-items:center}
+.ao-input-group:has(.ao-input-group__prefix) .ao-input{padding-left:var(--ao-space-8)}
+
+/* === TABS === */
+.ao-tabs{display:flex;align-items:center;gap:var(--ao-space-1);border-bottom:1px solid var(--ao-border);position:relative;list-style:none;margin:0;padding:0}
+.ao-tab{appearance:none;border:none;background:transparent;height:34px;padding:0 var(--ao-space-3);font-family:var(--ao-font-body);font-size:var(--ao-text-md);font-weight:500;color:var(--ao-text-soft);cursor:pointer;display:inline-flex;align-items:center;gap:var(--ao-space-2);white-space:nowrap;transition:color var(--ao-duration-fast),background var(--ao-duration-fast);border-bottom:2px solid transparent;margin-bottom:-1px}
+.ao-tab__icon{font-size:14px;flex-shrink:0}
+.ao-tab__count{display:inline-flex;align-items:center;justify-content:center;height:18px;min-width:20px;padding:0 6px;font-size:var(--ao-text-xs);font-weight:600;background:var(--ao-surface-hover);color:var(--ao-text-soft);border-radius:var(--ao-radius-full)}
+.ao-tab:hover:not([disabled]){color:var(--ao-text)}
+.ao-tab:focus-visible{outline:2px solid var(--ao-primary);outline-offset:-2px;border-radius:var(--ao-radius-xs)}
+.ao-tab--active,.ao-tab[aria-selected="true"]{color:var(--ao-primary);border-bottom-color:var(--ao-primary)}
+.ao-tab--active .ao-tab__count{background:var(--ao-primary-soft);color:var(--ao-primary)}
+.ao-tabs--pill{border-bottom:none;background:var(--ao-surface);padding:var(--ao-space-1);border-radius:var(--ao-radius-md);border:1px solid var(--ao-border);display:inline-flex}
+.ao-tabs--pill .ao-tab{height:28px;padding:0 var(--ao-space-3);border-bottom:none;border-radius:var(--ao-radius-xs);margin-bottom:0;font-size:var(--ao-text-sm)}
+.ao-tabs--pill .ao-tab:hover:not([disabled]){background:var(--ao-surface-hover)}
+.ao-tabs--pill .ao-tab--active{background:var(--ao-primary-soft);color:var(--ao-primary)}
+
+/* === ALERTS === */
+.ao-alert{display:flex;align-items:flex-start;gap:var(--ao-space-3);padding:var(--ao-space-3) var(--ao-space-4);border-radius:var(--ao-radius-md);border:1px solid var(--ao-info);background:var(--ao-info-soft);font-size:var(--ao-text-md);line-height:var(--ao-leading-relaxed);color:var(--ao-text)}
+.ao-alert__icon{flex-shrink:0;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:18px;margin-top:1px;color:var(--ao-info)}
+.ao-alert__content{flex:1;display:flex;flex-direction:column;gap:2px}
+.ao-alert__title{font-size:var(--ao-text-md);font-weight:600;margin:0;color:var(--ao-text)}
+.ao-alert__body{font-size:var(--ao-text-sm);color:var(--ao-text-soft);margin:0}
+.ao-alert__close{appearance:none;border:none;background:transparent;color:var(--ao-text-muted);cursor:pointer;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;border-radius:var(--ao-radius-xs);font-size:16px;transition:background var(--ao-duration-fast),color var(--ao-duration-fast)}
+.ao-alert__close:hover{color:var(--ao-text);background:var(--ao-surface-hover)}
+.ao-alert--success{background:var(--ao-success-soft);border-color:var(--ao-success)}
+.ao-alert--success .ao-alert__icon{color:var(--ao-success)}
+.ao-alert--warning{background:var(--ao-warning-soft);border-color:var(--ao-warning)}
+.ao-alert--warning .ao-alert__icon{color:var(--ao-warning)}
+.ao-alert--danger{background:var(--ao-danger-soft);border-color:var(--ao-danger)}
+.ao-alert--danger .ao-alert__icon{color:var(--ao-danger)}
+.ao-alert--solid{background:var(--ao-surface);border:1px solid var(--ao-border);border-left-width:4px}
+.ao-alert--solid.ao-alert--success{border-left-color:var(--ao-success)}
+.ao-alert--solid.ao-alert--warning{border-left-color:var(--ao-warning)}
+.ao-alert--solid.ao-alert--danger{border-left-color:var(--ao-danger)}
+
+/* === SIDEBAR === */
+.ao-sidebar-item{appearance:none;border:none;background:transparent;color:var(--ao-text-soft);display:flex;align-items:center;gap:var(--ao-space-3);width:100%;height:34px;padding:0 var(--ao-space-3);border-radius:var(--ao-radius-sm);font-family:var(--ao-font-body);font-size:var(--ao-text-md);font-weight:500;text-decoration:none;cursor:pointer;text-align:left;transition:background var(--ao-duration-fast),color var(--ao-duration-fast)}
+.ao-sidebar-item__icon{flex-shrink:0;font-size:16px;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;color:var(--ao-text-muted);transition:color var(--ao-duration-fast)}
+.ao-sidebar-item__label{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ao-sidebar-item__badge{display:inline-flex;align-items:center;justify-content:center;height:18px;min-width:18px;padding:0 6px;font-size:var(--ao-text-xs);font-weight:600;background:var(--ao-surface-hover);color:var(--ao-text-soft);border-radius:var(--ao-radius-full)}
+.ao-sidebar-item:hover:not([disabled]):not(.ao-sidebar-item--active){background:var(--ao-surface-hover);color:var(--ao-text)}
+.ao-sidebar-item:hover:not([disabled]):not(.ao-sidebar-item--active) .ao-sidebar-item__icon{color:var(--ao-text-soft)}
+.ao-sidebar-item:focus-visible{outline:2px solid var(--ao-primary);outline-offset:2px}
+.ao-sidebar-item--active,.ao-sidebar-item[aria-current="page"]{background:var(--ao-primary-soft);color:var(--ao-primary)}
+.ao-sidebar-item--active .ao-sidebar-item__icon{color:var(--ao-primary)}
+.ao-sidebar-item--active .ao-sidebar-item__badge{background:var(--ao-primary);color:var(--ao-primary-on)}
+.ao-sidebar-section{display:flex;flex-direction:column;gap:2px;padding:var(--ao-space-2) 0}
+.ao-sidebar-section__title{font-size:var(--ao-text-xs);font-weight:600;text-transform:uppercase;letter-spacing:var(--ao-tracking-wider);color:var(--ao-text-muted);padding:var(--ao-space-2) var(--ao-space-3);margin:0}
+
+@media (prefers-reduced-motion: reduce){
+  *{transition:none !important;animation:none !important}
+}
+</style>
+
+<!-- ===== PAGE STYLES ===== -->
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:var(--ao-bg);color:var(--ao-text);font-family:var(--ao-font-body);font-size:var(--ao-text-base);line-height:var(--ao-leading-relaxed);transition:background var(--ao-duration-base),color var(--ao-duration-base);min-height:100vh;-webkit-font-smoothing:antialiased}
+.page{max-width:1200px;margin:0 auto;padding:var(--ao-space-8)}
+.page__header{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--ao-space-8);gap:var(--ao-space-4);flex-wrap:wrap;position:sticky;top:var(--ao-space-8);background:var(--ao-bg);z-index:var(--ao-z-sticky);padding-bottom:var(--ao-space-4);border-bottom:1px solid var(--ao-border)}
+.brand{display:flex;align-items:center;gap:var(--ao-space-3)}
+.brand__logo{width:36px;height:36px;border-radius:var(--ao-radius-sm);background:linear-gradient(135deg,var(--ao-primary),var(--ao-secondary));display:grid;place-items:center;color:var(--ao-text-inverse);font-family:var(--ao-font-heading);font-weight:700;font-size:var(--ao-text-lg)}
+.brand__name{font-family:var(--ao-font-heading);font-weight:600;font-size:var(--ao-text-lg);letter-spacing:var(--ao-tracking-tight)}
+.brand__subtitle{font-size:var(--ao-text-sm);color:var(--ao-text-soft)}
+.controls{display:flex;align-items:center;gap:var(--ao-space-2);background:var(--ao-surface);border:1px solid var(--ao-border);border-radius:var(--ao-radius-md);padding:var(--ao-space-1)}
+.controls__group{display:flex;gap:2px}
+.controls__divider{width:1px;align-self:stretch;margin:var(--ao-space-1);background:var(--ao-border)}
+.toggle-btn{height:30px;padding:0 var(--ao-space-3);border-radius:var(--ao-radius-xs);background:transparent;color:var(--ao-text-soft);font-size:var(--ao-text-sm);font-weight:500;font-family:var(--ao-font-body);border:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:background var(--ao-duration-fast),color var(--ao-duration-fast)}
+.toggle-btn:hover{color:var(--ao-text)}
+.toggle-btn.is-active{background:var(--ao-primary-soft);color:var(--ao-primary)}
+.toggle-btn i{font-size:14px}
+h1{font-family:var(--ao-font-heading);font-size:var(--ao-text-3xl);font-weight:600;margin:0 0 var(--ao-space-2);letter-spacing:var(--ao-tracking-tight);line-height:var(--ao-leading-tight)}
+.subtitle{color:var(--ao-text-soft);font-size:var(--ao-text-md);margin-bottom:var(--ao-space-8)}
+.section{margin-bottom:var(--ao-space-12)}
+.section__title{font-family:var(--ao-font-heading);font-size:var(--ao-text-xl);font-weight:600;margin:0 0 var(--ao-space-1);letter-spacing:var(--ao-tracking-tight);color:var(--ao-text);display:flex;align-items:center;gap:var(--ao-space-2)}
+.section__title i{color:var(--ao-primary);font-size:20px}
+.section__desc{font-size:var(--ao-text-sm);color:var(--ao-text-soft);margin:0 0 var(--ao-space-5)}
+.demo-block{background:var(--ao-surface);border:1px solid var(--ao-border);border-radius:var(--ao-radius-md);padding:var(--ao-space-5);margin-bottom:var(--ao-space-3)}
+.demo-block__label{font-size:var(--ao-text-xs);font-weight:600;text-transform:uppercase;letter-spacing:var(--ao-tracking-wide);color:var(--ao-text-muted);margin-bottom:var(--ao-space-3);font-family:var(--ao-font-mono)}
+.demo-block__row{display:flex;flex-wrap:wrap;gap:var(--ao-space-2);align-items:center;margin-bottom:var(--ao-space-3)}
+.demo-block__row:last-child{margin-bottom:0}
+.demo-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:var(--ao-space-3)}
+.demo-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--ao-space-3)}
+@media (max-width:768px){.demo-grid-2,.demo-grid-3{grid-template-columns:1fr}}
+.context-banner{background:var(--ao-primary-soft);border:1px solid var(--ao-primary);border-radius:var(--ao-radius-md);padding:var(--ao-space-3) var(--ao-space-4);display:flex;align-items:center;gap:var(--ao-space-3);margin-bottom:var(--ao-space-8)}
+.context-banner i{font-size:20px;color:var(--ao-primary)}
+.context-banner strong{color:var(--ao-primary);font-weight:600}
+
+/* Sidebar demo container */
+.sidebar-demo{background:var(--ao-surface);border:1px solid var(--ao-border);border-radius:var(--ao-radius-md);padding:var(--ao-space-2);max-width:240px}
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <header class="page__header">
+    <div class="brand">
+      <div class="brand__logo">A</div>
+      <div>
+        <div class="brand__name">aioson-app-ui</div>
+        <div class="brand__subtitle">Components gallery · Fase 2</div>
+      </div>
+    </div>
+    <div class="controls">
+      <div class="controls__group" id="theme-group">
+        <button class="toggle-btn is-active" data-theme="dark"><i class="ph ph-moon"></i> Dark</button>
+        <button class="toggle-btn" data-theme="light"><i class="ph ph-sun"></i> Light</button>
+      </div>
+      <div class="controls__divider"></div>
+      <div class="controls__group" id="mode-group">
+        <button class="toggle-btn is-active" data-mode="work"><i class="ph ph-briefcase"></i> Work</button>
+        <button class="toggle-btn" data-mode="brand"><i class="ph ph-sparkle"></i> Brand</button>
+      </div>
+    </div>
+  </header>
+
+  <h1>Galeria de componentes</h1>
+  <p class="subtitle">Todos os componentes da Fase 2 funcionando nos 4 contextos. Use os controles acima para alternar.</p>
+
+  <div class="context-banner">
+    <i class="ph-fill ph-info"></i>
+    <div>Contexto ativo: <strong id="active-context">dark + work</strong></div>
+  </div>
+
+  <!-- ============ BUTTONS ============ -->
+  <section class="section">
+    <h2 class="section__title"><i class="ph ph-cursor-click"></i> Buttons</h2>
+    <p class="section__desc">.ao-btn em variantes (primary, secondary, ghost, subtle, danger), tamanhos (sm/md/lg) e estados (loading, disabled, icon-only).</p>
+
+    <div class="demo-block">
+      <div class="demo-block__label">Variantes</div>
+      <div class="demo-block__row">
+        <button class="ao-btn ao-btn--primary">Primary</button>
+        <button class="ao-btn ao-btn--secondary">Secondary</button>
+        <button class="ao-btn ao-btn--ghost">Ghost</button>
+        <button class="ao-btn ao-btn--subtle">Subtle</button>
+        <button class="ao-btn ao-btn--danger">Danger</button>
+      </div>
+    </div>
+
+    <div class="demo-block">
+      <div class="demo-block__label">Tamanhos</div>
+      <div class="demo-block__row">
+        <button class="ao-btn ao-btn--primary ao-btn--sm">Small</button>
+        <button class="ao-btn ao-btn--primary">Medium (default)</button>
+        <button class="ao-btn ao-btn--primary ao-btn--lg">Large</button>
+      </div>
+    </div>
+
+    <div class="demo-block">
+      <div class="demo-block__label">Com ícone</div>
+      <div class="demo-block__row">
+        <button class="ao-btn ao-btn--primary"><i class="ao-btn__icon ph ph-check"></i> Confirmar</button>
+        <button class="ao-btn ao-btn--ghost"><i class="ao-btn__icon ph ph-arrow-clockwise"></i> Recarregar</button>
+        <button class="ao-btn ao-btn--danger"><i class="ao-btn__icon ph ph-trash"></i> Excluir</button>
+        <button class="ao-btn ao-btn--ghost ao-btn--icon-only" aria-label="Configurações"><i class="ph ph-gear"></i></button>
+      </div>
+    </div>
+
+    <div class="demo-block">
+      <div class="demo-block__label">Estados</div>
+      <div class="demo-block__row">
+        <button class="ao-btn ao-btn--primary">Normal</button>
+        <button class="ao-btn ao-btn--primary ao-btn--loading">Salvando…</button>
+        <button class="ao-btn ao-btn--primary" disabled>Disabled</button>
+      </div>
+    </div>
+
+    <div class="demo-block">
+      <div class="demo-block__label">Group (segmented)</div>
+      <div class="demo-block__row">
+        <div class="ao-btn-group">
+          <button class="ao-btn ao-btn--ghost">Dia</button>
+          <button class="ao-btn ao-btn--ghost" style="background:var(--ao-primary-soft);color:var(--ao-primary);border-color:var(--ao-primary-soft)">Semana</button>
+          <button class="ao-btn ao-btn--ghost">Mês</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CARDS ============ -->
+  <section class="section">
+    <h2 class="section__title"><i class="ph ph-cards"></i> Cards</h2>
+    <p class="section__desc">.ao-card com header/body/footer, em variantes neutra, cyan, violet, hero (brand) e interactive.</p>
+
+    <div class="demo-grid-3">
+      <div class="ao-card">
+        <div class="ao-card__header">
+          <h3 class="ao-card__title">Card padrão</h3>
+        </div>
+        <div class="ao-card__body">
+          <p style="margin:0;color:var(--ao-text-soft)">Container neutro. Use para a maioria dos casos.</p>
+        </div>
+      </div>
+
+      <div class="ao-card ao-card--cyan">
+        <div class="ao-card__header">
+          <h3 class="ao-card__title">Card cyan</h3>
+        </div>
+        <div class="ao-card__body">
+          <p style="margin:0;color:var(--ao-text-soft)">Borda e título em cyan. Para destaques relacionados à marca.</p>
+        </div>
+      </div>
+
+      <div class="ao-card ao-card--violet">
+        <div class="ao-card__header">
+          <h3 class="ao-card__title">Card violet</h3>
+        </div>
+        <div class="ao-card__body">
+          <p style="margin:0;color:var(--ao-text-soft)">Borda e título em violet. Para agrupamentos secundários.</p>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:var(--ao-space-3)" class="ao-card ao-card--hero">
+      <div class="ao-card__body">
+        <div style="display:flex;gap:var(--ao-space-2);margin-bottom:var(--ao-space-3)">
+          <span class="ao-chip ao-chip--primary"><i class="ao-chip__icon ph ph-sparkle"></i> Hero</span>
+        </div>
+        <h3 style="font-family:var(--ao-font-heading);font-size:var(--ao-text-xl);font-weight:600;margin:0 0 var(--ao-space-2);line-height:var(--ao-leading-tight)">Card hero (brand mode)</h3>
+        <p style="margin:0 0 var(--ao-space-4);color:var(--ao-text-soft)">No brand mode: glow visível, radius xl, padding generoso. No work mode: glow desaparece (por design).</p>
+        <button class="ao-btn ao-btn--primary ao-btn--lg">Começar</button>
+      </div>
+    </div>
+
+    <div style="margin-top:var(--ao-space-3)" class="ao-card">
+      <div class="ao-card__header">
+        <div>
+          <h3 class="ao-card__title">Card com footer</h3>
+          <p class="ao-card__subtitle">Subtítulo opcional</p>
+        </div>
+      </div>
+      <div class="ao-card__body">
+        <p style="margin:0">Conteúdo principal. Footer abaixo para ações primárias.</p>
+      </div>
+      <div class="ao-card__footer">
+        <button class="ao-btn ao-btn--ghost ao-btn--sm">Cancelar</button>
+        <button class="ao-btn ao-btn--primary ao-btn--sm">Confirmar</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CHIPS ============ -->
+  <section class="section">
+    <h2 class="section__title"><i class="ph ph-tag"></i> Chips</h2>
+    <p class="section__desc">.ao-chip em variantes semânticas, soft (default), solid e outline. Tamanhos sm/md/lg. Com dot, ícone ou X removível.</p>
+
+    <div class="demo-block">
+      <div class="demo-block__label">Variantes (soft fill)</div>
+      <div class="demo-block__row">
+        <span class="ao-chip">Default</span>
+        <span class="ao-chip ao-chip--primary">Primary</span>
+        <span class="ao-chip ao-chip--secondary">Secondary</span>
+        <span class="ao-chip ao-chip--success">Success</span>
+        <span class="ao-chip ao-chip--warning">Warning</span>
+        <span class="ao-chip ao-chip--danger">Danger</span>
+        <span class="ao-chip ao-chip--info">Info</span>
+        <span class="ao-chip ao-chip--accent">Accent</span>
+      </div>
+    </div>
+
+    <div class="demo-block">
+      <div class="demo-block__label">Solid (alta ênfase)</div>
+      <div class="demo-block__row">
+        <span class="ao-chip ao-chip--solid ao-chip--primary">PRO</span>
+        <span class="ao-chip ao-chip--solid ao-chip--success">Online</span>
+        <span class="ao-chip ao-chip--solid ao-chip--danger">Erro</span>
+      </div>
+    </div>
+
+    <div class="demo-block">
+      <div class="demo-block__label">Com dot (status)</div>
+      <div class="demo-block__row">
+        <span class="ao-chip ao-chip--success"><span class="ao-chip__dot"></span> Ativo</span>
+        <span class="ao-chip ao-chip--warning"><span class="ao-chip__dot"></span> Pendente</span>
+        <span class="ao-chip ao-chip--danger"><span class="ao-chip__dot"></span> Cancelado</span>
+        <span class="ao-chip"><span class="ao-chip__dot"></span> Offline</span>
+      </div>
+    </div>
+
+    <div class="demo-block">
+      <div class="demo-block__label">Com ícone</div>
+      <div class="demo-block__row">
+        <span class="ao-chip ao-chip--info"><i class="ao-chip__icon ph ph-info"></i> Novo recurso</span>
+        <span class="ao-chip ao-chip--warning"><i class="ao-chip__icon ph ph-clock"></i> Aguardando</span>
+        <span class="ao-chip ao-chip--success"><i class="ao-chip__icon ph ph-check"></i> Confirmado</span>
+      </div>
+    </div>
+
+    <div class="demo-block">
+      <div class="demo-block__label">Tamanhos</div>
+      <div class="demo-block__row">
+        <span class="ao-chip ao-chip--primary ao-chip--sm">Small</span>
+        <span class="ao-chip ao-chip--primary">Medium</span>
+        <span class="ao-chip ao-chip--primary ao-chip--lg">Large</span>
+      </div>
+    </div>
+
+    <div class="demo-block">
+      <div class="demo-block__label">Tags removíveis</div>
+      <div class="demo-block__row">
+        <span class="ao-chip ao-chip--removable">vendas <button class="ao-chip__remove" aria-label="Remover"><i class="ph ph-x"></i></button></span>
+        <span class="ao-chip ao-chip--removable">marketing <button class="ao-chip__remove" aria-label="Remover"><i class="ph ph-x"></i></button></span>
+        <span class="ao-chip ao-chip--primary ao-chip--removable">PR-2024 <button class="ao-chip__remove" aria-label="Remover"><i class="ph ph-x"></i></button></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ INPUTS ============ -->
+  <section class="section">
+    <h2 class="section__title"><i class="ph ph-text-aa"></i> Inputs &amp; Fields</h2>
+    <p class="section__desc">.ao-input, .ao-textarea, .ao-select com .ao-field wrapper. Estados: default, hover, focus, error, disabled, readonly.</p>
+
+    <div class="demo-grid-2">
+
+      <div class="ao-card">
+        <div class="ao-card__body">
+          <div class="ao-field">
+            <label class="ao-field__label" for="ex1">Nome</label>
+            <input class="ao-input" id="ex1" type="text" placeholder="Seu nome">
+            <span class="ao-field__helper">Nome completo, como no documento.</span>
+          </div>
+
+          <div class="ao-field">
+            <label class="ao-field__label" for="ex2">E-mail <span class="ao-field__required">*</span></label>
+            <div class="ao-input-group">
+              <span class="ao-input-group__prefix"><i class="ph ph-envelope"></i></span>
+              <input class="ao-input" id="ex2" type="email" placeholder="seu@email.com">
+            </div>
+          </div>
+
+          <div class="ao-field">
+            <label class="ao-field__label" for="ex3">E-mail (com erro)</label>
+            <input class="ao-input" id="ex3" type="email" value="email_invalido" aria-invalid="true" aria-describedby="ex3-err">
+            <span class="ao-field__error" id="ex3-err">Verifique o formato do e-mail.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="ao-card">
+        <div class="ao-card__body">
+          <div class="ao-field">
+            <label class="ao-field__label" for="ex4">País</label>
+            <select class="ao-select" id="ex4">
+              <option>Brasil</option>
+              <option>Argentina</option>
+              <option>Uruguai</option>
+              <option>Paraguai</option>
+            </select>
+          </div>
+
+          <div class="ao-field">
+            <label class="ao-field__label" for="ex5">Mensagem</label>
+            <textarea class="ao-textarea" id="ex5" rows="3" placeholder="Escreva aqui..."></textarea>
+          </div>
+
+          <div class="ao-field">
+            <label class="ao-field__label" for="ex6">Disabled</label>
+            <input class="ao-input" id="ex6" type="text" value="Não editável" disabled>
+          </div>
+
+          <div class="ao-field">
+            <label class="ao-field__label" for="ex7">Readonly</label>
+            <input class="ao-input" id="ex7" type="text" value="ABC-2024-001" readonly>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TABS ============ -->
+  <section class="section">
+    <h2 class="section__title"><i class="ph ph-tabs"></i> Tabs</h2>
+    <p class="section__desc">.ao-tabs em variante underline (default) e pill. Com ícones e contadores.</p>
+
+    <div class="demo-block">
+      <div class="demo-block__label">Underline (padrão)</div>
+      <div class="ao-tabs" role="tablist">
+        <button class="ao-tab ao-tab--active" role="tab" aria-selected="true">Visão geral</button>
+        <button class="ao-tab" role="tab" aria-selected="false">
+          <i class="ao-tab__icon ph ph-users"></i>
+          Contatos
+          <span class="ao-tab__count">142</span>
+        </button>
+        <button class="ao-tab" role="tab" aria-selected="false">
+          <i class="ao-tab__icon ph ph-chart-line"></i>
+          Atividade
+        </button>
+        <button class="ao-tab" role="tab" aria-selected="false">Configurações</button>
+      </div>
+    </div>
+
+    <div class="demo-block">
+      <div class="demo-block__label">Pill (filtros)</div>
+      <div class="ao-tabs ao-tabs--pill" role="tablist">
+        <button class="ao-tab ao-tab--active" role="tab">Hoje</button>
+        <button class="ao-tab" role="tab">Semana</button>
+        <button class="ao-tab" role="tab">Mês</button>
+        <button class="ao-tab" role="tab">Trimestre</button>
+        <button class="ao-tab" role="tab">Ano</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ALERTS ============ -->
+  <section class="section">
+    <h2 class="section__title"><i class="ph ph-warning-circle"></i> Alerts</h2>
+    <p class="section__desc">.ao-alert em variantes info/success/warning/danger. Estilos default (soft) e solid (border-left).</p>
+
+    <div class="demo-grid-2">
+      <div class="ao-alert">
+        <i class="ao-alert__icon ph-fill ph-info"></i>
+        <div class="ao-alert__content">
+          <p class="ao-alert__title">Atualização disponível</p>
+          <p class="ao-alert__body">Nova versão 2.0.1 disponível para download.</p>
+        </div>
+        <button class="ao-alert__close" aria-label="Fechar"><i class="ph ph-x"></i></button>
+      </div>
+
+      <div class="ao-alert ao-alert--success">
+        <i class="ao-alert__icon ph-fill ph-check-circle"></i>
+        <div class="ao-alert__content">
+          <p class="ao-alert__title">Pagamento confirmado</p>
+          <p class="ao-alert__body">Seu plano foi renovado por mais 12 meses.</p>
+        </div>
+      </div>
+
+      <div class="ao-alert ao-alert--warning">
+        <i class="ao-alert__icon ph-fill ph-warning"></i>
+        <div class="ao-alert__content">
+          <p class="ao-alert__title">Atenção</p>
+          <p class="ao-alert__body">3 contatos sem e-mail cadastrado.</p>
+        </div>
+      </div>
+
+      <div class="ao-alert ao-alert--danger">
+        <i class="ao-alert__icon ph-fill ph-x-circle"></i>
+        <div class="ao-alert__content">
+          <p class="ao-alert__title">Erro ao salvar</p>
+          <p class="ao-alert__body">Verifique sua conexão e tente novamente.</p>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:var(--ao-space-3)">
+      <div class="demo-block__label">Solid (border-left, mais discreto)</div>
+      <div class="ao-alert ao-alert--success ao-alert--solid" style="margin-bottom:var(--ao-space-2)">
+        <i class="ao-alert__icon ph-fill ph-check-circle"></i>
+        <div class="ao-alert__content">
+          <p class="ao-alert__body">142 contatos importados com sucesso.</p>
+        </div>
+      </div>
+      <div class="ao-alert ao-alert--warning ao-alert--solid" style="margin-bottom:var(--ao-space-2)">
+        <i class="ao-alert__icon ph-fill ph-warning"></i>
+        <div class="ao-alert__content">
+          <p class="ao-alert__body">Sessão expira em 5 minutos.</p>
+        </div>
+      </div>
+      <div class="ao-alert ao-alert--danger ao-alert--solid">
+        <i class="ao-alert__icon ph-fill ph-x-circle"></i>
+        <div class="ao-alert__content">
+          <p class="ao-alert__body">Falha na sincronização. <a href="#" style="color:var(--ao-danger);text-decoration:underline">Tentar novamente</a>.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SIDEBAR ============ -->
+  <section class="section">
+    <h2 class="section__title"><i class="ph ph-list"></i> Sidebar items</h2>
+    <p class="section__desc">.ao-sidebar-item para navegação lateral. Com ícone, label, badge. Estados: default, hover, active.</p>
+
+    <div class="demo-grid-2">
+      <nav class="sidebar-demo">
+        <div class="ao-sidebar-section">
+          <h4 class="ao-sidebar-section__title">Principal</h4>
+          <a href="#" class="ao-sidebar-item ao-sidebar-item--active" aria-current="page">
+            <i class="ao-sidebar-item__icon ph ph-house"></i>
+            <span class="ao-sidebar-item__label">Dashboard</span>
+          </a>
+          <a href="#" class="ao-sidebar-item">
+            <i class="ao-sidebar-item__icon ph ph-users"></i>
+            <span class="ao-sidebar-item__label">Contatos</span>
+            <span class="ao-sidebar-item__badge">142</span>
+          </a>
+          <a href="#" class="ao-sidebar-item">
+            <i class="ao-sidebar-item__icon ph ph-chat-circle"></i>
+            <span class="ao-sidebar-item__label">Conversas</span>
+            <span class="ao-sidebar-item__badge">3</span>
+          </a>
+          <a href="#" class="ao-sidebar-item">
+            <i class="ao-sidebar-item__icon ph ph-calendar"></i>
+            <span class="ao-sidebar-item__label">Calendário</span>
+          </a>
+        </div>
+        <div class="ao-sidebar-section">
+          <h4 class="ao-sidebar-section__title">Configurações</h4>
+          <a href="#" class="ao-sidebar-item">
+            <i class="ao-sidebar-item__icon ph ph-user"></i>
+            <span class="ao-sidebar-item__label">Perfil</span>
+          </a>
+          <a href="#" class="ao-sidebar-item">
+            <i class="ao-sidebar-item__icon ph ph-gear"></i>
+            <span class="ao-sidebar-item__label">Preferências</span>
+          </a>
+          <a href="#" class="ao-sidebar-item" aria-disabled="true" style="opacity:.5;pointer-events:none">
+            <i class="ao-sidebar-item__icon ph ph-lock"></i>
+            <span class="ao-sidebar-item__label">Equipe (em breve)</span>
+          </a>
+        </div>
+      </nav>
+
+      <div class="ao-card">
+        <div class="ao-card__header">
+          <h3 class="ao-card__title">Como usar</h3>
+        </div>
+        <div class="ao-card__body" style="font-size:var(--ao-text-sm);color:var(--ao-text-soft);line-height:var(--ao-leading-relaxed)">
+          <p style="margin-top:0">Use <code style="font-family:var(--ao-font-mono);background:var(--ao-bg);padding:1px 4px;border-radius:3px">&lt;a&gt;</code> para itens de navegação real, <code style="font-family:var(--ao-font-mono);background:var(--ao-bg);padding:1px 4px;border-radius:3px">&lt;button&gt;</code> apenas se executa ação.</p>
+          <p>Para indicar ativo: classe <code style="font-family:var(--ao-font-mono);background:var(--ao-bg);padding:1px 4px;border-radius:3px">.ao-sidebar-item--active</code> ou atributo <code style="font-family:var(--ao-font-mono);background:var(--ao-bg);padding:1px 4px;border-radius:3px">aria-current="page"</code>.</p>
+          <p style="margin-bottom:0">Agrupe em <code style="font-family:var(--ao-font-mono);background:var(--ao-bg);padding:1px 4px;border-radius:3px">.ao-sidebar-section</code> com título opcional.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer style="margin-top:var(--ao-space-12);padding-top:var(--ao-space-6);border-top:1px solid var(--ao-border);color:var(--ao-text-muted);font-size:var(--ao-text-sm);text-align:center">
+    AIOSON App UI v2.0.0-alpha · Fase 2 · Componentes fundamentais
+  </footer>
+
+</div>
+
+<script>
+const root = document.documentElement;
+const themeGroup = document.getElementById('theme-group');
+const modeGroup = document.getElementById('mode-group');
+const activeContext = document.getElementById('active-context');
+
+function updateContext(){
+  const t = root.getAttribute('data-theme');
+  const m = root.getAttribute('data-mode');
+  activeContext.textContent = t + ' + ' + m;
+}
+
+themeGroup.addEventListener('click', e => {
+  const btn = e.target.closest('[data-theme]');
+  if(!btn) return;
+  root.setAttribute('data-theme', btn.dataset.theme);
+  themeGroup.querySelectorAll('.toggle-btn').forEach(b => b.classList.toggle('is-active', b.dataset.theme === btn.dataset.theme));
+  updateContext();
+});
+
+modeGroup.addEventListener('click', e => {
+  const btn = e.target.closest('[data-mode]');
+  if(!btn) return;
+  root.setAttribute('data-mode', btn.dataset.mode);
+  modeGroup.querySelectorAll('.toggle-btn').forEach(b => b.classList.toggle('is-active', b.dataset.mode === btn.dataset.mode));
+  updateContext();
+});
+
+updateContext();
+</script>
+
+</body>
+</html>

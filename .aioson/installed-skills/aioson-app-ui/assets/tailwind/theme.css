@@ -1,0 +1,152 @@
+/* =============================================================================
+   AIOSON APP UI — TAILWIND v4 PRESET
+   =============================================================================
+   Mapeia os tokens semantic do DS para o sistema @theme do Tailwind v4.
+   Resultado: utilities Tailwind (bg-primary, text-soft, p-4, rounded-md)
+   automaticamente respeitam o tema/modo ativo.
+
+   Quando o usuário troca dark↔light ou brand↔work, todas as classes
+   Tailwind atualizam sem rebuild — porque apontam para CSS variables
+   que mudam dinamicamente.
+
+   PRÉ-REQUISITO: importe primeiro os tokens DS:
+     @import './aioson-app-ui/assets/tokens/index.css';
+     @import './aioson-app-ui/assets/tailwind/theme.css';
+
+   REGRA DE USO:
+   - Tailwind: layout, spacing genérico, responsividade
+     <div class="flex items-center gap-4 p-4 md:p-6">
+   - DS: componentes com estados (botões, cards, inputs, modais)
+     <button class="ao-btn ao-btn--primary">
+
+   Mais detalhes em references/tailwind-integration.md
+   ============================================================================= */
+
+@import 'tailwindcss';
+
+@theme {
+
+  /* -----------------------------------------------------------------
+     COLORS — Semantic (mudam com data-theme/data-mode)
+     Uso: bg-primary, text-soft, border-strong, etc.
+     ----------------------------------------------------------------- */
+
+  /* Brand colors */
+  --color-primary:         var(--ao-primary);
+  --color-primary-hover:   var(--ao-primary-hover);
+  --color-primary-pressed: var(--ao-primary-pressed);
+  --color-primary-soft:    var(--ao-primary-soft);
+  --color-primary-on:      var(--ao-primary-on);
+
+  --color-secondary:       var(--ao-secondary);
+  --color-secondary-hover: var(--ao-secondary-hover);
+  --color-secondary-soft:  var(--ao-secondary-soft);
+
+  --color-accent:      var(--ao-accent);
+  --color-accent-soft: var(--ao-accent-soft);
+
+  /* Semantic states */
+  --color-success:      var(--ao-success);
+  --color-success-soft: var(--ao-success-soft);
+  --color-warning:      var(--ao-warning);
+  --color-warning-soft: var(--ao-warning-soft);
+  --color-danger:       var(--ao-danger);
+  --color-danger-soft:  var(--ao-danger-soft);
+  --color-info:         var(--ao-info);
+  --color-info-soft:    var(--ao-info-soft);
+
+  /* Surfaces */
+  --color-bg:               var(--ao-bg);
+  --color-surface:          var(--ao-surface);
+  --color-surface-elevated: var(--ao-surface-elevated);
+  --color-surface-hover:    var(--ao-surface-hover);
+
+  /* Text */
+  --color-text:         var(--ao-text);
+  --color-text-soft:    var(--ao-text-soft);
+  --color-text-muted:   var(--ao-text-muted);
+  --color-text-inverse: var(--ao-text-inverse);
+
+  /* Borders */
+  --color-border:        var(--ao-border);
+  --color-border-strong: var(--ao-border-strong);
+  --color-border-subtle: var(--ao-border-subtle);
+
+  /* -----------------------------------------------------------------
+     SPACING — escala compacta
+     Uso: p-1 (4px), p-2 (8px), gap-3 (12px), m-4 (16px), etc.
+     ----------------------------------------------------------------- */
+  --spacing-1:  var(--ao-space-1);
+  --spacing-2:  var(--ao-space-2);
+  --spacing-3:  var(--ao-space-3);
+  --spacing-4:  var(--ao-space-4);
+  --spacing-5:  var(--ao-space-5);
+  --spacing-6:  var(--ao-space-6);
+  --spacing-8:  var(--ao-space-8);
+  --spacing-10: var(--ao-space-10);
+  --spacing-12: var(--ao-space-12);
+  --spacing-16: var(--ao-space-16);
+  --spacing-20: var(--ao-space-20);
+
+  /* -----------------------------------------------------------------
+     RADIUS
+     Uso: rounded-xs, rounded-sm, rounded-md, rounded-lg, etc.
+     ----------------------------------------------------------------- */
+  --radius-xs:   var(--ao-radius-xs);
+  --radius-sm:   var(--ao-radius-sm);
+  --radius-md:   var(--ao-radius-md);
+  --radius-lg:   var(--ao-radius-lg);
+  --radius-xl:   var(--ao-radius-xl);
+  --radius-2xl:  var(--ao-radius-2xl);
+  --radius-full: var(--ao-radius-full);
+
+  /* -----------------------------------------------------------------
+     FONT FAMILIES
+     Uso: font-sans, font-heading, font-mono
+     ----------------------------------------------------------------- */
+  --font-sans:    var(--ao-font-body);
+  --font-heading: var(--ao-font-heading);
+  --font-mono:    var(--ao-font-mono);
+
+  /* -----------------------------------------------------------------
+     FONT SIZES — escala compacta (work mode)
+     Uso: text-xs, text-sm, text-base, text-md, text-lg, text-xl...
+     ----------------------------------------------------------------- */
+  --text-xs:   var(--ao-text-xs);
+  --text-sm:   var(--ao-text-sm);
+  --text-base: var(--ao-text-base);
+  --text-md:   var(--ao-text-md);
+  --text-lg:   var(--ao-text-lg);
+  --text-xl:   var(--ao-text-xl);
+  --text-2xl:  var(--ao-text-2xl);
+  --text-3xl:  var(--ao-text-3xl);
+  --text-4xl:  var(--ao-text-4xl);
+  --text-5xl:  var(--ao-text-5xl);
+  --text-6xl:  var(--ao-text-6xl);
+
+  /* -----------------------------------------------------------------
+     SHADOWS
+     Uso: shadow-sm, shadow-md, shadow-lg
+     ----------------------------------------------------------------- */
+  --shadow-sm: var(--ao-shadow-sm);
+  --shadow-md: var(--ao-shadow-md);
+  --shadow-lg: var(--ao-shadow-lg);
+
+  /* -----------------------------------------------------------------
+     ANIMATION DURATIONS
+     Uso: duration-fast, duration-base, duration-slow
+     ----------------------------------------------------------------- */
+  --animate-duration-fast: var(--ao-duration-fast);
+  --animate-duration-base: var(--ao-duration-base);
+  --animate-duration-slow: var(--ao-duration-slow);
+
+  /* -----------------------------------------------------------------
+     BREAKPOINTS — para uso em queries Tailwind sm:, md:, lg:, xl:, 2xl:
+     ----------------------------------------------------------------- */
+  --breakpoint-sm:  var(--ao-bp-sm);
+  --breakpoint-md:  var(--ao-bp-md);
+  --breakpoint-lg:  var(--ao-bp-lg);
+  --breakpoint-xl:  var(--ao-bp-xl);
+  --breakpoint-2xl: var(--ao-bp-2xl);
+
+}

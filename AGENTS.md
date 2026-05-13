@@ -34,12 +34,13 @@ Describe your intent. The agent system will match and execute.
 | @pm | "create the user stories", "use the pm agent" |
 | @dev | "implement the feature", "use the dev agent" |
 | @qa | "write the tests", "use the qa agent" |
+| @pentester | "security review this feature", "adversarial review", "OWASP audit", "penetration test", "check for vulnerabilities", "use the pentester agent" |
 | @neo | "where do I start?", "what should I do next?", "show project status", "guide me", "use the neo agent" |
 | @orchestrator | "coordinate this session", "use the orchestrator agent" |
 | @squad | "assemble a squad", "use the squad agent", "montar squad" |
 | @committer | "commit my changes", "generate commit message", "use the committer agent" |
 | @copywriter | "write copy for this page", "conversion strategy", "use the copywriter agent" |
-| @cypher | "create a briefing from plans", "pre-production planning", "use the cypher agent" |
+| @briefing | "create a briefing from plans", "pre-production planning", "frame the problem", "I have an idea but not sure if it's a feature yet", "structure my plans before PRD", "use the briefing agent" |
 | @genome | "generate a genome", "use the genome agent", "gerar genome" |
 | @profiler-researcher | "start the profiler research", "profile this person", "pesquisar DNA mental" |
 | @profiler-enricher | "enrich this profile", "analyze this person's cognition", "consolidar perfil cognitivo" |
@@ -47,6 +48,7 @@ Describe your intent. The agent system will match and execute.
 | @orache | "investigate this domain", "research market and competitors", "use the orache agent" |
 | @design-hybrid-forge | "create hybrid design skill", "combine two design skills", "use the design-hybrid-forge agent" |
 | @site-forge | "clone this site with [skill]", "rebuild [url] using [skill]", "[url] in the style of [skill]", "extract the design from [url] as a skill", "use the site-forge agent" |
+| @discover | "discover the system", "scan and understand the project", "build semantic knowledge cache", "refresh bootstrap", "use the discover agent" |
 
 When an agent file is included via @ or described via natural language, read the corresponding file and execute its instructions immediately from the first step.
 Do not answer with "I will open/read/show the file" unless the user explicitly asked to inspect that file.
@@ -97,7 +99,7 @@ When running Codex directly (without `aioson workflow:next`), these rules apply:
 - @squad → `.aioson/agents/squad.md`
 - @committer → `.aioson/agents/committer.md`
 - @copywriter → `.aioson/agents/copywriter.md`
-- @cypher → `.aioson/agents/cypher.md`
+- @briefing → `.aioson/agents/briefing.md`
 - @genome → `.aioson/agents/genome.md`
 - @profiler-researcher → `.aioson/agents/profiler-researcher.md`
 - @profiler-enricher → `.aioson/agents/profiler-enricher.md`
@@ -168,8 +170,9 @@ researchs/
 - After running a web search, save the result to `researchs/{slug}/summary.md` so other agents can reuse it
 - `summary.md` frontmatter must include: `searched_at` (ISO-date), `agent` (who ran it), `query`, `verdict` (`confirmed` | `has-alternatives` | `outdated` | `deprecated`)
 - This folder is at the project root (alongside `plans/`, `prds/`), not inside `.aioson/`
+- `@product`, `@sheldon`, and `@squad` should extract short keyword phrases from the active task, scout `researchs/`, and save fresh findings whenever external context could materially improve the output
 
-Primary agent that writes here: @sheldon (RF-WEB step)
+Primary recurring writers here: @product, @sheldon, and @squad
 All agents may read from here to avoid redundant searches.
 
 ## Session protocol

@@ -1,0 +1,106 @@
+/* =============================================================================
+   AIOSON APP UI — COMPONENT · STATUS PILL
+   =============================================================================
+   .ao-status-pill — etiqueta de status especializada (CRM, Pipeline).
+
+   Diferença vs .ao-chip:
+   - .ao-chip = uso geral (tags, metadados, filtros)
+   - .ao-status-pill = especializado em estados de processo/lead/contato,
+     com cores semânticas mapeadas para estágios de fluxo
+
+   Uso:
+   <span class="ao-status-pill ao-status-pill--qualified">
+     <span class="ao-status-pill__icon">●</span>
+     Qualificado
+   </span>
+   ============================================================================= */
+
+.ao-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 var(--ao-space-2);
+  border-radius: var(--ao-radius-xs);
+  font-family: var(--ao-font-body);
+  font-size: var(--ao-text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: var(--ao-tracking-wide);
+  white-space: nowrap;
+  background: var(--ao-surface-hover);
+  color: var(--ao-text-soft);
+  border: 1px solid var(--ao-border);
+  vertical-align: middle;
+}
+
+.ao-status-pill__icon {
+  font-size: 9px;
+  line-height: 1;
+}
+
+/* -----------------------------------------------------------------
+   ESTADOS DE LEAD (CRM) — fluxo padrão de Pipeline
+   ----------------------------------------------------------------- */
+
+/* Novo lead, ainda não trabalhado */
+.ao-status-pill--new {
+  background: var(--ao-info-soft);
+  color: var(--ao-info);
+  border-color: var(--ao-info);
+}
+
+/* Qualificado, contato confirmado */
+.ao-status-pill--qualified {
+  background: var(--ao-primary-soft);
+  color: var(--ao-primary);
+  border-color: var(--ao-primary);
+}
+
+/* Em negociação, proposta em andamento */
+.ao-status-pill--negotiation {
+  background: var(--ao-warning-soft);
+  color: var(--ao-warning);
+  border-color: var(--ao-warning);
+}
+
+/* Fechado/ganho */
+.ao-status-pill--won {
+  background: var(--ao-success-soft);
+  color: var(--ao-success);
+  border-color: var(--ao-success);
+}
+
+/* Perdido */
+.ao-status-pill--lost {
+  background: var(--ao-danger-soft);
+  color: var(--ao-danger);
+  border-color: var(--ao-danger);
+}
+
+/* Pausado / em standby */
+.ao-status-pill--paused {
+  background: var(--ao-surface-hover);
+  color: var(--ao-text-muted);
+  border-color: var(--ao-border-strong);
+}
+
+/* -----------------------------------------------------------------
+   ESTADOS GENÉRICOS DE PROCESSO (úteis fora de CRM)
+   ----------------------------------------------------------------- */
+
+.ao-status-pill--draft     { background: var(--ao-surface-hover); color: var(--ao-text-soft); }
+.ao-status-pill--pending   { background: var(--ao-warning-soft); color: var(--ao-warning); border-color: var(--ao-warning); }
+.ao-status-pill--active    { background: var(--ao-success-soft); color: var(--ao-success); border-color: var(--ao-success); }
+.ao-status-pill--inactive  { background: var(--ao-surface-hover); color: var(--ao-text-muted); }
+.ao-status-pill--archived  { background: var(--ao-bg); color: var(--ao-text-muted); border-style: dashed; }
+
+/* -----------------------------------------------------------------
+   VARIANTE --solid (sem soft, fundo cheio)
+   ----------------------------------------------------------------- */
+
+.ao-status-pill--solid.ao-status-pill--new        { background: var(--ao-info); color: var(--ao-text-inverse); }
+.ao-status-pill--solid.ao-status-pill--qualified  { background: var(--ao-primary); color: var(--ao-primary-on); }
+.ao-status-pill--solid.ao-status-pill--negotiation{ background: var(--ao-warning); color: var(--ao-text-inverse); }
+.ao-status-pill--solid.ao-status-pill--won        { background: var(--ao-success); color: var(--ao-text-inverse); }
+.ao-status-pill--solid.ao-status-pill--lost       { background: var(--ao-danger); color: var(--ao-text-inverse); }

@@ -1,0 +1,133 @@
+/* =============================================================================
+   AIOSON APP UI — UTILITIES · PRINT
+   =============================================================================
+   Stylesheet de impressão.
+
+   Aplicado automaticamente quando o usuário imprime via Ctrl+P / Save as PDF.
+   Foco: legibilidade em papel, economia de tinta, ocultar UI desnecessária.
+   ============================================================================= */
+
+@media print {
+  /* Reset para fundo branco e tinta preta — economia de tinta */
+  *,
+  *::before,
+  *::after {
+    background: transparent !important;
+    color: #000 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  body {
+    font-family: var(--ao-font-body);
+    font-size: 11pt;
+    line-height: 1.4;
+    color: #000;
+    background: #fff;
+  }
+
+  /* -----------------------------------------------------------------
+     ESCONDER UI INTERATIVA
+     ----------------------------------------------------------------- */
+
+  .ao-sidebar,
+  .ao-appbar,
+  .ao-toast-container,
+  .ao-modal-backdrop,
+  .ao-drawer-backdrop,
+  .ao-popover,
+  .ao-tooltip,
+  .ao-dropdown,
+  .ao-no-print,
+  [data-ao-no-print] {
+    display: none !important;
+  }
+
+  /* Ocultar botões não-essenciais (deixar só botões marcados como printable) */
+  .ao-btn:not(.ao-print-keep),
+  .ao-pagination {
+    display: none !important;
+  }
+
+  /* -----------------------------------------------------------------
+     LINKS — mostrar URL após o texto
+     ----------------------------------------------------------------- */
+
+  a[href]:not(.ao-no-url-print)::after {
+    content: " (" attr(href) ")";
+    font-size: 0.85em;
+    color: #444 !important;
+  }
+
+  /* Não imprimir URL para links internos / âncoras */
+  a[href^="#"]::after,
+  a[href^="javascript:"]::after,
+  a[href^="mailto:"]::after {
+    content: "";
+  }
+
+  /* -----------------------------------------------------------------
+     CARDS / TABELAS — bordas mais sólidas para impressão
+     ----------------------------------------------------------------- */
+
+  .ao-card,
+  .ao-table-wrap,
+  .ao-kpi {
+    border: 1px solid #999 !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .ao-table th,
+  .ao-table td {
+    border-bottom: 1px solid #999 !important;
+  }
+
+  .ao-table thead {
+    background: #eee !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* -----------------------------------------------------------------
+     QUEBRAS DE PÁGINA
+     ----------------------------------------------------------------- */
+
+  h1, h2, h3, h4 {
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  img,
+  table,
+  pre,
+  blockquote {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .ao-page-break {
+    page-break-before: always;
+    break-before: page;
+  }
+
+  /* -----------------------------------------------------------------
+     ALERTS — manter ícone e estrutura visível
+     ----------------------------------------------------------------- */
+
+  .ao-alert {
+    border: 1px solid #999 !important;
+    padding: 10px !important;
+  }
+
+  /* -----------------------------------------------------------------
+     CHIPS / STATUS PILLS — mostrar como texto entre colchetes
+     ----------------------------------------------------------------- */
+
+  .ao-chip,
+  .ao-status-pill {
+    border: 1px solid #999 !important;
+    padding: 2px 6px !important;
+    background: transparent !important;
+  }
+}

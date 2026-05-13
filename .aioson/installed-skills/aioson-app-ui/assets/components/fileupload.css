@@ -1,0 +1,190 @@
+/* =============================================================================
+   AIOSON APP UI — COMPONENT · FILE UPLOAD
+   =============================================================================
+   .ao-fileupload — dropzone visual para upload.
+
+   Variantes:
+   - default (dropzone grande)
+   - --compact (botão pequeno + label)
+
+   Estrutura:
+   .ao-fileupload
+     .ao-fileupload__zone (label clicável + drag area)
+       .ao-fileupload__icon
+       .ao-fileupload__hint
+       input type="file" hidden
+
+   States:
+   - hover, focus, dragover, error, --has-files
+   ============================================================================= */
+
+.ao-fileupload {
+  position: relative;
+}
+
+.ao-fileupload__zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ao-space-2);
+  padding: var(--ao-space-6);
+  background: var(--ao-surface);
+  border: 2px dashed var(--ao-border-strong);
+  border-radius: var(--ao-radius-md);
+  text-align: center;
+  cursor: pointer;
+  transition:
+    border-color var(--ao-duration-fast) var(--ao-easing-standard),
+    background var(--ao-duration-fast) var(--ao-easing-standard);
+}
+
+.ao-fileupload__zone:hover,
+.ao-fileupload--dragover .ao-fileupload__zone {
+  border-color: var(--ao-primary);
+  background: var(--ao-primary-soft);
+}
+
+.ao-fileupload__input:focus-visible + .ao-fileupload__zone {
+  outline: 2px solid var(--ao-primary);
+  outline-offset: 2px;
+}
+
+.ao-fileupload--error .ao-fileupload__zone {
+  border-color: var(--ao-danger);
+  background: var(--ao-danger-soft);
+}
+
+.ao-fileupload__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ao-fileupload__zone { transition: none; }
+}
+
+/* -----------------------------------------------------------------
+   CONTEÚDO INTERNO
+   ----------------------------------------------------------------- */
+
+.ao-fileupload__icon {
+  font-size: 32px;
+  color: var(--ao-text-muted);
+}
+
+.ao-fileupload__title {
+  font-size: var(--ao-text-md);
+  font-weight: 500;
+  color: var(--ao-text);
+  margin: 0;
+}
+
+.ao-fileupload__title strong {
+  color: var(--ao-primary);
+  font-weight: 600;
+}
+
+.ao-fileupload__hint {
+  font-size: var(--ao-text-sm);
+  color: var(--ao-text-soft);
+  margin: 0;
+}
+
+/* -----------------------------------------------------------------
+   FILES LIST (após selecionar)
+   ----------------------------------------------------------------- */
+
+.ao-fileupload__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ao-space-2);
+  margin-top: var(--ao-space-3);
+}
+
+.ao-fileupload__item {
+  display: flex;
+  align-items: center;
+  gap: var(--ao-space-3);
+  padding: var(--ao-space-2) var(--ao-space-3);
+  background: var(--ao-surface);
+  border: 1px solid var(--ao-border);
+  border-radius: var(--ao-radius-sm);
+}
+
+.ao-fileupload__item-icon {
+  font-size: 20px;
+  color: var(--ao-text-soft);
+  flex-shrink: 0;
+}
+
+.ao-fileupload__item-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.ao-fileupload__item-name {
+  font-size: var(--ao-text-sm);
+  font-weight: 500;
+  color: var(--ao-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ao-fileupload__item-size {
+  font-size: var(--ao-text-xs);
+  color: var(--ao-text-muted);
+}
+
+.ao-fileupload__item-progress {
+  width: 80px;
+  flex-shrink: 0;
+}
+
+.ao-fileupload__item-remove {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--ao-text-muted);
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--ao-radius-xs);
+  font-size: 14px;
+  transition: color var(--ao-duration-fast), background var(--ao-duration-fast);
+}
+
+.ao-fileupload__item-remove:hover {
+  color: var(--ao-danger);
+  background: var(--ao-danger-soft);
+}
+
+.ao-fileupload__item-remove:focus-visible {
+  outline: 2px solid var(--ao-primary);
+  outline-offset: 1px;
+}
+
+/* -----------------------------------------------------------------
+   VARIANTE --compact (botão simples + label)
+   ----------------------------------------------------------------- */
+
+.ao-fileupload--compact .ao-fileupload__zone {
+  flex-direction: row;
+  padding: var(--ao-space-3) var(--ao-space-4);
+  gap: var(--ao-space-3);
+}
+
+.ao-fileupload--compact .ao-fileupload__icon {
+  font-size: 18px;
+}
+
+.ao-fileupload--compact .ao-fileupload__hint {
+  font-size: var(--ao-text-xs);
+}

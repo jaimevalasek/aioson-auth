@@ -1,0 +1,124 @@
+/* =============================================================================
+   AIOSON APP UI — COMPONENT · TOGGLE (SWITCH)
+   =============================================================================
+   .ao-toggle — switch on/off para preferências e estados binários.
+
+   Uso:
+   <label class="ao-toggle">
+     <input type="checkbox" class="ao-toggle__input">
+     <span class="ao-toggle__track"></span>
+     <span class="ao-toggle__label">Notificações</span>
+   </label>
+
+   Tamanhos: --sm, default, --lg
+   ============================================================================= */
+
+.ao-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ao-space-3);
+  cursor: pointer;
+  user-select: none;
+  font-family: var(--ao-font-body);
+  font-size: var(--ao-text-md);
+  color: var(--ao-text);
+}
+
+.ao-toggle__input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  width: 0;
+  height: 0;
+}
+
+.ao-toggle__track {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 20px;
+  background: var(--ao-surface-hover);
+  border: 1px solid var(--ao-border-strong);
+  border-radius: var(--ao-radius-full);
+  flex-shrink: 0;
+  transition:
+    background var(--ao-duration-fast) var(--ao-easing-standard),
+    border-color var(--ao-duration-fast) var(--ao-easing-standard);
+}
+
+.ao-toggle__track::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  background: var(--ao-text-soft);
+  border-radius: 50%;
+  transform: translateY(-50%);
+  transition: transform var(--ao-duration-fast) var(--ao-easing-standard),
+              background var(--ao-duration-fast) var(--ao-easing-standard);
+}
+
+.ao-toggle__label {
+  font-weight: 500;
+}
+
+/* -----------------------------------------------------------------
+   STATES
+   ----------------------------------------------------------------- */
+
+/* Hover */
+.ao-toggle:hover .ao-toggle__track {
+  border-color: var(--ao-text-muted);
+}
+
+/* Focus */
+.ao-toggle__input:focus-visible + .ao-toggle__track {
+  outline: 2px solid var(--ao-primary);
+  outline-offset: 2px;
+}
+
+/* Checked */
+.ao-toggle__input:checked + .ao-toggle__track {
+  background: var(--ao-primary);
+  border-color: var(--ao-primary);
+}
+
+.ao-toggle__input:checked + .ao-toggle__track::after {
+  transform: translateY(-50%) translateX(16px);
+  background: var(--ao-primary-on);
+}
+
+/* Disabled */
+.ao-toggle__input:disabled + .ao-toggle__track {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ao-toggle:has(.ao-toggle__input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* -----------------------------------------------------------------
+   TAMANHOS
+   ----------------------------------------------------------------- */
+
+.ao-toggle--sm .ao-toggle__track { width: 28px; height: 16px; }
+.ao-toggle--sm .ao-toggle__track::after { width: 10px; height: 10px; }
+.ao-toggle--sm .ao-toggle__input:checked + .ao-toggle__track::after {
+  transform: translateY(-50%) translateX(12px);
+}
+.ao-toggle--sm { font-size: var(--ao-text-sm); }
+
+.ao-toggle--lg .ao-toggle__track { width: 44px; height: 24px; }
+.ao-toggle--lg .ao-toggle__track::after { width: 18px; height: 18px; }
+.ao-toggle--lg .ao-toggle__input:checked + .ao-toggle__track::after {
+  transform: translateY(-50%) translateX(20px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ao-toggle__track,
+  .ao-toggle__track::after { transition: none; }
+}

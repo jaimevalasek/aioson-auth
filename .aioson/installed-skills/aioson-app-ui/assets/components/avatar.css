@@ -1,0 +1,123 @@
+/* =============================================================================
+   AIOSON APP UI — COMPONENT · AVATAR
+   =============================================================================
+   .ao-avatar — representação visual de um usuário.
+
+   Variantes:
+   - default (foto)
+   - --initials (sem foto, mostra iniciais com fundo colorido)
+   - --icon (placeholder com ícone)
+
+   Tamanhos: --xs (20px), --sm (28px), default (36px), --lg (48px), --xl (64px), --2xl (96px)
+
+   Status indicator (presence):
+   - --status-online, --status-offline, --status-busy, --status-away
+   ============================================================================= */
+
+.ao-avatar {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--ao-surface-hover);
+  color: var(--ao-text-soft);
+  font-family: var(--ao-font-body);
+  font-size: var(--ao-text-sm);
+  font-weight: 600;
+  line-height: 1;
+  overflow: hidden;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.ao-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* -----------------------------------------------------------------
+   TAMANHOS
+   ----------------------------------------------------------------- */
+
+.ao-avatar--xs  { width: 20px; height: 20px; font-size: var(--ao-text-xs); }
+.ao-avatar--sm  { width: 28px; height: 28px; font-size: var(--ao-text-xs); }
+.ao-avatar--lg  { width: 48px; height: 48px; font-size: var(--ao-text-md); }
+.ao-avatar--xl  { width: 64px; height: 64px; font-size: var(--ao-text-lg); }
+.ao-avatar--2xl { width: 96px; height: 96px; font-size: var(--ao-text-2xl); }
+
+/* -----------------------------------------------------------------
+   INITIALS (fundo colorido com letras)
+   Cores rotativas para distinguir usuários — usar via classes hash
+   ----------------------------------------------------------------- */
+
+.ao-avatar--initials {
+  background: var(--ao-primary-soft);
+  color: var(--ao-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Variantes de cor (para distribuir entre usuários, ex: hash do nome) */
+.ao-avatar--c1 { background: var(--ao-primary-soft); color: var(--ao-primary); }
+.ao-avatar--c2 { background: var(--ao-secondary-soft); color: var(--ao-secondary); }
+.ao-avatar--c3 { background: var(--ao-success-soft); color: var(--ao-success); }
+.ao-avatar--c4 { background: var(--ao-warning-soft); color: var(--ao-warning); }
+.ao-avatar--c5 { background: var(--ao-info-soft); color: var(--ao-info); }
+.ao-avatar--c6 { background: var(--ao-accent-soft); color: var(--ao-accent); }
+.ao-avatar--c7 { background: var(--ao-danger-soft); color: var(--ao-danger); }
+
+/* -----------------------------------------------------------------
+   STATUS INDICATOR (bolinha de presença)
+   ----------------------------------------------------------------- */
+
+.ao-avatar[data-status]::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 25%;
+  height: 25%;
+  min-width: 8px;
+  min-height: 8px;
+  border-radius: 50%;
+  border: 2px solid var(--ao-bg);
+  background: var(--ao-text-muted);
+}
+
+.ao-avatar[data-status="online"]::after  { background: var(--ao-success); }
+.ao-avatar[data-status="busy"]::after    { background: var(--ao-danger); }
+.ao-avatar[data-status="away"]::after    { background: var(--ao-warning); }
+.ao-avatar[data-status="offline"]::after { background: var(--ao-text-muted); }
+
+/* -----------------------------------------------------------------
+   GROUP (avatares sobrepostos)
+   ----------------------------------------------------------------- */
+
+.ao-avatar-group {
+  display: inline-flex;
+  align-items: center;
+}
+
+.ao-avatar-group .ao-avatar {
+  border: 2px solid var(--ao-bg);
+  margin-left: -8px;
+  background-clip: padding-box;
+}
+
+.ao-avatar-group .ao-avatar:first-child {
+  margin-left: 0;
+}
+
+.ao-avatar-group--sm .ao-avatar { margin-left: -6px; }
+
+.ao-avatar-group__more {
+  /* avatar com "+N" para mostrar quantos a mais */
+  background: var(--ao-surface-hover);
+  color: var(--ao-text-soft);
+  font-weight: 600;
+}

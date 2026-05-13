@@ -1,0 +1,322 @@
+/* =============================================================================
+   AIOSON APP UI — COMPONENT · INPUTS
+   =============================================================================
+   Form inputs base: text, email, number, password, search, etc.
+
+   Componentes:
+   - .ao-input        text-like inputs
+   - .ao-textarea     multi-line
+   - .ao-select       dropdown nativo estilizado
+   - .ao-field        wrapper: label + input + helper + error
+
+   Estados (em todos):
+   - default
+   - :hover
+   - :focus / :focus-visible
+   - :disabled
+   - [readonly]
+   - [aria-invalid="true"] (error state)
+   - .ao-input--success (success state opcional)
+
+   Tamanhos: --sm (28px), default (34px), --lg (38px)
+
+   NOTA: Datepicker, Combobox, Multiselect, Toggle, Checkbox, Radio
+   serão tratados na Fase 4 (formulários).
+   ============================================================================= */
+
+/* -----------------------------------------------------------------
+   BASE — input/textarea/select compartilham estes estilos
+   ----------------------------------------------------------------- */
+
+.ao-input,
+.ao-textarea,
+.ao-select {
+  appearance: none;
+  -webkit-appearance: none;
+  display: block;
+  width: 100%;
+  height: 34px;
+  padding: 0 var(--ao-space-3);
+  font-family: var(--ao-font-body);
+  font-size: var(--ao-text-md);
+  line-height: 1.5;
+  color: var(--ao-text);
+  background: var(--ao-surface);
+  border: 1px solid var(--ao-border-strong);
+  border-radius: var(--ao-radius-sm);
+  transition:
+    border-color var(--ao-duration-fast) var(--ao-easing-standard),
+    background var(--ao-duration-fast) var(--ao-easing-standard),
+    box-shadow var(--ao-duration-fast) var(--ao-easing-standard);
+  box-sizing: border-box;
+}
+
+.ao-textarea {
+  height: auto;
+  min-height: 80px;
+  padding: var(--ao-space-2) var(--ao-space-3);
+  resize: vertical;
+  font-family: var(--ao-font-body);
+  line-height: var(--ao-leading-relaxed);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ao-input, .ao-textarea, .ao-select { transition: none; }
+}
+
+/* Placeholder */
+.ao-input::placeholder,
+.ao-textarea::placeholder {
+  color: var(--ao-text-muted);
+  opacity: 1;
+}
+
+/* Hover */
+.ao-input:hover:not(:disabled):not([readonly]),
+.ao-textarea:hover:not(:disabled):not([readonly]),
+.ao-select:hover:not(:disabled):not([readonly]) {
+  border-color: var(--ao-text-muted);
+}
+
+/* Focus */
+.ao-input:focus,
+.ao-input:focus-visible,
+.ao-textarea:focus,
+.ao-textarea:focus-visible,
+.ao-select:focus,
+.ao-select:focus-visible {
+  outline: none;
+  border-color: var(--ao-primary);
+  box-shadow: 0 0 0 3px var(--ao-primary-soft);
+}
+
+/* Disabled */
+.ao-input:disabled,
+.ao-textarea:disabled,
+.ao-select:disabled {
+  background: var(--ao-surface-hover);
+  color: var(--ao-text-muted);
+  cursor: not-allowed;
+  border-color: var(--ao-border);
+}
+
+/* Readonly */
+.ao-input[readonly],
+.ao-textarea[readonly] {
+  background: var(--ao-surface-hover);
+  cursor: default;
+}
+
+/* -----------------------------------------------------------------
+   ESTADOS DE VALIDAÇÃO
+   ----------------------------------------------------------------- */
+
+/* Error state */
+.ao-input[aria-invalid="true"],
+.ao-textarea[aria-invalid="true"],
+.ao-select[aria-invalid="true"],
+.ao-input--error,
+.ao-textarea--error,
+.ao-select--error {
+  border-color: var(--ao-danger);
+}
+
+.ao-input[aria-invalid="true"]:focus,
+.ao-textarea[aria-invalid="true"]:focus,
+.ao-select[aria-invalid="true"]:focus,
+.ao-input--error:focus,
+.ao-textarea--error:focus,
+.ao-select--error:focus {
+  border-color: var(--ao-danger);
+  box-shadow: 0 0 0 3px var(--ao-danger-soft);
+}
+
+/* Success state */
+.ao-input--success,
+.ao-textarea--success,
+.ao-select--success {
+  border-color: var(--ao-success);
+}
+
+.ao-input--success:focus,
+.ao-textarea--success:focus,
+.ao-select--success:focus {
+  border-color: var(--ao-success);
+  box-shadow: 0 0 0 3px var(--ao-success-soft);
+}
+
+/* -----------------------------------------------------------------
+   SELECT — chevron customizado
+   ----------------------------------------------------------------- */
+
+.ao-select {
+  padding-right: var(--ao-space-8);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path fill='none' stroke='%2394A3B8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' d='M3 4.5l3 3 3-3'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right var(--ao-space-3) center;
+  background-size: 12px;
+  cursor: pointer;
+}
+
+.ao-select:disabled {
+  cursor: not-allowed;
+}
+
+/* -----------------------------------------------------------------
+   TAMANHOS
+   ----------------------------------------------------------------- */
+
+.ao-input--sm,
+.ao-select--sm {
+  height: 28px;
+  padding: 0 var(--ao-space-2);
+  font-size: var(--ao-text-sm);
+  border-radius: var(--ao-radius-xs);
+}
+
+.ao-input--lg,
+.ao-select--lg {
+  height: 38px;
+  padding: 0 var(--ao-space-4);
+  font-size: var(--ao-text-md);
+}
+
+/* -----------------------------------------------------------------
+   INPUT GROUP (com prefixo/sufixo)
+   ----------------------------------------------------------------- */
+
+.ao-input-group {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.ao-input-group .ao-input {
+  flex: 1;
+}
+
+.ao-input-group__prefix,
+.ao-input-group__suffix {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ao-text-muted);
+  font-size: var(--ao-text-md);
+  pointer-events: none;
+  height: 34px;
+}
+
+.ao-input-group__prefix {
+  left: var(--ao-space-3);
+}
+
+.ao-input-group__suffix {
+  right: var(--ao-space-3);
+}
+
+.ao-input-group:has(.ao-input-group__prefix) .ao-input {
+  padding-left: var(--ao-space-8);
+}
+
+.ao-input-group:has(.ao-input-group__suffix) .ao-input {
+  padding-right: var(--ao-space-8);
+}
+
+/* Suffix interativo (botão de clear, mostrar senha, etc.) */
+.ao-input-group__suffix--interactive {
+  pointer-events: auto;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  padding: 0 var(--ao-space-1);
+  border-radius: var(--ao-radius-xs);
+}
+
+.ao-input-group__suffix--interactive:hover {
+  color: var(--ao-text);
+}
+
+.ao-input-group__suffix--interactive:focus-visible {
+  outline: 2px solid var(--ao-primary);
+  outline-offset: 1px;
+}
+
+/* =============================================================================
+   .ao-field — WRAPPER (label + input + helper + error)
+   ============================================================================= */
+
+.ao-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ao-space-1);
+  margin-bottom: var(--ao-space-4);
+}
+
+.ao-field__label {
+  font-size: var(--ao-text-sm);
+  font-weight: 500;
+  color: var(--ao-text);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Asterisco de obrigatório */
+.ao-field__required {
+  color: var(--ao-danger);
+  font-weight: 600;
+}
+
+/* Helper text (abaixo do input quando válido) */
+.ao-field__helper {
+  font-size: var(--ao-text-sm);
+  color: var(--ao-text-soft);
+  line-height: 1.5;
+}
+
+/* Error message (substitui helper quando inválido) */
+.ao-field__error {
+  font-size: var(--ao-text-sm);
+  color: var(--ao-danger);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  line-height: 1.5;
+}
+
+.ao-field__error::before {
+  content: "⚠";
+  font-size: var(--ao-text-md);
+  line-height: 1;
+}
+
+/* Success message */
+.ao-field__success {
+  font-size: var(--ao-text-sm);
+  color: var(--ao-success);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ao-field__success::before {
+  content: "✓";
+  font-weight: 600;
+}
+
+/* Field horizontal (label à esquerda, input à direita) */
+.ao-field--horizontal {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--ao-space-4);
+}
+
+.ao-field--horizontal .ao-field__label {
+  width: 140px;
+  flex-shrink: 0;
+}
+
+.ao-field--horizontal .ao-field__input-wrap {
+  flex: 1;
+}

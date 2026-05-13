@@ -1,0 +1,126 @@
+/* =============================================================================
+   AIOSON APP UI — COMPONENT · PAGINATION
+   =============================================================================
+   .ao-pagination — paginação numerada (primeira, anterior, números, próxima, última).
+
+   Estrutura:
+   <nav class="ao-pagination" aria-label="Paginação">
+     <button class="ao-pagination__btn" aria-label="Primeira">«</button>
+     <button class="ao-pagination__btn" aria-label="Anterior">‹</button>
+     <button class="ao-pagination__page">1</button>
+     <button class="ao-pagination__page ao-pagination__page--active" aria-current="page">2</button>
+     ...
+   </nav>
+   ============================================================================= */
+
+.ao-pagination {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--ao-font-body);
+  font-size: var(--ao-text-sm);
+}
+
+.ao-pagination__btn,
+.ao-pagination__page {
+  appearance: none;
+  border: 1px solid var(--ao-border);
+  background: var(--ao-surface);
+  color: var(--ao-text);
+  cursor: pointer;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  border-radius: var(--ao-radius-xs);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  transition:
+    background var(--ao-duration-fast) var(--ao-easing-standard),
+    border-color var(--ao-duration-fast) var(--ao-easing-standard),
+    color var(--ao-duration-fast) var(--ao-easing-standard);
+}
+
+.ao-pagination__btn:hover:not([disabled]),
+.ao-pagination__page:hover:not([disabled]) {
+  background: var(--ao-surface-hover);
+  border-color: var(--ao-border-strong);
+}
+
+.ao-pagination__btn:focus-visible,
+.ao-pagination__page:focus-visible {
+  outline: 2px solid var(--ao-primary);
+  outline-offset: 2px;
+}
+
+.ao-pagination__page--active,
+.ao-pagination__page[aria-current="page"] {
+  background: var(--ao-primary);
+  color: var(--ao-primary-on);
+  border-color: var(--ao-primary);
+}
+
+.ao-pagination__page--active:hover {
+  background: var(--ao-primary-hover);
+  border-color: var(--ao-primary-hover);
+}
+
+.ao-pagination__btn:disabled,
+.ao-pagination__page:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.ao-pagination__ellipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  color: var(--ao-text-muted);
+  user-select: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ao-pagination__btn,
+  .ao-pagination__page { transition: none; }
+}
+
+/* -----------------------------------------------------------------
+   --compact (sem botões prev/next, só números)
+   ----------------------------------------------------------------- */
+
+.ao-pagination--compact .ao-pagination__btn { display: none; }
+
+/* -----------------------------------------------------------------
+   --simple (apenas "Anterior" / "Próximo")
+   ----------------------------------------------------------------- */
+
+.ao-pagination--simple .ao-pagination__page,
+.ao-pagination--simple .ao-pagination__ellipsis { display: none; }
+
+/* -----------------------------------------------------------------
+   INFO (texto contextual: "Mostrando 1-20 de 142")
+   ----------------------------------------------------------------- */
+
+.ao-pagination-block {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ao-space-3);
+  flex-wrap: wrap;
+}
+
+.ao-pagination__info {
+  font-size: var(--ao-text-sm);
+  color: var(--ao-text-soft);
+}
+
+.ao-pagination__info strong {
+  color: var(--ao-text);
+  font-weight: 600;
+}

@@ -1,0 +1,158 @@
+/* =============================================================================
+   AIOSON APP UI — COMPONENT · RADIO
+   =============================================================================
+   .ao-radio — radio button customizado.
+
+   Uso:
+   <label class="ao-radio">
+     <input type="radio" name="opt" class="ao-radio__input">
+     <span class="ao-radio__circle"></span>
+     <span class="ao-radio__label">Plano mensal</span>
+   </label>
+
+   Para "card radios" (radio em formato de card grande), use --card.
+   ============================================================================= */
+
+.ao-radio {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ao-space-2);
+  cursor: pointer;
+  user-select: none;
+  font-family: var(--ao-font-body);
+  font-size: var(--ao-text-md);
+  color: var(--ao-text);
+  line-height: var(--ao-leading-snug);
+}
+
+.ao-radio__input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  width: 0;
+  height: 0;
+}
+
+.ao-radio__circle {
+  position: relative;
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  background: var(--ao-surface);
+  border: 1.5px solid var(--ao-border-strong);
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition:
+    background var(--ao-duration-fast) var(--ao-easing-standard),
+    border-color var(--ao-duration-fast) var(--ao-easing-standard);
+}
+
+.ao-radio__circle::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ao-primary-on);
+  transform: translate(-50%, -50%) scale(0);
+  transition: transform var(--ao-duration-fast) var(--ao-easing-standard);
+}
+
+/* -----------------------------------------------------------------
+   STATES
+   ----------------------------------------------------------------- */
+
+.ao-radio:hover .ao-radio__circle {
+  border-color: var(--ao-primary);
+}
+
+.ao-radio__input:focus-visible + .ao-radio__circle {
+  outline: 2px solid var(--ao-primary);
+  outline-offset: 2px;
+}
+
+.ao-radio__input:checked + .ao-radio__circle {
+  background: var(--ao-primary);
+  border-color: var(--ao-primary);
+}
+
+.ao-radio__input:checked + .ao-radio__circle::after {
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.ao-radio__input:disabled + .ao-radio__circle {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ao-radio:has(.ao-radio__input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* -----------------------------------------------------------------
+   GROUP — agrupa múltiplos radios
+   ----------------------------------------------------------------- */
+
+.ao-radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ao-space-2);
+}
+
+.ao-radio-group--inline {
+  flex-direction: row;
+  gap: var(--ao-space-4);
+}
+
+/* -----------------------------------------------------------------
+   VARIANTE --card (radio em formato de card clicável)
+   ----------------------------------------------------------------- */
+
+.ao-radio--card {
+  display: block;
+  position: relative;
+  padding: var(--ao-space-4);
+  background: var(--ao-surface);
+  border: 1px solid var(--ao-border);
+  border-radius: var(--ao-radius-md);
+  cursor: pointer;
+  transition: border-color var(--ao-duration-fast) var(--ao-easing-standard),
+              background var(--ao-duration-fast) var(--ao-easing-standard);
+}
+
+.ao-radio--card .ao-radio__circle {
+  position: absolute;
+  top: var(--ao-space-3);
+  right: var(--ao-space-3);
+}
+
+.ao-radio--card:hover {
+  border-color: var(--ao-border-strong);
+}
+
+.ao-radio--card:has(.ao-radio__input:checked) {
+  border-color: var(--ao-primary);
+  background: var(--ao-primary-soft);
+}
+
+.ao-radio--card .ao-radio__title {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: var(--ao-text);
+}
+
+.ao-radio--card .ao-radio__desc {
+  display: block;
+  font-size: var(--ao-text-sm);
+  color: var(--ao-text-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ao-radio__circle,
+  .ao-radio__circle::after,
+  .ao-radio--card { transition: none; }
+}

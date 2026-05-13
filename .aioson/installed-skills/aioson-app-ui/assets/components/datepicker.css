@@ -1,0 +1,210 @@
+/* =============================================================================
+   AIOSON APP UI — COMPONENT · DATEPICKER
+   =============================================================================
+   .ao-datepicker — datepicker visual.
+
+   Estratégia:
+   - Estiliza .ao-input com ícone calendário (input nativo type="date" ou flatpickr)
+   - Provê classes para popup customizado (.ao-calendar) que pode ser usado com
+     Alpine.js, Livewire ou flatpickr custom theme
+
+   NOTA: lógica de calendário fica no consumer. CSS apenas estiliza.
+   ============================================================================= */
+
+/* Input com ícone calendário */
+.ao-datepicker {
+  position: relative;
+}
+
+.ao-datepicker__input {
+  /* extends .ao-input */
+  padding-right: var(--ao-space-8);
+  width: 100%;
+}
+
+.ao-datepicker__icon {
+  position: absolute;
+  right: var(--ao-space-3);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ao-text-muted);
+  font-size: 16px;
+  pointer-events: none;
+}
+
+/* =============================================================================
+   .ao-calendar — popup de seleção de data
+   ============================================================================= */
+
+.ao-calendar {
+  background: var(--ao-surface-elevated);
+  border: 1px solid var(--ao-border);
+  border-radius: var(--ao-radius-md);
+  box-shadow: var(--ao-shadow-md);
+  padding: var(--ao-space-3);
+  width: 280px;
+  font-family: var(--ao-font-body);
+}
+
+/* Header com mês/ano e setas */
+.ao-calendar__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--ao-space-3);
+}
+
+.ao-calendar__title {
+  font-weight: 600;
+  font-size: var(--ao-text-md);
+  color: var(--ao-text);
+  text-transform: capitalize;
+}
+
+.ao-calendar__nav {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--ao-text-soft);
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--ao-radius-xs);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: background var(--ao-duration-fast) var(--ao-easing-standard);
+}
+
+.ao-calendar__nav:hover {
+  background: var(--ao-surface-hover);
+  color: var(--ao-text);
+}
+
+.ao-calendar__nav:focus-visible {
+  outline: 2px solid var(--ao-primary);
+  outline-offset: 1px;
+}
+
+/* Grid de dias */
+.ao-calendar__weekdays,
+.ao-calendar__days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.ao-calendar__weekday {
+  text-align: center;
+  font-size: var(--ao-text-xs);
+  font-weight: 600;
+  color: var(--ao-text-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--ao-tracking-wider);
+  padding: var(--ao-space-1) 0;
+}
+
+.ao-calendar__day {
+  appearance: none;
+  border: none;
+  background: transparent;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--ao-radius-xs);
+  font-size: var(--ao-text-sm);
+  color: var(--ao-text);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background var(--ao-duration-fast) var(--ao-easing-standard),
+    color var(--ao-duration-fast) var(--ao-easing-standard);
+}
+
+.ao-calendar__day:hover:not(:disabled) {
+  background: var(--ao-surface-hover);
+}
+
+.ao-calendar__day:focus-visible {
+  outline: 2px solid var(--ao-primary);
+  outline-offset: 1px;
+}
+
+.ao-calendar__day--today {
+  font-weight: 700;
+  color: var(--ao-primary);
+}
+
+.ao-calendar__day--selected {
+  background: var(--ao-primary);
+  color: var(--ao-primary-on);
+}
+
+.ao-calendar__day--selected:hover {
+  background: var(--ao-primary-hover);
+}
+
+.ao-calendar__day--in-range {
+  background: var(--ao-primary-soft);
+  color: var(--ao-primary);
+  border-radius: 0;
+}
+
+.ao-calendar__day--start { border-radius: var(--ao-radius-xs) 0 0 var(--ao-radius-xs); }
+.ao-calendar__day--end   { border-radius: 0 var(--ao-radius-xs) var(--ao-radius-xs) 0; }
+
+.ao-calendar__day--outside {
+  color: var(--ao-text-muted);
+  opacity: 0.5;
+}
+
+.ao-calendar__day:disabled {
+  color: var(--ao-text-muted);
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+/* Footer com presets ou botões */
+.ao-calendar__footer {
+  display: flex;
+  gap: var(--ao-space-2);
+  margin-top: var(--ao-space-3);
+  padding-top: var(--ao-space-3);
+  border-top: 1px solid var(--ao-border);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ao-calendar__nav,
+  .ao-calendar__day { transition: none; }
+}
+
+/* =============================================================================
+   FLATPICKR THEME OVERRIDE (opcional)
+   Para projetos que usam flatpickr, sobrescreva o tema:
+   ============================================================================= */
+
+.flatpickr-calendar.aioson {
+  background: var(--ao-surface-elevated);
+  border: 1px solid var(--ao-border);
+  border-radius: var(--ao-radius-md);
+  box-shadow: var(--ao-shadow-md);
+  font-family: var(--ao-font-body);
+}
+
+.flatpickr-calendar.aioson .flatpickr-day {
+  color: var(--ao-text);
+}
+
+.flatpickr-calendar.aioson .flatpickr-day.today {
+  border-color: var(--ao-primary);
+}
+
+.flatpickr-calendar.aioson .flatpickr-day.selected,
+.flatpickr-calendar.aioson .flatpickr-day.startRange,
+.flatpickr-calendar.aioson .flatpickr-day.endRange {
+  background: var(--ao-primary);
+  border-color: var(--ao-primary);
+  color: var(--ao-primary-on);
+}

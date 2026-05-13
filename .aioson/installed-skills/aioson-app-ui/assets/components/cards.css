@@ -1,0 +1,175 @@
+/* =============================================================================
+   AIOSON APP UI — COMPONENT · CARDS
+   =============================================================================
+   .ao-card — container com header, body, footer.
+
+   Variantes:
+   - base (default): surface neutra
+   - --cyan: borda e accent cyan (work)
+   - --violet: borda e accent violet (work)
+   - --hero: radius maior, padding generoso, glow (brand mode)
+   - --interactive: clicável, hover state, cursor pointer
+
+   Estrutura interna:
+   .ao-card
+     .ao-card__header (opcional)
+     .ao-card__body
+     .ao-card__footer (opcional)
+   ============================================================================= */
+
+.ao-card {
+  background: var(--ao-surface);
+  border: 1px solid var(--ao-border);
+  border-radius: var(--ao-radius-md);
+  box-shadow: var(--ao-shadow-sm);
+  overflow: hidden;
+  transition:
+    border-color var(--ao-duration-base) var(--ao-easing-standard),
+    box-shadow var(--ao-duration-base) var(--ao-easing-standard),
+    background var(--ao-duration-base) var(--ao-easing-standard);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ao-card { transition: none; }
+}
+
+/* -----------------------------------------------------------------
+   ESTRUTURA INTERNA
+   ----------------------------------------------------------------- */
+
+.ao-card__header {
+  padding: var(--ao-space-4) var(--ao-space-5);
+  border-bottom: 1px solid var(--ao-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ao-space-3);
+}
+
+.ao-card__title {
+  margin: 0;
+  font-family: var(--ao-font-heading);
+  font-size: var(--ao-text-md);
+  font-weight: 600;
+  color: var(--ao-text);
+  letter-spacing: var(--ao-tracking-tight);
+}
+
+.ao-card__subtitle {
+  margin: 0;
+  font-size: var(--ao-text-sm);
+  color: var(--ao-text-soft);
+}
+
+.ao-card__body {
+  padding: var(--ao-space-5);
+}
+
+.ao-card__footer {
+  padding: var(--ao-space-3) var(--ao-space-5);
+  border-top: 1px solid var(--ao-border);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--ao-space-2);
+  background: var(--ao-bg);
+}
+
+/* Variante de body sem padding (útil para tabela edge-to-edge) */
+.ao-card__body--flush {
+  padding: 0;
+}
+
+/* -----------------------------------------------------------------
+   VARIANTE: --interactive (clicável)
+   ----------------------------------------------------------------- */
+
+.ao-card--interactive {
+  cursor: pointer;
+}
+
+.ao-card--interactive:hover {
+  border-color: var(--ao-border-strong);
+  box-shadow: var(--ao-shadow-md);
+}
+
+.ao-card--interactive:focus-visible {
+  outline: 2px solid var(--ao-primary);
+  outline-offset: 2px;
+}
+
+/* -----------------------------------------------------------------
+   VARIANTE: --cyan (accent cyan, work mode)
+   ----------------------------------------------------------------- */
+
+.ao-card--cyan {
+  border-color: var(--ao-primary-soft);
+}
+
+.ao-card--cyan .ao-card__title {
+  color: var(--ao-primary);
+}
+
+/* -----------------------------------------------------------------
+   VARIANTE: --violet (accent violet, work mode)
+   ----------------------------------------------------------------- */
+
+.ao-card--violet {
+  border-color: var(--ao-secondary-soft);
+}
+
+.ao-card--violet .ao-card__title {
+  color: var(--ao-secondary);
+}
+
+/* -----------------------------------------------------------------
+   VARIANTE: --hero (brand mode — radius maior, glow)
+   ----------------------------------------------------------------- */
+
+.ao-card--hero {
+  border-radius: var(--ao-radius-xl);
+  border-color: var(--ao-border-strong);
+  box-shadow: var(--ao-glow-cyan), var(--ao-shadow-md);
+  position: relative;
+  overflow: visible;
+}
+
+.ao-card--hero .ao-card__header,
+.ao-card--hero .ao-card__body,
+.ao-card--hero .ao-card__footer {
+  padding-left: var(--ao-space-8);
+  padding-right: var(--ao-space-8);
+}
+
+.ao-card--hero .ao-card__body {
+  padding-top: var(--ao-space-6);
+  padding-bottom: var(--ao-space-6);
+}
+
+/* No work mode o glow é "none" então hero perde o efeito —
+   intencional: hero é primariamente um padrão brand */
+
+/* -----------------------------------------------------------------
+   VARIANTE: --elevated (sombra maior, sem borda visível)
+   ----------------------------------------------------------------- */
+
+.ao-card--elevated {
+  border-color: transparent;
+  box-shadow: var(--ao-shadow-md);
+}
+
+/* -----------------------------------------------------------------
+   VARIANTE: --flush (sem padding interno, edge-to-edge)
+   ----------------------------------------------------------------- */
+
+.ao-card--flush .ao-card__body {
+  padding: 0;
+}
+
+/* -----------------------------------------------------------------
+   VARIANTE: --compact (padding reduzido para listagens)
+   ----------------------------------------------------------------- */
+
+.ao-card--compact .ao-card__header { padding: var(--ao-space-3) var(--ao-space-4); }
+.ao-card--compact .ao-card__body   { padding: var(--ao-space-4); }
+.ao-card--compact .ao-card__footer { padding: var(--ao-space-2) var(--ao-space-4); }

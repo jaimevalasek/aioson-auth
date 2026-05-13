@@ -1,0 +1,116 @@
+/* =============================================================================
+   AIOSON APP UI — COMPONENT · CHECKBOX
+   =============================================================================
+   .ao-checkbox — checkbox customizado.
+
+   Uso:
+   <label class="ao-checkbox">
+     <input type="checkbox" class="ao-checkbox__input">
+     <span class="ao-checkbox__box"></span>
+     <span class="ao-checkbox__label">Aceito os termos</span>
+   </label>
+   ============================================================================= */
+
+.ao-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ao-space-2);
+  cursor: pointer;
+  user-select: none;
+  font-family: var(--ao-font-body);
+  font-size: var(--ao-text-md);
+  color: var(--ao-text);
+  line-height: var(--ao-leading-snug);
+}
+
+.ao-checkbox__input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  width: 0;
+  height: 0;
+}
+
+.ao-checkbox__box {
+  position: relative;
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  background: var(--ao-surface);
+  border: 1.5px solid var(--ao-border-strong);
+  border-radius: var(--ao-radius-xs);
+  flex-shrink: 0;
+  transition:
+    background var(--ao-duration-fast) var(--ao-easing-standard),
+    border-color var(--ao-duration-fast) var(--ao-easing-standard);
+}
+
+.ao-checkbox__box::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 0;
+  width: 4px;
+  height: 9px;
+  border: solid var(--ao-primary-on);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg) scale(0);
+  transition: transform var(--ao-duration-fast) var(--ao-easing-standard);
+}
+
+.ao-checkbox__label {
+  font-weight: 400;
+}
+
+/* -----------------------------------------------------------------
+   STATES
+   ----------------------------------------------------------------- */
+
+.ao-checkbox:hover .ao-checkbox__box {
+  border-color: var(--ao-primary);
+}
+
+.ao-checkbox__input:focus-visible + .ao-checkbox__box {
+  outline: 2px solid var(--ao-primary);
+  outline-offset: 2px;
+}
+
+.ao-checkbox__input:checked + .ao-checkbox__box {
+  background: var(--ao-primary);
+  border-color: var(--ao-primary);
+}
+
+.ao-checkbox__input:checked + .ao-checkbox__box::after {
+  transform: rotate(45deg) scale(1);
+}
+
+/* Indeterminate state */
+.ao-checkbox__input:indeterminate + .ao-checkbox__box {
+  background: var(--ao-primary);
+  border-color: var(--ao-primary);
+}
+
+.ao-checkbox__input:indeterminate + .ao-checkbox__box::after {
+  border: none;
+  background: var(--ao-primary-on);
+  width: 8px;
+  height: 2px;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.ao-checkbox__input:disabled + .ao-checkbox__box {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ao-checkbox:has(.ao-checkbox__input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ao-checkbox__box,
+  .ao-checkbox__box::after { transition: none; }
+}

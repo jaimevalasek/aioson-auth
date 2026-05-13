@@ -1,0 +1,206 @@
+/* =============================================================================
+   AIOSON APP UI — COMPONENT · SIDEBAR
+   =============================================================================
+   .ao-sidebar-item — item de navegação lateral.
+
+   Estrutura:
+   .ao-sidebar-item
+     .ao-sidebar-item__icon
+     .ao-sidebar-item__label
+     .ao-sidebar-item__badge (opcional)
+
+   Estados:
+   - default
+   - --active (rota atual)
+   - :hover
+   - :focus-visible
+   - :disabled
+
+   Considerações:
+   - Use <a> para itens de navegação real (router-link, etc.)
+   - Use <button> apenas se o item executa ação (não navega)
+   - Para grupos colapsáveis, envolva em <details>/<summary> ou use Alpine.js
+   ============================================================================= */
+
+.ao-sidebar-item {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--ao-text-soft);
+  display: flex;
+  align-items: center;
+  gap: var(--ao-space-3);
+  width: 100%;
+  height: 34px;
+  padding: 0 var(--ao-space-3);
+  border-radius: var(--ao-radius-sm);
+  font-family: var(--ao-font-body);
+  font-size: var(--ao-text-md);
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  text-align: left;
+  position: relative;
+  transition:
+    background var(--ao-duration-fast) var(--ao-easing-standard),
+    color var(--ao-duration-fast) var(--ao-easing-standard);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ao-sidebar-item { transition: none; }
+}
+
+.ao-sidebar-item__icon {
+  flex-shrink: 0;
+  font-size: 16px;
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ao-text-muted);
+  transition: color var(--ao-duration-fast) var(--ao-easing-standard);
+}
+
+.ao-sidebar-item__label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ao-sidebar-item__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 18px;
+  min-width: 18px;
+  padding: 0 6px;
+  font-size: var(--ao-text-xs);
+  font-weight: 600;
+  background: var(--ao-surface-hover);
+  color: var(--ao-text-soft);
+  border-radius: var(--ao-radius-full);
+  flex-shrink: 0;
+}
+
+/* Hover */
+.ao-sidebar-item:hover:not([disabled]):not(.ao-sidebar-item--active) {
+  background: var(--ao-surface-hover);
+  color: var(--ao-text);
+}
+
+.ao-sidebar-item:hover:not([disabled]):not(.ao-sidebar-item--active) .ao-sidebar-item__icon {
+  color: var(--ao-text-soft);
+}
+
+/* Focus */
+.ao-sidebar-item:focus-visible {
+  outline: 2px solid var(--ao-primary);
+  outline-offset: 2px;
+}
+
+/* Active */
+.ao-sidebar-item--active,
+.ao-sidebar-item[aria-current="page"] {
+  background: var(--ao-primary-soft);
+  color: var(--ao-primary);
+}
+
+.ao-sidebar-item--active .ao-sidebar-item__icon,
+.ao-sidebar-item[aria-current="page"] .ao-sidebar-item__icon {
+  color: var(--ao-primary);
+}
+
+.ao-sidebar-item--active .ao-sidebar-item__badge,
+.ao-sidebar-item[aria-current="page"] .ao-sidebar-item__badge {
+  background: var(--ao-primary);
+  color: var(--ao-primary-on);
+}
+
+/* Disabled */
+.ao-sidebar-item:disabled,
+.ao-sidebar-item[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* -----------------------------------------------------------------
+   CONTAINER OPCIONAL: .ao-sidebar-section
+   ----------------------------------------------------------------- */
+
+.ao-sidebar-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--ao-space-2) 0;
+}
+
+.ao-sidebar-section + .ao-sidebar-section {
+  border-top: 1px solid var(--ao-border);
+}
+
+.ao-sidebar-section__title {
+  font-size: var(--ao-text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: var(--ao-tracking-wider);
+  color: var(--ao-text-muted);
+  padding: var(--ao-space-2) var(--ao-space-3);
+  margin: 0;
+}
+
+/* -----------------------------------------------------------------
+   COLLAPSED MODE — sidebar minimizada (apenas ícones)
+   Aplicar .ao-sidebar--collapsed no container
+   ----------------------------------------------------------------- */
+
+.ao-sidebar--collapsed .ao-sidebar-item {
+  justify-content: center;
+  padding: 0;
+  width: 34px;
+}
+
+.ao-sidebar--collapsed .ao-sidebar-item__label,
+.ao-sidebar--collapsed .ao-sidebar-item__badge,
+.ao-sidebar--collapsed .ao-sidebar-section__title {
+  display: none;
+}
+
+/* -----------------------------------------------------------------
+   GROUP — submenus aninhados
+   ----------------------------------------------------------------- */
+
+.ao-sidebar-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.ao-sidebar-group__items {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: var(--ao-space-6);
+}
+
+.ao-sidebar-group__items .ao-sidebar-item {
+  height: 30px;
+  font-size: var(--ao-text-sm);
+}
+
+/* Caret indicator para grupos com children */
+.ao-sidebar-item__caret {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--ao-text-muted);
+  transition: transform var(--ao-duration-base) var(--ao-easing-standard);
+}
+
+.ao-sidebar-item[aria-expanded="true"] .ao-sidebar-item__caret {
+  transform: rotate(90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ao-sidebar-item__caret { transition: none; }
+}

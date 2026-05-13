@@ -1,0 +1,247 @@
+/* =============================================================================
+   AIOSON APP UI — COMPONENT · KANBAN BOARD
+   =============================================================================
+   .ao-kanban — board com colunas verticais (Pipeline de vendas, projetos).
+
+   Estrutura:
+   .ao-kanban
+     .ao-kanban__column
+       .ao-kanban__column-header
+         .ao-kanban__column-title
+         .ao-kanban__column-count
+       .ao-kanban__column-body (scrollable)
+         .ao-kanban__card (item arrastável)
+       .ao-kanban__column-footer (botão "Adicionar")
+
+   Drag-and-drop é responsabilidade do JS consumer (Sortable.js, Alpine, custom).
+   CSS provê estados visuais: --dragging, --drop-target.
+   ============================================================================= */
+
+.ao-kanban {
+  display: flex;
+  gap: var(--ao-space-3);
+  align-items: flex-start;
+  overflow-x: auto;
+  padding-bottom: var(--ao-space-3);
+  min-height: 400px;
+}
+
+/* -----------------------------------------------------------------
+   COLUMN
+   ----------------------------------------------------------------- */
+
+.ao-kanban__column {
+  flex: 0 0 280px;
+  background: var(--ao-bg);
+  border: 1px solid var(--ao-border);
+  border-radius: var(--ao-radius-md);
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 200px);
+  transition: border-color var(--ao-duration-fast) var(--ao-easing-standard),
+              background var(--ao-duration-fast) var(--ao-easing-standard);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ao-kanban__column { transition: none; }
+}
+
+.ao-kanban__column--drop-target {
+  border-color: var(--ao-primary);
+  background: var(--ao-primary-soft);
+}
+
+/* Largura customizada via modifier */
+.ao-kanban__column--wide { flex: 0 0 360px; }
+
+/* -----------------------------------------------------------------
+   COLUMN HEADER
+   ----------------------------------------------------------------- */
+
+.ao-kanban__column-header {
+  display: flex;
+  align-items: center;
+  gap: var(--ao-space-2);
+  padding: var(--ao-space-3) var(--ao-space-3);
+  border-bottom: 1px solid var(--ao-border);
+}
+
+.ao-kanban__column-color {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ao-text-muted);
+  flex-shrink: 0;
+}
+
+.ao-kanban__column-color--cyan    { background: var(--ao-primary); }
+.ao-kanban__column-color--violet  { background: var(--ao-secondary); }
+.ao-kanban__column-color--success { background: var(--ao-success); }
+.ao-kanban__column-color--warning { background: var(--ao-warning); }
+.ao-kanban__column-color--danger  { background: var(--ao-danger); }
+.ao-kanban__column-color--info    { background: var(--ao-info); }
+
+.ao-kanban__column-title {
+  font-family: var(--ao-font-heading);
+  font-size: var(--ao-text-sm);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: var(--ao-tracking-wide);
+  color: var(--ao-text);
+  margin: 0;
+  flex: 1;
+}
+
+.ao-kanban__column-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 20px;
+  min-width: 24px;
+  padding: 0 6px;
+  background: var(--ao-surface-hover);
+  color: var(--ao-text-soft);
+  border-radius: var(--ao-radius-full);
+  font-size: var(--ao-text-xs);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.ao-kanban__column-actions {
+  display: flex;
+  gap: 2px;
+}
+
+/* -----------------------------------------------------------------
+   COLUMN BODY (scrollable area com cards)
+   ----------------------------------------------------------------- */
+
+.ao-kanban__column-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--ao-space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ao-space-2);
+  min-height: 80px;
+}
+
+.ao-kanban__column-empty {
+  text-align: center;
+  font-size: var(--ao-text-sm);
+  color: var(--ao-text-muted);
+  padding: var(--ao-space-4);
+  border: 1px dashed var(--ao-border);
+  border-radius: var(--ao-radius-sm);
+}
+
+/* -----------------------------------------------------------------
+   COLUMN FOOTER
+   ----------------------------------------------------------------- */
+
+.ao-kanban__column-footer {
+  padding: var(--ao-space-2);
+  border-top: 1px solid var(--ao-border);
+}
+
+/* -----------------------------------------------------------------
+   CARD (item arrastável)
+   ----------------------------------------------------------------- */
+
+.ao-kanban__card {
+  background: var(--ao-surface);
+  border: 1px solid var(--ao-border);
+  border-radius: var(--ao-radius-sm);
+  padding: var(--ao-space-3);
+  cursor: grab;
+  transition:
+    border-color var(--ao-duration-fast) var(--ao-easing-standard),
+    box-shadow var(--ao-duration-fast) var(--ao-easing-standard),
+    transform var(--ao-duration-fast) var(--ao-easing-standard);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ao-space-2);
+}
+
+.ao-kanban__card:hover {
+  border-color: var(--ao-border-strong);
+  box-shadow: var(--ao-shadow-sm);
+}
+
+.ao-kanban__card:focus-visible {
+  outline: 2px solid var(--ao-primary);
+  outline-offset: 2px;
+}
+
+.ao-kanban__card:active,
+.ao-kanban__card--dragging {
+  cursor: grabbing;
+  box-shadow: var(--ao-shadow-md);
+  border-color: var(--ao-primary);
+  transform: rotate(2deg);
+  opacity: 0.9;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ao-kanban__card { transition: none; }
+  .ao-kanban__card--dragging { transform: none; }
+}
+
+/* CARD INTERNAL */
+
+.ao-kanban__card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.ao-kanban__card-title {
+  font-family: var(--ao-font-body);
+  font-size: var(--ao-text-md);
+  font-weight: 500;
+  color: var(--ao-text);
+  margin: 0;
+  line-height: var(--ao-leading-snug);
+}
+
+.ao-kanban__card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ao-space-2);
+  font-size: var(--ao-text-xs);
+  color: var(--ao-text-muted);
+}
+
+.ao-kanban__card-meta-left,
+.ao-kanban__card-meta-right {
+  display: flex;
+  align-items: center;
+  gap: var(--ao-space-2);
+}
+
+.ao-kanban__card-priority {
+  width: 4px;
+  align-self: stretch;
+  border-radius: 2px;
+  background: var(--ao-text-muted);
+  position: absolute;
+  left: 0;
+  top: var(--ao-space-2);
+  bottom: var(--ao-space-2);
+}
+
+.ao-kanban__card { position: relative; }
+
+.ao-kanban__card--priority-low    .ao-kanban__card-priority { background: var(--ao-text-muted); }
+.ao-kanban__card--priority-medium .ao-kanban__card-priority { background: var(--ao-warning); }
+.ao-kanban__card--priority-high   .ao-kanban__card-priority { background: var(--ao-danger); }
+
+/* Em CRM: card de lead com valor monetário */
+.ao-kanban__card-value {
+  font-family: var(--ao-font-mono);
+  font-size: var(--ao-text-sm);
+  font-weight: 600;
+  color: var(--ao-success);
+  font-variant-numeric: tabular-nums;
+}

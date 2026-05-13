@@ -1,0 +1,121 @@
+/* =============================================================================
+   AIOSON APP UI — COMPONENT · SKELETON
+   =============================================================================
+   .ao-skeleton — placeholder enquanto conteúdo carrega.
+
+   Tipos:
+   - .ao-skeleton (base — bloco genérico)
+   - .ao-skeleton--text (linha de texto)
+   - .ao-skeleton--title (linha de título maior)
+   - .ao-skeleton--circle (avatar)
+   - .ao-skeleton--rect (área retangular grande)
+
+   Modificadores:
+   - --w-25, --w-50, --w-75, --w-100 (atalhos de largura)
+   - --no-shimmer (estático, para reduced motion ou economia)
+
+   Para shimmer animado, usa background-image gradient + animation.
+   Quando reduced motion ativo, mostra cor fixa.
+   ============================================================================= */
+
+.ao-skeleton {
+  display: block;
+  background: var(--ao-surface-hover);
+  border-radius: var(--ao-radius-xs);
+  position: relative;
+  overflow: hidden;
+  background-image: linear-gradient(
+    90deg,
+    var(--ao-surface-hover) 0%,
+    var(--ao-bg) 50%,
+    var(--ao-surface-hover) 100%
+  );
+  background-size: 200% 100%;
+  animation: ao-skeleton-shimmer 1.6s linear infinite;
+  user-select: none;
+  pointer-events: none;
+}
+
+@keyframes ao-skeleton-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ao-skeleton {
+    animation: none;
+    background: var(--ao-surface-hover);
+  }
+}
+
+/* Manual disable */
+.ao-skeleton--no-shimmer {
+  animation: none;
+  background: var(--ao-surface-hover);
+}
+
+/* -----------------------------------------------------------------
+   FORMATOS
+   ----------------------------------------------------------------- */
+
+.ao-skeleton--text {
+  height: 12px;
+  margin: 6px 0;
+  border-radius: var(--ao-radius-xs);
+}
+
+.ao-skeleton--title {
+  height: 18px;
+  margin: 8px 0;
+  border-radius: var(--ao-radius-xs);
+}
+
+.ao-skeleton--heading {
+  height: 28px;
+  margin: 12px 0;
+  border-radius: var(--ao-radius-sm);
+}
+
+.ao-skeleton--circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.ao-skeleton--rect {
+  height: 120px;
+  border-radius: var(--ao-radius-md);
+  margin: var(--ao-space-2) 0;
+}
+
+.ao-skeleton--button {
+  height: 34px;
+  width: 100px;
+  border-radius: var(--ao-radius-sm);
+  display: inline-block;
+}
+
+/* -----------------------------------------------------------------
+   LARGURAS
+   ----------------------------------------------------------------- */
+
+.ao-skeleton--w-25  { width: 25%; }
+.ao-skeleton--w-50  { width: 50%; }
+.ao-skeleton--w-75  { width: 75%; }
+.ao-skeleton--w-100 { width: 100%; }
+
+/* -----------------------------------------------------------------
+   GROUP — agrupa múltiplos skeletons
+   ----------------------------------------------------------------- */
+
+.ao-skeleton-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ao-space-2);
+}
+
+.ao-skeleton-group--row {
+  flex-direction: row;
+  align-items: center;
+}

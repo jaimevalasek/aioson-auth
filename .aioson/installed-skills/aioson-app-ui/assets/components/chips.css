@@ -1,0 +1,214 @@
+/* =============================================================================
+   AIOSON APP UI — COMPONENT · CHIPS
+   =============================================================================
+   .ao-chip — pill/badge/tag para metadata, status, contadores.
+
+   Variantes:
+   - base (muted): cinza neutro
+   - --primary: cyan
+   - --secondary: violet
+   - --success / --warning / --danger / --info: estados semânticos
+   - --solid: fundo sólido (em vez de soft)
+   - --removable: com botão X
+
+   Tamanhos:
+   - default: 24px
+   - --sm: 20px
+   - --lg: 28px
+
+   Diferença vs tag:
+   - chip = metadado/status (apenas leitura)
+   - tag = item editável (com botão de remover) — use --removable
+   ============================================================================= */
+
+.ao-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 var(--ao-space-2);
+  border-radius: var(--ao-radius-full);
+  font-family: var(--ao-font-body);
+  font-size: var(--ao-text-sm);
+  font-weight: 500;
+  line-height: 1;
+  border: 1px solid var(--ao-border);
+  background: var(--ao-surface-hover);
+  color: var(--ao-text-soft);
+  white-space: nowrap;
+  user-select: none;
+  vertical-align: middle;
+}
+
+.ao-chip__icon {
+  display: inline-flex;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.ao-chip__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+/* -----------------------------------------------------------------
+   VARIANTES SEMÂNTICAS (soft fill por default)
+   ----------------------------------------------------------------- */
+
+.ao-chip--primary {
+  background: var(--ao-primary-soft);
+  color: var(--ao-primary);
+  border-color: transparent;
+}
+
+.ao-chip--secondary {
+  background: var(--ao-secondary-soft);
+  color: var(--ao-secondary);
+  border-color: transparent;
+}
+
+.ao-chip--success {
+  background: var(--ao-success-soft);
+  color: var(--ao-success);
+  border-color: transparent;
+}
+
+.ao-chip--warning {
+  background: var(--ao-warning-soft);
+  color: var(--ao-warning);
+  border-color: transparent;
+}
+
+.ao-chip--danger {
+  background: var(--ao-danger-soft);
+  color: var(--ao-danger);
+  border-color: transparent;
+}
+
+.ao-chip--info {
+  background: var(--ao-info-soft);
+  color: var(--ao-info);
+  border-color: transparent;
+}
+
+.ao-chip--accent {
+  background: var(--ao-accent-soft);
+  color: var(--ao-accent);
+  border-color: transparent;
+}
+
+/* -----------------------------------------------------------------
+   VARIANTE --solid (cor sólida, branco no texto)
+   Usar quando o chip precisa de mais peso visual
+   ----------------------------------------------------------------- */
+
+.ao-chip--solid.ao-chip--primary {
+  background: var(--ao-primary);
+  color: var(--ao-primary-on);
+}
+
+.ao-chip--solid.ao-chip--success {
+  background: var(--ao-success);
+  color: var(--ao-text-inverse);
+}
+
+.ao-chip--solid.ao-chip--warning {
+  background: var(--ao-warning);
+  color: var(--ao-text-inverse);
+}
+
+.ao-chip--solid.ao-chip--danger {
+  background: var(--ao-danger);
+  color: var(--ao-text-inverse);
+}
+
+.ao-chip--solid.ao-chip--info {
+  background: var(--ao-info);
+  color: var(--ao-text-inverse);
+}
+
+/* -----------------------------------------------------------------
+   VARIANTE --outline (transparente com borda colorida)
+   ----------------------------------------------------------------- */
+
+.ao-chip--outline {
+  background: transparent;
+}
+
+.ao-chip--outline.ao-chip--primary { border-color: var(--ao-primary); color: var(--ao-primary); }
+.ao-chip--outline.ao-chip--success { border-color: var(--ao-success); color: var(--ao-success); }
+.ao-chip--outline.ao-chip--warning { border-color: var(--ao-warning); color: var(--ao-warning); }
+.ao-chip--outline.ao-chip--danger  { border-color: var(--ao-danger); color: var(--ao-danger); }
+.ao-chip--outline.ao-chip--info    { border-color: var(--ao-info); color: var(--ao-info); }
+
+/* -----------------------------------------------------------------
+   TAMANHOS
+   ----------------------------------------------------------------- */
+
+.ao-chip--sm {
+  height: 20px;
+  font-size: var(--ao-text-xs);
+  padding: 0 var(--ao-space-2);
+  gap: 4px;
+}
+
+.ao-chip--sm .ao-chip__icon { font-size: 10px; }
+.ao-chip--sm .ao-chip__dot { width: 5px; height: 5px; }
+
+.ao-chip--lg {
+  height: 28px;
+  font-size: var(--ao-text-md);
+  padding: 0 var(--ao-space-3);
+  gap: 8px;
+}
+
+.ao-chip--lg .ao-chip__icon { font-size: 14px; }
+
+/* -----------------------------------------------------------------
+   REMOVÍVEL (com botão X)
+   ----------------------------------------------------------------- */
+
+.ao-chip--removable {
+  padding-right: 4px;
+}
+
+.ao-chip__remove {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: currentColor;
+  opacity: 0.6;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border-radius: 50%;
+  margin-left: 2px;
+  transition: opacity var(--ao-duration-fast), background var(--ao-duration-fast);
+}
+
+.ao-chip__remove:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.ao-chip__remove:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 1px;
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ao-chip__remove { transition: none; }
+}
+
+/* No light mode, hover do remove fica diferente */
+:root[data-theme="light"] .ao-chip__remove:hover {
+  background: rgba(15, 23, 42, 0.08);
+}

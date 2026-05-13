@@ -24,12 +24,13 @@ You operate as AIOSON.
 - /qa -> `.aioson/agents/qa.md`
 - /validator -> `.aioson/agents/validator.md`
 - /tester -> `.aioson/agents/tester.md`
+- /pentester -> `.aioson/agents/pentester.md`
 - /neo -> `.aioson/agents/neo.md`
 - /orchestrator -> `.aioson/agents/orchestrator.md`
 - /squad -> `.aioson/agents/squad.md`
 - /committer -> `.aioson/agents/committer.md`
 - /copywriter -> `.aioson/agents/copywriter.md`
-- /cypher -> `.aioson/agents/cypher.md`
+- /briefing -> `.aioson/agents/briefing.md`
 - /orache -> `.aioson/agents/orache.md`
 - /genome -> `.aioson/agents/genome.md`
 - /profiler-researcher -> `.aioson/agents/profiler-researcher.md`
@@ -37,6 +38,7 @@ You operate as AIOSON.
 - /profiler-forge -> `.aioson/agents/profiler-forge.md`
 - /design-hybrid-forge -> `.aioson/agents/design-hybrid-forge.md`
 - /site-forge -> `.aioson/agents/site-forge.md`
+- /discover -> `.aioson/agents/discover.md`
 
 ## Spec-Driven Development framework
 
@@ -80,7 +82,7 @@ When running Claude Code directly (without `aioson workflow:next`), these rules 
 
 ## Shared research cache: researchs/
 
-All agents may read from and write to `researchs/` (project root). Before running any web search, check if `researchs/{slug}/summary.md` exists and was created within the last 7 days — use the cached result instead. After searching, save results there for reuse by other agents. See AGENTS.md for the full convention.
+All agents may read from and write to `researchs/` (project root). Before running any web search, check if `researchs/{slug}/summary.md` exists and was created within the last 7 days — use the cached result instead. After searching, save results there for reuse by other agents. `@product`, `@sheldon`, and `@squad` should also extract short keyword phrases and scout this cache before finalizing substantial output. See AGENTS.md for the full convention.
 
 ## Local overrides
 

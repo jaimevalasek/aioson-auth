@@ -1,0 +1,123 @@
+/* =============================================================================
+   AIOSON APP UI — COMPONENT · COMMENT
+   =============================================================================
+   .ao-comment — bloco de comentário (CRM, suporte, threads).
+
+   Estrutura:
+   .ao-comment
+     .ao-comment__avatar
+     .ao-comment__main
+       .ao-comment__head (autor + meta + data)
+       .ao-comment__body
+       .ao-comment__actions (responder, editar, curtir)
+
+   Variantes:
+   - default
+   - --reply (recuado, indicando resposta)
+   - --internal (nota interna, fundo amber soft)
+   - --pinned (fixado, com border accent)
+   ============================================================================= */
+
+.ao-comment {
+  display: flex;
+  gap: var(--ao-space-3);
+  padding: var(--ao-space-3);
+  background: var(--ao-surface);
+  border: 1px solid var(--ao-border);
+  border-radius: var(--ao-radius-md);
+}
+
+.ao-comment__avatar {
+  flex-shrink: 0;
+}
+
+.ao-comment__main {
+  flex: 1;
+  min-width: 0;
+}
+
+.ao-comment__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--ao-space-2);
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.ao-comment__author {
+  font-weight: 600;
+  color: var(--ao-text);
+  font-size: var(--ao-text-md);
+}
+
+.ao-comment__role {
+  font-size: var(--ao-text-xs);
+  color: var(--ao-text-muted);
+  background: var(--ao-surface-hover);
+  padding: 1px 6px;
+  border-radius: var(--ao-radius-xs);
+}
+
+.ao-comment__date {
+  margin-left: auto;
+  font-size: var(--ao-text-sm);
+  color: var(--ao-text-muted);
+}
+
+.ao-comment__body {
+  font-size: var(--ao-text-md);
+  color: var(--ao-text);
+  line-height: var(--ao-leading-relaxed);
+  margin: 0;
+  word-wrap: break-word;
+}
+
+.ao-comment__body p { margin: 0 0 var(--ao-space-2); }
+.ao-comment__body p:last-child { margin-bottom: 0; }
+
+.ao-comment__actions {
+  display: flex;
+  gap: var(--ao-space-2);
+  margin-top: var(--ao-space-2);
+}
+
+.ao-comment__action {
+  appearance: none;
+  border: none;
+  background: transparent;
+  font-size: var(--ao-text-sm);
+  color: var(--ao-text-soft);
+  font-weight: 500;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: var(--ao-radius-xs);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ao-comment__action:hover {
+  color: var(--ao-text);
+  background: var(--ao-surface-hover);
+}
+
+.ao-comment__action:focus-visible {
+  outline: 2px solid var(--ao-primary);
+  outline-offset: 1px;
+}
+
+/* Variantes */
+.ao-comment--reply {
+  margin-left: var(--ao-space-8);
+  background: var(--ao-bg);
+}
+
+.ao-comment--internal {
+  background: var(--ao-warning-soft);
+  border-color: var(--ao-warning);
+}
+
+.ao-comment--pinned {
+  border-left: 3px solid var(--ao-primary);
+}
+

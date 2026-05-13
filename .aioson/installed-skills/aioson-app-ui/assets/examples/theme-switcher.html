@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark" data-mode="work">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AIOSON App UI — Theme Switcher (Fase 1)</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+
+<!-- Importação dos tokens AIOSON App UI -->
+<style>
+/* =========================================================================
+   PARA TESTE STANDALONE: tokens inline.
+   Em produção, use:
+     <link rel="stylesheet" href="../tokens/index.css">
+   ========================================================================= */
+
+/* Cole aqui o conteúdo de primitive.css */
+:root {
+  --cyan-50: #ECFEFF; --cyan-100: #CFFAFE; --cyan-200: #A5F3FC; --cyan-300: #67E8F9;
+  --cyan-400: #22D3EE; --cyan-500: #06B6D4; --cyan-600: #0891B2; --cyan-700: #0E7490;
+  --cyan-800: #155E75; --cyan-900: #164E63;
+  --violet-50: #F5F3FF; --violet-100: #EDE9FE; --violet-200: #DDD6FE; --violet-300: #C4B5FD;
+  --violet-400: #A78BFA; --violet-500: #8B5CF6; --violet-600: #7C3AED; --violet-700: #6D28D9;
+  --violet-800: #5B21B6; --violet-900: #4C1D95;
+  --neutral-0: #FFFFFF; --neutral-50: #FAFAFA; --neutral-100: #F4F4F5; --neutral-200: #E4E4E7;
+  --neutral-300: #D4D4D8; --neutral-400: #A1A1AA; --neutral-500: #71717A; --neutral-600: #52525B;
+  --neutral-700: #3F3F46; --neutral-800: #27272A; --neutral-900: #18181B; --neutral-950: #0A0E1A;
+  --neutral-1000: #050814;
+  --green-400: #4ADE80; --green-500: #22C55E; --green-600: #16A34A;
+  --amber-400: #FBBF24; --amber-500: #F59E0B; --amber-600: #D97706;
+  --red-400: #F87171; --red-500: #EF4444; --red-600: #DC2626;
+  --blue-400: #60A5FA; --blue-500: #3B82F6; --blue-600: #2563EB;
+  --plasma-400: #C084FC; --plasma-500: #B63CFF; --plasma-600: #A020F0; --plasma-700: #9333EA;
+  --cyan-electric: #00E5FF; --cyan-deep: #00B8D4;
+  --violet-luminous: #8A5CFF; --violet-deep: #7C3FE6;
+
+  /* Spacing */
+  --ao-space-1: 4px; --ao-space-2: 8px; --ao-space-3: 12px; --ao-space-4: 16px;
+  --ao-space-5: 20px; --ao-space-6: 24px; --ao-space-8: 32px; --ao-space-10: 40px;
+  --ao-space-12: 48px; --ao-space-16: 64px; --ao-space-20: 80px;
+
+  /* Typography */
+  --ao-text-xs: 10px; --ao-text-sm: 11px; --ao-text-base: 12px; --ao-text-md: 13px;
+  --ao-text-lg: 15px; --ao-text-xl: 18px; --ao-text-2xl: 22px; --ao-text-3xl: 28px;
+  --ao-text-4xl: 36px; --ao-text-5xl: 44px; --ao-text-6xl: 64px;
+  --ao-leading-tight: 1.2; --ao-leading-snug: 1.35; --ao-leading-base: 1.5; --ao-leading-relaxed: 1.6;
+  --ao-tracking-tight: -0.03em; --ao-tracking-base: 0; --ao-tracking-wide: 0.04em; --ao-tracking-wider: 0.08em;
+  --ao-font-heading: 'Sora', system-ui, sans-serif;
+  --ao-font-body: 'Inter', system-ui, sans-serif;
+  --ao-font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* Radius */
+  --ao-radius-xs: 4px; --ao-radius-sm: 6px; --ao-radius-md: 8px;
+  --ao-radius-lg: 12px; --ao-radius-xl: 16px; --ao-radius-2xl: 22px; --ao-radius-full: 9999px;
+
+  /* Z-index, motion, breakpoints */
+  --ao-z-base: 10; --ao-z-dropdown: 100; --ao-z-sticky: 200; --ao-z-drawer: 300;
+  --ao-z-modal: 400; --ao-z-toast: 500; --ao-z-tooltip: 600;
+  --ao-duration-fast: 120ms; --ao-duration-base: 200ms; --ao-duration-slow: 320ms;
+  --ao-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ao-easing-decelerate: cubic-bezier(0, 0, 0.2, 1);
+  --ao-easing-accelerate: cubic-bezier(0.4, 0, 1, 1);
+}
+
+/* DARK + BRAND */
+:root[data-theme="dark"][data-mode="brand"] {
+  --ao-bg: #050814; --ao-surface: #0B1120; --ao-surface-elevated: #10172A; --ao-surface-hover: #161E33;
+  --ao-text: #F2F5F9; --ao-text-soft: #B0B8C9; --ao-text-muted: #6F7891; --ao-text-inverse: #050814;
+  --ao-border: rgba(255,255,255,0.08); --ao-border-strong: rgba(255,255,255,0.16);
+  --ao-border-subtle: rgba(255,255,255,0.04); --ao-border-focus: var(--cyan-electric);
+  --ao-primary: var(--cyan-electric); --ao-primary-hover: #33EAFF; --ao-primary-pressed: #00B8D4;
+  --ao-primary-soft: rgba(0,229,255,0.12); --ao-primary-on: #050814;
+  --ao-secondary: var(--violet-luminous); --ao-secondary-hover: #A07CFF; --ao-secondary-soft: rgba(138,92,255,0.12);
+  --ao-accent: #B63CFF; --ao-accent-soft: rgba(182,60,255,0.14);
+  --ao-success: var(--green-400); --ao-success-soft: rgba(74,222,128,0.12);
+  --ao-warning: var(--amber-400); --ao-warning-soft: rgba(251,191,36,0.12);
+  --ao-danger: var(--red-400); --ao-danger-soft: rgba(248,113,113,0.12);
+  --ao-info: var(--blue-400); --ao-info-soft: rgba(96,165,250,0.12);
+  --ao-glow-cyan: 0 0 32px rgba(0,229,255,0.35), 0 0 8px rgba(0,229,255,0.5);
+  --ao-glow-violet: 0 0 32px rgba(138,92,255,0.35), 0 0 8px rgba(138,92,255,0.5);
+  --ao-shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+  --ao-shadow-md: 0 8px 24px rgba(0,0,0,0.45);
+  --ao-shadow-lg: 0 24px 48px rgba(0,0,0,0.55);
+  --ao-overlay: rgba(5,8,20,0.7);
+  --ao-gradient-primary: linear-gradient(135deg, var(--cyan-electric) 0%, var(--violet-luminous) 100%);
+  --ao-gradient-radial: radial-gradient(circle at top right, rgba(0,229,255,0.15), transparent 60%);
+}
+
+/* DARK + WORK */
+:root[data-theme="dark"][data-mode="work"] {
+  --ao-bg: #0A0E1A; --ao-surface: #10141F; --ao-surface-elevated: #161B28; --ao-surface-hover: #1A2030;
+  --ao-text: #E2E8F0; --ao-text-soft: #94A3B8; --ao-text-muted: #64748B; --ao-text-inverse: #0F172A;
+  --ao-border: rgba(255,255,255,0.06); --ao-border-strong: rgba(255,255,255,0.12);
+  --ao-border-subtle: rgba(255,255,255,0.03); --ao-border-focus: var(--cyan-400);
+  --ao-primary: var(--cyan-400); --ao-primary-hover: var(--cyan-300); --ao-primary-pressed: var(--cyan-500);
+  --ao-primary-soft: rgba(34,211,238,0.10); --ao-primary-on: #0A0E1A;
+  --ao-secondary: var(--violet-400); --ao-secondary-hover: var(--violet-300); --ao-secondary-soft: rgba(167,139,250,0.10);
+  --ao-accent: var(--plasma-400); --ao-accent-soft: rgba(192,132,252,0.10);
+  --ao-success: var(--green-400); --ao-success-soft: rgba(74,222,128,0.10);
+  --ao-warning: var(--amber-400); --ao-warning-soft: rgba(251,191,36,0.10);
+  --ao-danger: var(--red-400); --ao-danger-soft: rgba(248,113,113,0.10);
+  --ao-info: var(--blue-400); --ao-info-soft: rgba(96,165,250,0.10);
+  --ao-glow-cyan: none; --ao-glow-violet: none;
+  --ao-shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+  --ao-shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+  --ao-shadow-lg: 0 16px 32px rgba(0,0,0,0.45);
+  --ao-overlay: rgba(5,8,20,0.7);
+  --ao-gradient-primary: linear-gradient(135deg, var(--cyan-400) 0%, var(--violet-400) 100%);
+  --ao-gradient-radial: none;
+}
+
+/* LIGHT + BRAND */
+:root[data-theme="light"][data-mode="brand"] {
+  --ao-bg: #F8FAFC; --ao-surface: #FFFFFF; --ao-surface-elevated: #FFFFFF; --ao-surface-hover: #F1F5F9;
+  --ao-text: #0F172A; --ao-text-soft: #475569; --ao-text-muted: #94A3B8; --ao-text-inverse: #FFFFFF;
+  --ao-border: rgba(15,23,42,0.10); --ao-border-strong: rgba(15,23,42,0.18);
+  --ao-border-subtle: rgba(15,23,42,0.05); --ao-border-focus: var(--cyan-deep);
+  --ao-primary: var(--cyan-deep); --ao-primary-hover: #00A0BE; --ao-primary-pressed: #008CA8;
+  --ao-primary-soft: rgba(0,184,212,0.10); --ao-primary-on: #FFFFFF;
+  --ao-secondary: var(--violet-deep); --ao-secondary-hover: #6B30D5; --ao-secondary-soft: rgba(124,63,230,0.10);
+  --ao-accent: #A020F0; --ao-accent-soft: rgba(160,32,240,0.10);
+  --ao-success: var(--green-600); --ao-success-soft: rgba(22,163,74,0.10);
+  --ao-warning: var(--amber-600); --ao-warning-soft: rgba(217,119,6,0.10);
+  --ao-danger: var(--red-600); --ao-danger-soft: rgba(220,38,38,0.10);
+  --ao-info: var(--blue-600); --ao-info-soft: rgba(37,99,235,0.10);
+  --ao-glow-cyan: 0 8px 24px rgba(0,184,212,0.20);
+  --ao-glow-violet: 0 8px 24px rgba(124,63,230,0.20);
+  --ao-shadow-sm: 0 1px 2px rgba(15,23,42,0.06);
+  --ao-shadow-md: 0 8px 24px rgba(15,23,42,0.08);
+  --ao-shadow-lg: 0 24px 48px rgba(15,23,42,0.12);
+  --ao-overlay: rgba(15,23,42,0.5);
+  --ao-gradient-primary: linear-gradient(135deg, var(--cyan-deep) 0%, var(--violet-deep) 100%);
+  --ao-gradient-radial: radial-gradient(circle at top right, rgba(0,184,212,0.08), transparent 60%);
+}
+
+/* LIGHT + WORK */
+:root[data-theme="light"][data-mode="work"] {
+  --ao-bg: #FAFAFA; --ao-surface: #FFFFFF; --ao-surface-elevated: #FFFFFF; --ao-surface-hover: #F4F4F5;
+  --ao-text: #0F172A; --ao-text-soft: #475569; --ao-text-muted: #94A3B8; --ao-text-inverse: #FFFFFF;
+  --ao-border: rgba(15,23,42,0.08); --ao-border-strong: rgba(15,23,42,0.16);
+  --ao-border-subtle: rgba(15,23,42,0.04); --ao-border-focus: var(--cyan-600);
+  --ao-primary: var(--cyan-600); --ao-primary-hover: var(--cyan-700); --ao-primary-pressed: var(--cyan-800);
+  --ao-primary-soft: rgba(8,145,178,0.10); --ao-primary-on: #FFFFFF;
+  --ao-secondary: var(--violet-600); --ao-secondary-hover: var(--violet-700); --ao-secondary-soft: rgba(124,58,237,0.10);
+  --ao-accent: var(--plasma-700); --ao-accent-soft: rgba(147,51,234,0.10);
+  --ao-success: var(--green-600); --ao-success-soft: rgba(22,163,74,0.10);
+  --ao-warning: var(--amber-600); --ao-warning-soft: rgba(217,119,6,0.10);
+  --ao-danger: var(--red-600); --ao-danger-soft: rgba(220,38,38,0.10);
+  --ao-info: var(--blue-600); --ao-info-soft: rgba(37,99,235,0.10);
+  --ao-glow-cyan: none; --ao-glow-violet: none;
+  --ao-shadow-sm: 0 1px 2px rgba(15,23,42,0.04);
+  --ao-shadow-md: 0 4px 12px rgba(15,23,42,0.06);
+  --ao-shadow-lg: 0 16px 32px rgba(15,23,42,0.08);
+  --ao-overlay: rgba(15,23,42,0.5);
+  --ao-gradient-primary: linear-gradient(135deg, var(--cyan-600) 0%, var(--violet-600) 100%);
+  --ao-gradient-radial: none;
+}
+
+/* =========================================================================
+   PROTOTIPO DE COMPONENTES DS — apenas para validar Fase 1
+   Os componentes definitivos virão na Fase 2.
+   ========================================================================= */
+
+.ao-btn {
+  height: 34px;
+  padding: 0 var(--ao-space-4);
+  border-radius: var(--ao-radius-sm);
+  font-size: var(--ao-text-md);
+  font-weight: 500;
+  font-family: var(--ao-font-body);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ao-space-2);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background var(--ao-duration-fast) var(--ao-easing-standard),
+              border-color var(--ao-duration-fast) var(--ao-easing-standard),
+              color var(--ao-duration-fast) var(--ao-easing-standard);
+  white-space: nowrap;
+}
+
+.ao-btn--primary {
+  background: var(--ao-primary);
+  color: var(--ao-primary-on);
+}
+.ao-btn--primary:hover { background: var(--ao-primary-hover); }
+.ao-btn--primary:active { background: var(--ao-primary-pressed); }
+.ao-btn--primary:focus-visible {
+  outline: 2px solid var(--ao-primary);
+  outline-offset: 2px;
+}
+
+.ao-btn--ghost {
+  background: transparent;
+  color: var(--ao-text-soft);
+  border-color: var(--ao-border-strong);
+}
+.ao-btn--ghost:hover {
+  background: var(--ao-surface-hover);
+  color: var(--ao-text);
+}
+
+.ao-card {
+  background: var(--ao-surface);
+  border: 1px solid var(--ao-border);
+  border-radius: var(--ao-radius-md);
+  padding: var(--ao-space-5);
+  box-shadow: var(--ao-shadow-sm);
+}
+
+/* Card hero (brand mode) — demonstrando glow */
+.ao-card--hero {
+  border-radius: var(--ao-radius-xl);
+  padding: var(--ao-space-8);
+  box-shadow: var(--ao-glow-cyan), var(--ao-shadow-md);
+  background: var(--ao-surface);
+  border: 1px solid var(--ao-border-strong);
+}
+
+.ao-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 var(--ao-space-2);
+  border-radius: var(--ao-radius-full);
+  font-size: var(--ao-text-sm);
+  font-weight: 500;
+  border: 1px solid var(--ao-border);
+  background: var(--ao-surface-hover);
+  color: var(--ao-text-soft);
+}
+.ao-chip--success { background: var(--ao-success-soft); color: var(--ao-success); border: none; }
+.ao-chip--warning { background: var(--ao-warning-soft); color: var(--ao-warning); border: none; }
+.ao-chip--danger { background: var(--ao-danger-soft); color: var(--ao-danger); border: none; }
+.ao-chip--primary { background: var(--ao-primary-soft); color: var(--ao-primary); border: none; }
+
+/* =========================================================================
+   ESTRUTURA DA PÁGINA DE TESTE
+   ========================================================================= */
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ao-bg);
+  color: var(--ao-text);
+  font-family: var(--ao-font-body);
+  font-size: var(--ao-text-base);
+  line-height: var(--ao-leading-relaxed);
+  transition: background var(--ao-duration-base) var(--ao-easing-standard),
+              color var(--ao-duration-base) var(--ao-easing-standard);
+  background-image: var(--ao-gradient-radial);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--ao-space-8);
+}
+
+.page__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--ao-space-8);
+  gap: var(--ao-space-4);
+  flex-wrap: wrap;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--ao-space-3);
+}
+
+.brand__logo {
+  width: 36px; height: 36px;
+  border-radius: var(--ao-radius-sm);
+  background: var(--ao-gradient-primary);
+  display: grid; place-items: center;
+  color: var(--ao-text-inverse);
+  font-family: var(--ao-font-heading);
+  font-weight: 700;
+  font-size: var(--ao-text-lg);
+}
+
+.brand__name {
+  font-family: var(--ao-font-heading);
+  font-weight: 600;
+  font-size: var(--ao-text-lg);
+  letter-spacing: var(--ao-tracking-tight);
+}
+
+.brand__subtitle {
+  font-size: var(--ao-text-sm);
+  color: var(--ao-text-soft);
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: var(--ao-space-2);
+  background: var(--ao-surface);
+  border: 1px solid var(--ao-border);
+  border-radius: var(--ao-radius-md);
+  padding: var(--ao-space-1);
+}
+
+.controls__group {
+  display: flex;
+  gap: 2px;
+}
+
+.controls__divider {
+  width: 1px;
+  align-self: stretch;
+  margin: var(--ao-space-1) var(--ao-space-1);
+  background: var(--ao-border);
+}
+
+.toggle-btn {
+  height: 30px;
+  padding: 0 var(--ao-space-3);
+  border-radius: var(--ao-radius-xs);
+  background: transparent;
+  color: var(--ao-text-soft);
+  font-size: var(--ao-text-sm);
+  font-weight: 500;
+  font-family: var(--ao-font-body);
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background var(--ao-duration-fast), color var(--ao-duration-fast);
+}
+
+.toggle-btn:hover { color: var(--ao-text); }
+
+.toggle-btn.is-active {
+  background: var(--ao-primary-soft);
+  color: var(--ao-primary);
+}
+
+.toggle-btn i { font-size: 14px; }
+
+h1 {
+  font-family: var(--ao-font-heading);
+  font-size: var(--ao-text-3xl);
+  font-weight: 600;
+  margin: 0 0 var(--ao-space-2);
+  letter-spacing: var(--ao-tracking-tight);
+  line-height: var(--ao-leading-tight);
+}
+
+.subtitle {
+  color: var(--ao-text-soft);
+  font-size: var(--ao-text-md);
+  margin-bottom: var(--ao-space-8);
+}
+
+.section {
+  margin-bottom: var(--ao-space-10);
+}
+
+.section__title {
+  font-family: var(--ao-font-heading);
+  font-size: var(--ao-text-lg);
+  font-weight: 600;
+  margin: 0 0 var(--ao-space-1);
+  letter-spacing: var(--ao-tracking-tight);
+}
+
+.section__desc {
+  font-size: var(--ao-text-sm);
+  color: var(--ao-text-soft);
+  margin-bottom: var(--ao-space-5);
+}
+
+/* Grid de cores */
+.color-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--ao-space-3);
+}
+
+.color-swatch {
+  background: var(--ao-surface);
+  border: 1px solid var(--ao-border);
+  border-radius: var(--ao-radius-md);
+  overflow: hidden;
+}
+
+.color-swatch__preview {
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--ao-font-mono);
+  font-size: var(--ao-text-xs);
+  font-weight: 500;
+}
+
+.color-swatch__info {
+  padding: var(--ao-space-2) var(--ao-space-3);
+}
+
+.color-swatch__name {
+  font-size: var(--ao-text-sm);
+  font-weight: 500;
+  color: var(--ao-text);
+}
+
+.color-swatch__token {
+  font-family: var(--ao-font-mono);
+  font-size: var(--ao-text-xs);
+  color: var(--ao-text-muted);
+}
+
+/* Comparação Tailwind vs DS */
+.comparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--ao-space-4);
+}
+
+.comparison__col {
+  background: var(--ao-surface);
+  border: 1px solid var(--ao-border);
+  border-radius: var(--ao-radius-md);
+  padding: var(--ao-space-5);
+}
+
+.comparison__label {
+  font-size: var(--ao-text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: var(--ao-tracking-wide);
+  color: var(--ao-text-muted);
+  margin-bottom: var(--ao-space-3);
+}
+
+.comparison__demo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ao-space-3);
+  margin-bottom: var(--ao-space-4);
+}
+
+.comparison__code {
+  font-family: var(--ao-font-mono);
+  font-size: var(--ao-text-xs);
+  background: var(--ao-bg);
+  border: 1px solid var(--ao-border);
+  border-radius: var(--ao-radius-xs);
+  padding: var(--ao-space-2) var(--ao-space-3);
+  color: var(--ao-text-soft);
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+/* Demonstração tipografia */
+.type-demo {
+  background: var(--ao-surface);
+  border: 1px solid var(--ao-border);
+  border-radius: var(--ao-radius-md);
+  padding: var(--ao-space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ao-space-3);
+}
+
+.type-row {
+  display: grid;
+  grid-template-columns: 80px 60px 1fr;
+  align-items: baseline;
+  gap: var(--ao-space-4);
+  padding: var(--ao-space-2) 0;
+  border-bottom: 1px solid var(--ao-border-subtle);
+}
+.type-row:last-child { border-bottom: none; }
+
+.type-row__token {
+  font-family: var(--ao-font-mono);
+  font-size: var(--ao-text-xs);
+  color: var(--ao-text-muted);
+}
+.type-row__size {
+  font-family: var(--ao-font-mono);
+  font-size: var(--ao-text-xs);
+  color: var(--ao-text-soft);
+}
+
+.context-banner {
+  background: var(--ao-primary-soft);
+  border: 1px solid var(--ao-primary);
+  border-radius: var(--ao-radius-md);
+  padding: var(--ao-space-4) var(--ao-space-5);
+  display: flex;
+  align-items: center;
+  gap: var(--ao-space-3);
+  margin-bottom: var(--ao-space-6);
+}
+
+.context-banner i {
+  font-size: 20px;
+  color: var(--ao-primary);
+}
+
+.context-banner__text {
+  font-size: var(--ao-text-md);
+  color: var(--ao-text);
+}
+
+.context-banner__text strong {
+  color: var(--ao-primary);
+  font-weight: 600;
+}
+
+.note {
+  background: var(--ao-warning-soft);
+  border: 1px solid var(--ao-warning);
+  border-radius: var(--ao-radius-md);
+  padding: var(--ao-space-3) var(--ao-space-4);
+  font-size: var(--ao-text-sm);
+  color: var(--ao-text);
+  margin-top: var(--ao-space-4);
+  display: flex;
+  gap: var(--ao-space-2);
+  align-items: flex-start;
+}
+
+.note i { color: var(--ao-warning); font-size: 16px; flex-shrink: 0; }
+
+/* Validação visual brand vs work */
+.validate-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--ao-space-4);
+}
+
+.validate-card {
+  border-radius: var(--ao-radius-md);
+  padding: var(--ao-space-5);
+  background: var(--ao-surface);
+  border: 1px solid var(--ao-border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ao-space-3);
+}
+
+.validate-card h3 {
+  font-family: var(--ao-font-heading);
+  font-size: var(--ao-text-md);
+  font-weight: 600;
+  margin: 0;
+  color: var(--ao-text);
+}
+
+.validate-card p {
+  font-size: var(--ao-text-sm);
+  color: var(--ao-text-soft);
+  margin: 0;
+}
+
+.validate-card__actions {
+  display: flex;
+  gap: var(--ao-space-2);
+  margin-top: var(--ao-space-2);
+}
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- HEADER COM CONTROLES -->
+  <header class="page__header">
+    <div class="brand">
+      <div class="brand__logo">A</div>
+      <div>
+        <div class="brand__name">aioson-app-ui</div>
+        <div class="brand__subtitle">Theme switcher · Fase 1 validation</div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="controls__group" id="theme-group">
+        <button class="toggle-btn is-active" data-theme="dark"><i class="ph ph-moon"></i> Dark</button>
+        <button class="toggle-btn" data-theme="light"><i class="ph ph-sun"></i> Light</button>
+      </div>
+
+      <div class="controls__divider"></div>
+
+      <div class="controls__group" id="mode-group">
+        <button class="toggle-btn is-active" data-mode="work"><i class="ph ph-briefcase"></i> Work</button>
+        <button class="toggle-btn" data-mode="brand"><i class="ph ph-sparkle"></i> Brand</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- TÍTULO -->
+  <h1>Validação dos 4 contextos</h1>
+  <p class="subtitle">
+    Esta página valida que tokens, paleta, tipografia e Tailwind+DS funcionam corretamente
+    em todos os 4 contextos. Use os botões acima para alternar.
+  </p>
+
+  <!-- BANNER DE CONTEXTO ATIVO -->
+  <div class="context-banner">
+    <i class="ph-fill ph-info"></i>
+    <div class="context-banner__text">
+      Contexto ativo: <strong id="active-context">dark + work</strong>
+    </div>
+  </div>
+
+  <!-- SEÇÃO 1: PALETA DE CORES SEMANTIC -->
+  <section class="section">
+    <h2 class="section__title">1. Paleta semantic</h2>
+    <p class="section__desc">As cores mudam automaticamente quando você troca de contexto. Veja cada token reagindo.</p>
+
+    <div class="color-grid">
+
+      <div class="color-swatch">
+        <div class="color-swatch__preview" style="background: var(--ao-primary); color: var(--ao-primary-on)" id="preview-primary"></div>
+        <div class="color-swatch__info">
+          <div class="color-swatch__name">Primary</div>
+          <div class="color-swatch__token">--ao-primary</div>
+        </div>
+      </div>
+
+      <div class="color-swatch">
+        <div class="color-swatch__preview" style="background: var(--ao-secondary); color: white" id="preview-secondary"></div>
+        <div class="color-swatch__info">
+          <div class="color-swatch__name">Secondary</div>
+          <div class="color-swatch__token">--ao-secondary</div>
+        </div>
+      </div>
+
+      <div class="color-swatch">
+        <div class="color-swatch__preview" style="background: var(--ao-accent); color: white" id="preview-accent"></div>
+        <div class="color-swatch__info">
+          <div class="color-swatch__name">Accent</div>
+          <div class="color-swatch__token">--ao-accent</div>
+        </div>
+      </div>
+
+      <div class="color-swatch">
+        <div class="color-swatch__preview" style="background: var(--ao-success); color: white" id="preview-success"></div>
+        <div class="color-swatch__info">
+          <div class="color-swatch__name">Success</div>
+          <div class="color-swatch__token">--ao-success</div>
+        </div>
+      </div>
+
+      <div class="color-swatch">
+        <div class="color-swatch__preview" style="background: var(--ao-warning); color: white" id="preview-warning"></div>
+        <div class="color-swatch__info">
+          <div class="color-swatch__name">Warning</div>
+          <div class="color-swatch__token">--ao-warning</div>
+        </div>
+      </div>
+
+      <div class="color-swatch">
+        <div class="color-swatch__preview" style="background: var(--ao-danger); color: white" id="preview-danger"></div>
+        <div class="color-swatch__info">
+          <div class="color-swatch__name">Danger</div>
+          <div class="color-swatch__token">--ao-danger</div>
+        </div>
+      </div>
+
+      <div class="color-swatch">
+        <div class="color-swatch__preview" style="background: var(--ao-info); color: white" id="preview-info"></div>
+        <div class="color-swatch__info">
+          <div class="color-swatch__name">Info</div>
+          <div class="color-swatch__token">--ao-info</div>
+        </div>
+      </div>
+
+      <div class="color-swatch">
+        <div class="color-swatch__preview" style="background: var(--ao-bg); color: var(--ao-text); border-bottom: 1px solid var(--ao-border)" id="preview-bg"></div>
+        <div class="color-swatch__info">
+          <div class="color-swatch__name">Background</div>
+          <div class="color-swatch__token">--ao-bg</div>
+        </div>
+      </div>
+
+      <div class="color-swatch">
+        <div class="color-swatch__preview" style="background: var(--ao-surface); color: var(--ao-text); border-bottom: 1px solid var(--ao-border)" id="preview-surface"></div>
+        <div class="color-swatch__info">
+          <div class="color-swatch__name">Surface</div>
+          <div class="color-swatch__token">--ao-surface</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- SEÇÃO 2: COMPARAÇÃO TAILWIND VS DS -->
+  <section class="section">
+    <h2 class="section__title">2. Tailwind vs Design System (mesmo resultado)</h2>
+    <p class="section__desc">
+      Os dois lados produzem o mesmo botão visualmente, e ambos respeitam o tema/modo ativo.
+      A diferença é semântica: DS encapsula estados; Tailwind é composicional.
+    </p>
+
+    <div class="comparison">
+
+      <div class="comparison__col">
+        <div class="comparison__label">Via Design System</div>
+        <div class="comparison__demo">
+          <button class="ao-btn ao-btn--primary">
+            <i class="ph ph-check"></i>
+            Salvar
+          </button>
+          <button class="ao-btn ao-btn--ghost">
+            Cancelar
+          </button>
+        </div>
+        <code class="comparison__code">&lt;button class="ao-btn ao-btn--primary"&gt;</code>
+      </div>
+
+      <div class="comparison__col">
+        <div class="comparison__label">Via Tailwind utilities (simulação)</div>
+        <div class="comparison__demo">
+          <button style="
+            height: 34px;
+            padding: 0 var(--ao-space-4);
+            background: var(--ao-primary);
+            color: var(--ao-primary-on);
+            border-radius: var(--ao-radius-sm);
+            border: none;
+            font-size: var(--ao-text-md);
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: var(--ao-space-2);
+            transition: background var(--ao-duration-fast);
+          " onmouseover="this.style.background='var(--ao-primary-hover)'" onmouseout="this.style.background='var(--ao-primary)'">
+            <i class="ph ph-check"></i>
+            Salvar
+          </button>
+        </div>
+        <code class="comparison__code">class="bg-primary text-primary-on h-[34px] px-4 rounded-sm"</code>
+      </div>
+
+    </div>
+
+    <div class="note">
+      <i class="ph-fill ph-warning"></i>
+      <div>
+        <strong>Importante:</strong> a coluna Tailwind aqui é simulada com tokens DS porque este HTML é standalone.
+        Em projeto real com Tailwind v4 importado, as classes <code>bg-primary</code> e <code>p-4</code>
+        serão geradas automaticamente a partir do preset <code>theme.css</code>.
+      </div>
+    </div>
+  </section>
+
+  <!-- SEÇÃO 3: ESCALA TIPOGRÁFICA -->
+  <section class="section">
+    <h2 class="section__title">3. Escala tipográfica</h2>
+    <p class="section__desc">Note que no work mode a escala é compacta (12px base); no brand mode pode expandir até 64px.</p>
+
+    <div class="type-demo">
+
+      <div class="type-row">
+        <div class="type-row__token">--ao-text-3xl</div>
+        <div class="type-row__size">28px</div>
+        <div style="font-family: var(--ao-font-heading); font-size: var(--ao-text-3xl); font-weight: 600; line-height: var(--ao-leading-tight); letter-spacing: var(--ao-tracking-tight)">
+          The quick brown fox
+        </div>
+      </div>
+
+      <div class="type-row">
+        <div class="type-row__token">--ao-text-2xl</div>
+        <div class="type-row__size">22px</div>
+        <div style="font-family: var(--ao-font-heading); font-size: var(--ao-text-2xl); font-weight: 600; line-height: var(--ao-leading-snug); letter-spacing: var(--ao-tracking-tight)">
+          The quick brown fox
+        </div>
+      </div>
+
+      <div class="type-row">
+        <div class="type-row__token">--ao-text-xl</div>
+        <div class="type-row__size">18px</div>
+        <div style="font-family: var(--ao-font-heading); font-size: var(--ao-text-xl); font-weight: 600; line-height: var(--ao-leading-snug)">
+          The quick brown fox
+        </div>
+      </div>
+
+      <div class="type-row">
+        <div class="type-row__token">--ao-text-lg</div>
+        <div class="type-row__size">15px</div>
+        <div style="font-size: var(--ao-text-lg); font-weight: 500;">
+          The quick brown fox jumps over the lazy dog
+        </div>
+      </div>
+
+      <div class="type-row">
+        <div class="type-row__token">--ao-text-md</div>
+        <div class="type-row__size">13px</div>
+        <div style="font-size: var(--ao-text-md);">
+          The quick brown fox jumps over the lazy dog
+        </div>
+      </div>
+
+      <div class="type-row">
+        <div class="type-row__token">--ao-text-base</div>
+        <div class="type-row__size">12px</div>
+        <div style="font-size: var(--ao-text-base); line-height: var(--ao-leading-relaxed)">
+          The quick brown fox jumps over the lazy dog. Body padrão do work mode com line-height 1.6
+        </div>
+      </div>
+
+      <div class="type-row">
+        <div class="type-row__token">--ao-text-sm</div>
+        <div class="type-row__size">11px</div>
+        <div style="font-size: var(--ao-text-sm); color: var(--ao-text-soft)">
+          Helper text, table cell secundário
+        </div>
+      </div>
+
+      <div class="type-row">
+        <div class="type-row__token">--ao-text-xs</div>
+        <div class="type-row__size">10px</div>
+        <div style="font-size: var(--ao-text-xs); font-family: var(--ao-font-mono); color: var(--ao-text-muted); text-transform: uppercase; letter-spacing: var(--ao-tracking-wider)">
+          LABELS · CAPTIONS
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- SEÇÃO 4: VALIDAÇÃO BRAND VS WORK -->
+  <section class="section">
+    <h2 class="section__title">4. Brand vs Work — diferença visual</h2>
+    <p class="section__desc">
+      Note como o "card hero" no brand mode tem glow visível e radius maior;
+      no work mode, o glow desaparece e o radius fica discreto.
+    </p>
+
+    <div class="validate-grid">
+
+      <div class="ao-card ao-card--hero">
+        <div style="display: flex; gap: var(--ao-space-2); margin-bottom: var(--ao-space-2)">
+          <span class="ao-chip ao-chip--primary">
+            <i class="ph ph-sparkle"></i>
+            Hero card
+          </span>
+        </div>
+        <h3 style="font-family: var(--ao-font-heading); font-size: var(--ao-text-xl); font-weight: 600; margin: 0; line-height: var(--ao-leading-tight)">Brand mode style</h3>
+        <p style="margin: 0; color: var(--ao-text-soft); font-size: var(--ao-text-md)">
+          Glow visível, radius maior, padding generoso. Pra landing/login/marketing.
+        </p>
+        <div class="validate-card__actions">
+          <button class="ao-btn ao-btn--primary">Começar</button>
+        </div>
+      </div>
+
+      <div class="ao-card">
+        <div style="display: flex; gap: var(--ao-space-2); margin-bottom: var(--ao-space-2)">
+          <span class="ao-chip">
+            <i class="ph ph-briefcase"></i>
+            Work card
+          </span>
+          <span class="ao-chip ao-chip--success">Active</span>
+        </div>
+        <h3 style="font-family: var(--ao-font-heading); font-size: var(--ao-text-md); font-weight: 600; margin: 0">Work mode style</h3>
+        <p style="margin: 0; color: var(--ao-text-soft); font-size: var(--ao-text-sm)">
+          Sem glow, radius discreto, padding compacto. Pra dashboards/CRM/forms.
+        </p>
+        <div class="validate-card__actions">
+          <button class="ao-btn ao-btn--ghost">Editar</button>
+          <button class="ao-btn ao-btn--primary">Salvar</button>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- SEÇÃO 5: CRITÉRIOS DE ACEITE FASE 1 -->
+  <section class="section">
+    <h2 class="section__title">5. Critérios de aceite — Fase 1</h2>
+    <p class="section__desc">Esta página valida visualmente os critérios definidos no Implementation Plan.</p>
+
+    <div style="background: var(--ao-surface); border: 1px solid var(--ao-border); border-radius: var(--ao-radius-md); padding: var(--ao-space-5); display: flex; flex-direction: column; gap: var(--ao-space-3);">
+      <div style="display: flex; gap: var(--ao-space-3); align-items: flex-start"><i class="ph-fill ph-check-circle" style="color: var(--ao-success); font-size: 18px"></i><div><strong>Tokens primitive completos</strong> — cyan, violet, neutral, green, amber, red, blue, plasma — 10 steps cada onde aplica</div></div>
+      <div style="display: flex; gap: var(--ao-space-3); align-items: flex-start"><i class="ph-fill ph-check-circle" style="color: var(--ao-success); font-size: 18px"></i><div><strong>4 conjuntos completos de semantic tokens</strong> — dark-brand, dark-work, light-brand, light-work</div></div>
+      <div style="display: flex; gap: var(--ao-space-3); align-items: flex-start"><i class="ph-fill ph-check-circle" style="color: var(--ao-success); font-size: 18px"></i><div><strong>Toggle funcional via [data-theme] × [data-mode]</strong> — sem JS além do switcher</div></div>
+      <div style="display: flex; gap: var(--ao-space-3); align-items: flex-start"><i class="ph-fill ph-check-circle" style="color: var(--ao-success); font-size: 18px"></i><div><strong>Glow visível no brand mode, neutralizado no work mode</strong> — comparação no card hero acima</div></div>
+      <div style="display: flex; gap: var(--ao-space-3); align-items: flex-start"><i class="ph-fill ph-check-circle" style="color: var(--ao-success); font-size: 18px"></i><div><strong>Cores em light mode com contraste WCAG</strong> — cyan #0891B2 em light vs #22D3EE em dark</div></div>
+      <div style="display: flex; gap: var(--ao-space-3); align-items: flex-start"><i class="ph-fill ph-check-circle" style="color: var(--ao-success); font-size: 18px"></i><div><strong>Reduced motion respeitado</strong> — testado via @media (prefers-reduced-motion)</div></div>
+      <div style="display: flex; gap: var(--ao-space-3); align-items: flex-start"><i class="ph-fill ph-check-circle" style="color: var(--ao-success); font-size: 18px"></i><div><strong>Focus states acessíveis</strong> — outline 2px com offset nos botões (use Tab para testar)</div></div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  const root = document.documentElement;
+  const themeGroup = document.getElementById('theme-group');
+  const modeGroup = document.getElementById('mode-group');
+  const activeContext = document.getElementById('active-context');
+
+  // Update color preview labels with current values
+  function updatePreviews() {
+    const tokens = [
+      'primary', 'secondary', 'accent', 'success', 'warning', 'danger', 'info', 'bg', 'surface'
+    ];
+    tokens.forEach(t => {
+      const el = document.getElementById('preview-' + t);
+      if (el) {
+        const value = getComputedStyle(root).getPropertyValue('--ao-' + t).trim();
+        el.textContent = value || '—';
+      }
+    });
+  }
+
+  function updateContextBanner() {
+    const theme = root.getAttribute('data-theme');
+    const mode = root.getAttribute('data-mode');
+    activeContext.textContent = theme + ' + ' + mode;
+  }
+
+  function setTheme(theme) {
+    root.setAttribute('data-theme', theme);
+    themeGroup.querySelectorAll('.toggle-btn').forEach(btn => {
+      btn.classList.toggle('is-active', btn.dataset.theme === theme);
+    });
+    updatePreviews();
+    updateContextBanner();
+  }
+
+  function setMode(mode) {
+    root.setAttribute('data-mode', mode);
+    modeGroup.querySelectorAll('.toggle-btn').forEach(btn => {
+      btn.classList.toggle('is-active', btn.dataset.mode === mode);
+    });
+    updatePreviews();
+    updateContextBanner();
+  }
+
+  themeGroup.addEventListener('click', e => {
+    const btn = e.target.closest('[data-theme]');
+    if (btn) setTheme(btn.dataset.theme);
+  });
+
+  modeGroup.addEventListener('click', e => {
+    const btn = e.target.closest('[data-mode]');
+    if (btn) setMode(btn.dataset.mode);
+  });
+
+  // Initial setup
+  updatePreviews();
+  updateContextBanner();
+</script>
+
+</body>
+</html>

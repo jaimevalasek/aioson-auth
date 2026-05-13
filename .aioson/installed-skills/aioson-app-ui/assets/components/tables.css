@@ -1,0 +1,258 @@
+/* =============================================================================
+   AIOSON APP UI — COMPONENT · TABLES
+   =============================================================================
+   .ao-table — tabela de dados para listagens densas (CRM, admin).
+
+   Variantes:
+   - default: bordas horizontais, hover row sutil
+   - --striped: linhas zebradas
+   - --bordered: bordas completas (verticais incluídas)
+   - --compact: padding reduzido (listas longas)
+
+   Features:
+   - sticky header (.ao-table--sticky)
+   - cell alignment (--text-right, --text-center)
+   - sortable header (.ao-th--sortable)
+   - selectable rows (.ao-tr--selected)
+   - empty state (.ao-table__empty)
+   ============================================================================= */
+
+.ao-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--ao-border);
+  border-radius: var(--ao-radius-md);
+  background: var(--ao-surface);
+}
+
+.ao-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--ao-font-body);
+  font-size: var(--ao-text-md);
+  color: var(--ao-text);
+}
+
+/* -----------------------------------------------------------------
+   HEAD
+   ----------------------------------------------------------------- */
+
+.ao-table thead {
+  background: var(--ao-bg);
+  border-bottom: 1px solid var(--ao-border);
+}
+
+.ao-table th {
+  padding: var(--ao-space-3) var(--ao-space-4);
+  text-align: left;
+  font-size: var(--ao-text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: var(--ao-tracking-wider);
+  color: var(--ao-text-muted);
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* Sticky header */
+.ao-table--sticky thead th {
+  position: sticky;
+  top: 0;
+  z-index: var(--ao-z-base);
+  background: var(--ao-bg);
+}
+
+/* Sortable */
+.ao-th--sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: color var(--ao-duration-fast) var(--ao-easing-standard);
+}
+
+.ao-th--sortable:hover {
+  color: var(--ao-text);
+}
+
+.ao-th--sortable::after {
+  content: " ↕";
+  opacity: 0.4;
+  font-size: 10px;
+}
+
+.ao-th--sorted-asc::after  { content: " ↑"; opacity: 1; color: var(--ao-primary); }
+.ao-th--sorted-desc::after { content: " ↓"; opacity: 1; color: var(--ao-primary); }
+
+/* -----------------------------------------------------------------
+   BODY
+   ----------------------------------------------------------------- */
+
+.ao-table td {
+  padding: var(--ao-space-3) var(--ao-space-4);
+  border-bottom: 1px solid var(--ao-border-subtle);
+  vertical-align: middle;
+  color: var(--ao-text);
+}
+
+.ao-table tbody tr {
+  transition: background var(--ao-duration-fast) var(--ao-easing-standard);
+}
+
+.ao-table tbody tr:hover {
+  background: var(--ao-surface-hover);
+}
+
+.ao-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Selected row */
+.ao-tr--selected {
+  background: var(--ao-primary-soft) !important;
+}
+
+.ao-tr--selected:hover {
+  background: var(--ao-primary-soft) !important;
+  filter: brightness(1.05);
+}
+
+/* Disabled row */
+.ao-tr--disabled td {
+  color: var(--ao-text-muted);
+  opacity: 0.6;
+}
+
+/* -----------------------------------------------------------------
+   CELL ALIGNMENT
+   ----------------------------------------------------------------- */
+
+.ao-table .ao-td--right,
+.ao-table .ao-th--right { text-align: right; }
+
+.ao-table .ao-td--center,
+.ao-table .ao-th--center { text-align: center; }
+
+.ao-table .ao-td--num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--ao-font-mono);
+  font-size: var(--ao-text-sm);
+}
+
+/* -----------------------------------------------------------------
+   FOOT — totals row
+   ----------------------------------------------------------------- */
+
+.ao-table tfoot {
+  background: var(--ao-bg);
+  border-top: 1px solid var(--ao-border);
+  font-weight: 600;
+}
+
+.ao-table tfoot td {
+  padding: var(--ao-space-3) var(--ao-space-4);
+}
+
+/* -----------------------------------------------------------------
+   VARIANTES
+   ----------------------------------------------------------------- */
+
+/* Striped */
+.ao-table--striped tbody tr:nth-child(even) {
+  background: var(--ao-surface-hover);
+}
+
+.ao-table--striped tbody tr:nth-child(even):hover {
+  background: var(--ao-bg);
+}
+
+/* Bordered (verticais também) */
+.ao-table--bordered th,
+.ao-table--bordered td {
+  border-right: 1px solid var(--ao-border-subtle);
+}
+
+.ao-table--bordered th:last-child,
+.ao-table--bordered td:last-child {
+  border-right: none;
+}
+
+/* Compact (listas longas) */
+.ao-table--compact th,
+.ao-table--compact td {
+  padding: var(--ao-space-2) var(--ao-space-3);
+}
+
+.ao-table--compact {
+  font-size: var(--ao-text-sm);
+}
+
+/* -----------------------------------------------------------------
+   CHECKBOX COLUMN (selection)
+   ----------------------------------------------------------------- */
+
+.ao-table .ao-td--check,
+.ao-table .ao-th--check {
+  width: 36px;
+  padding-right: 0;
+  text-align: center;
+}
+
+/* -----------------------------------------------------------------
+   ACTIONS COLUMN
+   ----------------------------------------------------------------- */
+
+.ao-table .ao-td--actions {
+  text-align: right;
+  white-space: nowrap;
+  width: 1px;
+}
+
+.ao-table .ao-td--actions > * + * {
+  margin-left: var(--ao-space-1);
+}
+
+/* -----------------------------------------------------------------
+   EMPTY STATE
+   ----------------------------------------------------------------- */
+
+.ao-table__empty {
+  text-align: center;
+  padding: var(--ao-space-12) var(--ao-space-4);
+  color: var(--ao-text-soft);
+}
+
+.ao-table__empty-icon {
+  font-size: 32px;
+  color: var(--ao-text-muted);
+  margin-bottom: var(--ao-space-3);
+  display: inline-block;
+}
+
+.ao-table__empty-title {
+  font-size: var(--ao-text-md);
+  font-weight: 600;
+  color: var(--ao-text);
+  margin: 0 0 var(--ao-space-1);
+}
+
+.ao-table__empty-body {
+  font-size: var(--ao-text-sm);
+  color: var(--ao-text-soft);
+  margin: 0 0 var(--ao-space-4);
+}
+
+/* -----------------------------------------------------------------
+   LOADING STATE
+   ----------------------------------------------------------------- */
+
+.ao-table--loading tbody {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ao-table tbody tr,
+  .ao-th--sortable {
+    transition: none;
+  }
+}
