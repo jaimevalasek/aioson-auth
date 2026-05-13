@@ -19,6 +19,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@aioson/auth-sdk": "file:./sdk",
     "@otplib/preset-default": "^12.0.1",
     "@prisma/client": "^5.22.0",
     "bcrypt": "^5.1.1",

@@ -1,7 +1,16 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { createAuthClient, AuthError } from '@aioson/auth-sdk';
 
 type Tab = 'login' | 'register' | 'forgot';
+
+function describeError(err: unknown): string {
+  if (err instanceof AuthError) {
+    // `code` é normalizado pelo SDK — útil pra i18n futura.
+    return err.message;
+  }
+  return String(err);
+}
 
 function tabStyle(active: boolean) {
   return {
@@ -30,22 +39,26 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  // Dogfooding do @aioson/auth-sdk. baseUrl vazio = same-origin (a UI é
+  // servida pelo mesmo Express). Storage default = memoryStorage (tokens
+  // só vivem nessa página — login real seria persistido pelo app cliente).
+  const auth = useMemo(() => {
+    if (!bindingId) return null;
+    return createAuthClient({ baseUrl: window.location.origin, bindingId });
+  }, [bindingId]);
+
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
-    if (!bindingId) { setMessage({ type: 'error', text: 'Binding ID é obrigatório' }); return; }
+    if (!auth) { setMessage({ type: 'error', text: 'Binding ID é obrigatório' }); return; }
     setLoading(true);
     setMessage(null);
     try {
-      const res = await fetch(`/api/auth/${bindingId}/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Login failed');
-      setMessage({ type: 'success', text: `Login OK: ${data.user.email}` });
+      const session = await auth.login({ email, password });
+      const perms = auth.getPermissions();
+      const permsText = perms && perms.length > 0 ? ` · permissions: ${perms.join(', ')}` : '';
+      setMessage({ type: 'success', text: `Login OK: ${session.user.email}${permsText}` });
     } catch (err) {
-      setMessage({ type: 'error', text: String(err) });
+      setMessage({ type: 'error', text: describeError(err) });
     } finally {
       setLoading(false);
     }
@@ -53,22 +66,14 @@ export default function AuthPage() {
 
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
-    if (!bindingId) { setMessage({ type: 'error', text: 'Binding ID é obrigatório' }); return; }
+    if (!auth) { setMessage({ type: 'error', text: 'Binding ID é obrigatório' }); return; }
     setLoading(true);
     setMessage(null);
     try {
-      const res = await fetch(`/api/auth/${bindingId}/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Registration failed');
-      }
+      await auth.register({ email, password });
       setMessage({ type: 'success', text: 'Conta criada! Verifique seu e-mail para confirmar o cadastro.' });
     } catch (err) {
-      setMessage({ type: 'error', text: String(err) });
+      setMessage({ type: 'error', text: describeError(err) });
     } finally {
       setLoading(false);
     }
@@ -76,20 +81,14 @@ export default function AuthPage() {
 
   async function handleForgot(e: React.FormEvent) {
     e.preventDefault();
-    if (!bindingId) { setMessage({ type: 'error', text: 'Binding ID é obrigatório' }); return; }
+    if (!auth) { setMessage({ type: 'error', text: 'Binding ID é obrigatório' }); return; }
     setLoading(true);
     setMessage(null);
     try {
-      const res = await fetch(`/api/auth/${bindingId}/forgot-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed');
+      await auth.forgotPassword({ email });
       setMessage({ type: 'success', text: 'E-mail de recuperação enviado.' });
     } catch (err) {
-      setMessage({ type: 'error', text: String(err) });
+      setMessage({ type: 'error', text: describeError(err) });
     } finally {
       setLoading(false);
     }
