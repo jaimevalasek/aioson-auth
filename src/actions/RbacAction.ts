@@ -91,6 +91,21 @@ export async function updateRole(roleId: string, name: string, description?: str
 }
 
 export async function deleteRole(roleId: string): Promise<void> {
+  // Slice A (auth-integration-gaps.md): JWTs carregam `permissions` no payload.
+  // Quando uma role é deletada, todos os JWTs vivos de users que tinham essa
+  // role num binding ficam stale. Revoga ANTES de deletar pra forçar refresh
+  // — apps validam pela TokenRevocation e geram novo token sem a role.
+  const affected = await prisma.userRole.findMany({
+    where: { role_id: roleId },
+    select: { user_id: true, binding_id: true },
+  });
+  if (affected.length > 0) {
+    const { revokeUserTokens } = await import('./TokenRevocationAction.js');
+    for (const { user_id, binding_id } of affected) {
+      await revokeUserTokens(user_id, binding_id);
+    }
+  }
+
   await prisma.rolePermission.deleteMany({ where: { role_id: roleId } });
   await prisma.userRole.deleteMany({ where: { role_id: roleId } });
   await prisma.role.delete({ where: { id: roleId } });
@@ -146,6 +161,21 @@ export async function removePermissionFromRole(
   permissionId: string,
   bindingId: string
 ): Promise<void> {
+  // Slice A: revoga users que tinham essa role no binding antes da remoção,
+  // pra que o próximo /me ou refresh re-agrege permissions sem esta.
+  // Trade-off: força relogin de toda a base com essa role no binding —
+  // security > UX. Documentar isso no painel quando o admin remover perms.
+  const affected = await prisma.userRole.findMany({
+    where: { role_id: roleId, binding_id: bindingId },
+    select: { user_id: true },
+  });
+  if (affected.length > 0) {
+    const { revokeUserTokens } = await import('./TokenRevocationAction.js');
+    for (const { user_id } of affected) {
+      await revokeUserTokens(user_id, bindingId);
+    }
+  }
+
   await prisma.rolePermission.deleteMany({
     where: { role_id: roleId, permission_id: permissionId, binding_id: bindingId },
   });

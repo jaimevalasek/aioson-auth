@@ -16,6 +16,24 @@ export interface LoginOutput {
   user: { id: string; email: string; name: string };
 }
 
+/**
+ * Agrega permissions do user para um binding. Não-fatal: se RBAC está
+ * desabilitado no binding (ou binding inválido), retorna `[]` em vez de
+ * propagar erro — assim o login básico continua funcionando mesmo em
+ * bindings sem RBAC habilitado.
+ */
+async function safeGetPermissionsForBinding(
+  userId: string,
+  bindingId: string
+): Promise<string[]> {
+  try {
+    const { getUserPermissionsForBinding } = await import('./RbacAction.js');
+    return await getUserPermissionsForBinding(userId, bindingId);
+  } catch {
+    return [];
+  }
+}
+
 // ─── Register ────────────────────────────────────────────────────────────────
 
 export async function register(
@@ -35,7 +53,11 @@ export async function register(
 
 // ─── Login ────────────────────────────────────────────────────────────────
 
-export async function login(email: string, password: string): Promise<LoginOutput> {
+export async function login(
+  email: string,
+  password: string,
+  bindingId?: string
+): Promise<LoginOutput> {
   const user = await prisma.globalUser.findUnique({ where: { email } });
   if (!user) throw new Error('Invalid credentials');
 
@@ -44,14 +66,15 @@ export async function login(email: string, password: string): Promise<LoginOutpu
   const valid = await bcrypt.compare(password, user.password_hash);
   if (!valid) throw new Error('Invalid credentials');
 
-  return createSession(user.id, user.email);
+  return createSession(user.id, user.email, bindingId);
 }
 
 // ─── OAuth Login ──────────────────────────────────────────────────────────
 
 export async function oauthLogin(
   email: string,
-  name?: string
+  name?: string,
+  bindingId?: string
 ): Promise<LoginOutput> {
   let user = await prisma.globalUser.findUnique({ where: { email } });
   if (!user) {
@@ -59,20 +82,31 @@ export async function oauthLogin(
       data: { id: uuidv4(), email, password_hash: null, name: name ?? '' },
     });
   }
-  return createSession(user.id, user.email);
+  return createSession(user.id, user.email, bindingId);
 }
 
 // ─── Session management ───────────────────────────────────────────────────
 
 async function createSession(
   userId: string,
-  email: string
+  email: string,
+  bindingId?: string
 ): Promise<LoginOutput> {
-  const accessToken = jwt.sign(
-    { sub: userId, email },
-    JWT_SECRET,
-    { expiresIn: ACCESS_TOKEN_TTL_SECS }
-  );
+  // Embute permissions no payload do JWT quando bindingId é fornecido. Apps
+  // que validam offline (ou que cacham `/me`) decidem UI sem N requests pra
+  // `/rbac/check`. /rbac/check segue valendo como defense-in-depth server-side.
+  // Ver auth-integration-gaps.md (Slice A) no aioson-play.
+  const permissions = bindingId
+    ? await safeGetPermissionsForBinding(userId, bindingId)
+    : undefined;
+
+  const jwtPayload: Record<string, unknown> = { sub: userId, email };
+  if (bindingId) jwtPayload['binding_id'] = bindingId;
+  if (permissions) jwtPayload['permissions'] = permissions;
+
+  const accessToken = jwt.sign(jwtPayload, JWT_SECRET, {
+    expiresIn: ACCESS_TOKEN_TTL_SECS,
+  });
   const refreshToken = uuidv4();
   const expiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_SECS * 1000);
 
@@ -87,7 +121,10 @@ export async function logout(refreshToken: string): Promise<void> {
   await prisma.authSession.deleteMany({ where: { token: refreshToken } });
 }
 
-export async function validateRefreshToken(refreshToken: string): Promise<LoginOutput> {
+export async function validateRefreshToken(
+  refreshToken: string,
+  bindingId?: string
+): Promise<LoginOutput> {
   const session = await prisma.authSession.findFirst({ where: { token: refreshToken } });
   if (!session) throw new Error('Invalid refresh token');
 
@@ -99,9 +136,11 @@ export async function validateRefreshToken(refreshToken: string): Promise<LoginO
   const user = await prisma.globalUser.findUnique({ where: { id: session.user_id } });
   if (!user) throw new Error('User not found');
 
-  // Rotate refresh token
+  // Rotate refresh token. Re-agrega permissions ao gerar o novo access token
+  // — isto é o que torna refresh um caminho legítimo pra atualizar permissions
+  // após mudança de role/permission no painel.
   await prisma.authSession.delete({ where: { id: session.id } });
-  return createSession(user.id, user.email);
+  return createSession(user.id, user.email, bindingId);
 }
 
 // ─── Token validation ─────────────────────────────────────────────────────
@@ -109,6 +148,10 @@ export async function validateRefreshToken(refreshToken: string): Promise<LoginO
 export interface TokenPayload {
   sub: string;
   email: string;
+  /** Binding contra o qual o token foi emitido (presente quando o login passou bindingId). */
+  binding_id?: string;
+  /** Permissions agregadas no login/refresh para o binding acima (Slice A). */
+  permissions?: string[];
 }
 
 /**
@@ -131,7 +174,10 @@ export async function verifyAccessToken(token: string): Promise<TokenPayload> {
   if (await isUserRevoked(payload.sub)) {
     throw new Error('Invalid or expired token');
   }
-  return { sub: payload.sub, email: payload.email };
+  const result: TokenPayload = { sub: payload.sub, email: payload.email };
+  if (payload.binding_id) result.binding_id = payload.binding_id;
+  if (payload.permissions) result.permissions = payload.permissions;
+  return result;
 }
 
 // ─── Forgot / Reset Password ─────────────────────────────────────────────

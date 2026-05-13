@@ -242,9 +242,13 @@ GET /api/auth/:bindingId/me?token=eyJhbG...
 ```json
 {
   "sub": "cuid-xxx",
-  "email": "usuario@exemplo.com"
+  "email": "usuario@exemplo.com",
+  "binding_id": "uuid-do-binding",
+  "permissions": ["orders:create", "orders:read"]
 }
 ```
+
+> **Desde 2026-05-13:** o payload do JWT (e portanto a resposta de `/me`) inclui `binding_id` e `permissions` quando o login foi feito contra um binding com RBAC habilitado. Apps podem decidir UI condicional sem chamar `/rbac/check` — basta inspecionar `permissions.includes("X:Y")`. O endpoint `/rbac/check` continua existindo como defense-in-depth server-side para ações críticas. Tokens emitidos antes dessa data continuam válidos sem esses campos (compat retroativo).
 
 **Resposta (401):** `{ "error": "Invalid or expired token" }`
 

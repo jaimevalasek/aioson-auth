@@ -75,7 +75,7 @@ authRouter.post('/:bindingId/login', async (req, res) => {
     if (!binding) return res.status(404).json({ error: 'Binding not found' });
 
     const parsed = LoginSchema.parse(req.body);
-    const result = await login(parsed.email, parsed.password);
+    const result = await login(parsed.email, parsed.password, bindingId);
     return res.json(result);
   } catch (err) {
     if (err instanceof z.ZodError) {
@@ -94,7 +94,7 @@ authRouter.post('/:bindingId/oauth', async (req, res) => {
     if (!binding) return res.status(404).json({ error: 'Binding not found' });
 
     const parsed = OAuthSchema.parse(req.body);
-    const result = await oauthLogin(parsed.email, parsed.name);
+    const result = await oauthLogin(parsed.email, parsed.name, bindingId);
     return res.json(result);
   } catch (err) {
     if (err instanceof z.ZodError) {
@@ -108,8 +108,9 @@ authRouter.post('/:bindingId/oauth', async (req, res) => {
 // POST /api/auth/:bindingId/refresh
 authRouter.post('/:bindingId/refresh', async (req, res) => {
   try {
+    const { bindingId } = req.params;
     const parsed = RefreshSchema.parse(req.body);
-    const result = await validateRefreshToken(parsed.refreshToken);
+    const result = await validateRefreshToken(parsed.refreshToken, bindingId);
     return res.json(result);
   } catch (err) {
     console.error('[auth/refresh]', err);
