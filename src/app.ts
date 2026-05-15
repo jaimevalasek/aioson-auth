@@ -10,7 +10,12 @@ import { authRouter } from './routes/auth.js';
 import { rbacRouter } from './routes/rbac.js';
 import { adminRouter } from './routes/admin.js';
 import { adminBindingsRouter } from './routes/admin-bindings.js';
+import { adminFederationRouter } from './routes/admin-federation.js';
+import { shellLoginRouter } from './routes/shell-login.js';
 import { scheduleRevocationCleanup } from './actions/TokenRevocationAction.js';
+import { localPrisma, reloadMainPrismaFromConfig } from './lib/prisma-clients.js';
+import { startRevocationPoller } from './services/revocation_poller.js';
+import { readConnectionString } from './services/connection_string_keyring.js';
 
 function resolveClientDistPath() {
   const currentDir = dirname(fileURLToPath(import.meta.url));
@@ -68,6 +73,8 @@ export function createApp() {
   app.use('/api/auth/settings', settingsRouter);
   app.use('/api/auth/bindings', bindingsRouter);
   app.use('/api/auth/admin/bindings', adminBindingsRouter);
+  app.use('/api/auth/admin/federation', adminFederationRouter);
+  app.use('/api/auth/shell', shellLoginRouter);
   app.use('/api/auth', authRouter);
   app.use('/api/auth', rbacRouter);
   app.use('/api/admin', adminRouter);
@@ -87,5 +94,47 @@ export function createApp() {
   // S1B.5 — agenda cleanup do TokenRevocation a cada 1h (ADR-07).
   scheduleRevocationCleanup();
 
+  // play-federation S2B — bootstrap Federação:
+  //   1. Carrega FederationConfig do SQLite local
+  //   2. Se federation_active=true: lê connection string via keyring bridge
+  //      e recarrega mainPrisma + dispara revocation_poller
+  //   3. Se inativo: no-op silencioso (modo single-device legado preservado)
+  void bootstrapFederation();
+
   return app;
+}
+
+async function bootstrapFederation(): Promise<void> {
+  try {
+    const config = await localPrisma.federationConfig.findUnique({
+      where: { id: 'singleton' },
+    });
+    if (!config?.federation_active) {
+      // Modo single-device — sem polling, mainPrisma fica no SQLite local.
+      return;
+    }
+
+    const aiosonPlayId = process.env['AIOSON_PLAY_ID'];
+    if (!aiosonPlayId) {
+      console.warn(
+        '[bootstrap] FederationConfig.federation_active=true mas AIOSON_PLAY_ID env não setado — poller não inicia',
+      );
+      return;
+    }
+
+    let connectionString: string | null = null;
+    try {
+      connectionString = await readConnectionString(aiosonPlayId);
+    } catch (err) {
+      console.warn('[bootstrap] keyring bridge indisponível no boot:', err);
+    }
+
+    if (connectionString) {
+      await reloadMainPrismaFromConfig(connectionString);
+    }
+
+    startRevocationPoller(aiosonPlayId);
+  } catch (err) {
+    console.error('[bootstrap] erro inesperado em bootstrapFederation:', err);
+  }
 }

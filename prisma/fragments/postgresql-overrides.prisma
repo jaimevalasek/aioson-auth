@@ -1,0 +1,13 @@
+// PostgreSQL override — modo DB online (Federação ativa).
+//
+// Usado quando aioson-auth aponta pra Postgres externo (Supabase free tier,
+// Hostinger Postgres, Neon, etc.). Compartilhado por todos os Plays
+// satélites de 1 workspace (1 workspace = 1 DB online no MVP, BR-F-08).
+//
+// Connection string deve ter `?sslmode=require` em produção
+// (validado em `/admin/federation/test-connection`, BR-F-05 + ADR-F-07).
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}

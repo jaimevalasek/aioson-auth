@@ -1,13 +1,17 @@
-// AIOSON Auth — Prisma schema
-// learn more: https://pris.ly/d/prisma-schema
+// AIOSON Auth — Prisma schema TEMPLATE (multi-provider)
+//
+// ⚠ Este arquivo é o "template" sem datasource block.
+// O `scripts/build-prisma-schema.ts` concatena o fragment do provider
+// (sqlite/postgres/mysql) com este template e gera o `schema.prisma` final
+// que o Prisma CLI consome.
+//
+// NÃO edite `prisma/schema.prisma` direto — ele é gerado em build-time.
+// Edite ESTE arquivo (`schema.template.prisma`) e re-rode `npm run db:build-schema`.
+//
+// Providers suportados (MVP play-federation): sqlite, postgresql, mysql.
 
 generator client {
   provider = "prisma-client-js"
-}
-
-datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
 }
 
 // ─── Global Settings ────────────────────────────────────────────────────────
@@ -37,13 +41,18 @@ model GlobalSettings {
 // (= access TTL). Após esse prazo, JWTs antigos já estariam inválidos pelo
 // próprio expire do JWT, então a entry vira lixo.
 model TokenRevocation {
-  id         String   @id @default(cuid())
-  user_id    String
-  binding_id String
-  revoked_at DateTime @default(now())
-  expires_at DateTime
+  id             String   @id @default(cuid())
+  user_id        String
+  binding_id     String
+  revoked_at     DateTime @default(now())
+  expires_at     DateTime
+  // play-federation S1B: identifica de qual Play veio o revoke. Nullable
+  // na Fase 1 (compat com revokes single-device emitidos antes da feature);
+  // vira NOT NULL em migration aditiva futura quando Fase 2 fechar.
+  aioson_play_id String?
 
   @@index([user_id, expires_at])
+  @@index([aioson_play_id, expires_at])
 }
 
 // ─── App Bindings ────────────────────────────────────────────────────────────
@@ -75,17 +84,22 @@ model AppBinding {
 // ─── Global Users ────────────────────────────────────────────────────────────
 
 model GlobalUser {
-  id            String   @id @default(cuid())
-  email         String   @unique
-  password_hash String?
-  name          String   @default("")
-  totp_secret   String?
-  created_at    DateTime @default(now())
-  updated_at    DateTime @updatedAt
+  id                    String   @id @default(cuid())
+  email                 String   @unique
+  password_hash         String?
+  name                  String   @default("")
+  totp_secret           String?
+  // play-federation S1B (BR-F-08 + AC-22): rastreia em qual Play o usuário
+  // foi criado originalmente. Audit trail + conflict resolution.
+  aioson_play_origin_id String?
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
 
   // Relations
   sessions   AuthSession[]
   user_roles UserRole[]
+
+  @@index([aioson_play_origin_id])
 }
 
 // ─── Permissions (per binding) ──────────────────────────────────────────────
@@ -145,28 +159,37 @@ model RolePermission {
 // The actual permissions granted come from RolePermission entries
 // that match this role + this binding.
 model UserRole {
-  id         String   @id @default(cuid())
-  user_id    String
-  role_id    String
-  binding_id String
-  created_at DateTime @default(now())
+  id                    String   @id @default(cuid())
+  user_id               String
+  role_id               String
+  binding_id            String
+  // play-federation S1B (BR-F-08 + AC-22): rastreia em qual Play a atribuição
+  // de role foi feita. Audit trail + conflict resolution.
+  aioson_play_origin_id String?
+  created_at            DateTime @default(now())
 
   user GlobalUser @relation(fields: [user_id], references: [id], onDelete: Cascade)
   role Role       @relation(fields: [role_id], references: [id], onDelete: Cascade)
 
   @@unique([user_id, role_id, binding_id])
+  @@index([aioson_play_origin_id])
 }
 
 // ─── Auth Sessions ───────────────────────────────────────────────────────────
 
 model AuthSession {
-  id         String   @id @default(cuid())
-  user_id    String
-  token      String   @unique
-  expires_at DateTime
-  created_at DateTime @default(now())
+  id             String   @id @default(cuid())
+  user_id        String
+  token          String   @unique
+  expires_at     DateTime
+  // play-federation S1B (BR-F-08 + AC-22): rastreia em qual Play a sessão
+  // foi criada. Audit trail + conflict resolution.
+  aioson_play_id String?
+  created_at     DateTime @default(now())
 
   user GlobalUser @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([aioson_play_id])
 }
 
 // ─── Recovery Token ─────────────────────────────────────────────────────────
@@ -187,4 +210,28 @@ model AdminUser {
   email         String   @unique
   password_hash String
   created_at    DateTime @default(now())
+}
+
+// ─── Federation Config (play-federation S1B / ADR-F-05) ─────────────────────
+//
+// Singleton (id="singleton") com estado da Federação local. SEMPRE vive no
+// SQLite local mesmo quando Federação ativa com `mainPrisma` apontando pra
+// Postgres/MySQL — esse contrato é enforcement runtime via `localPrisma`
+// (vide src/lib/prisma-clients.ts).
+//
+// Quando `federation_active = false`: aioson-auth roda 100% local (sqlite),
+// sem revocation_poller, sem multi-provider, sem keyring lookup.
+// Quando `federation_active = true`: aioson-auth lê connection string via
+// IPC pro Tauri keyring do aioson-play, instancia mainPrisma no provider
+// correto e dispara revocation_poller.
+model FederationConfig {
+  id                       String    @id @default("singleton")
+  federation_active        Boolean   @default(false)
+  project_id               String?
+  project_name             String?
+  db_provider              String? // 'postgresql' | 'mysql' (null quando inativo)
+  db_connection_keyring_id String?
+  activated_at             DateTime?
+  created_at               DateTime  @default(now())
+  updated_at               DateTime  @updatedAt
 }

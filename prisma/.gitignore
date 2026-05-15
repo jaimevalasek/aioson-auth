@@ -1,0 +1,3 @@
+# schema.prisma é gerado em build-time por scripts/build-prisma-schema.ts
+# (ADR-F-01 da feature play-federation). Edite o template + fragments.
+schema.prisma

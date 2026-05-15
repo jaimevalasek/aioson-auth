@@ -1,0 +1,19 @@
+// MySQL override — modo DB online (Federação ativa).
+//
+// Usado quando aioson-auth aponta pra MySQL externo (Hostinger VPS,
+// PlanetScale, etc.). Compartilhado por todos os Plays satélites de
+// 1 workspace (1 workspace = 1 DB online no MVP, BR-F-08).
+//
+// Connection string deve ter `?ssl=true` em produção (validado em
+// `/admin/federation/test-connection`, BR-F-05 + ADR-F-07).
+//
+// Nota: MySQL com charset utf8mb4 limita índices em VARCHAR(191) por default.
+// Como o template usa apenas tipos puros (String → VARCHAR(191) por default
+// no MySQL via Prisma), não há ajuste necessário no momento. Se a feature
+// adicionar campos com `@db.VarChar(N>191)` no template, considerar trade-off
+// de índice vs tamanho.
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}

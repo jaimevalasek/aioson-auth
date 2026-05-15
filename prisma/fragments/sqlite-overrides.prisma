@@ -1,0 +1,14 @@
+// SQLite override — modo single-device DEFAULT do aioson-auth.
+//
+// Usado quando aioson-auth roda como Play Service local (sem Federação ativa).
+// É o modo preservado pra zero-config + 100% offline.
+//
+// Nota: SQLite ignora `@db.VarChar(N)`, `@db.LongText`, `@db.Json` se forem
+// adicionados a campos no template. Atualmente o schema usa apenas tipos
+// puros (String/Int/Boolean/DateTime), então não há diferença prática
+// entre os providers no nível do template.
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}

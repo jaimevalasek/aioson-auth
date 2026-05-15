@@ -1,0 +1,3 @@
+# Prisma migration provider lock — DO NOT EDIT
+# Configure DATABASE_PROVIDER=mysql + run via scripts/build-prisma-schema.ts antes de prisma migrate.
+provider = "mysql"
