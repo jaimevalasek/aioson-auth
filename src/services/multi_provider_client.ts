@@ -72,12 +72,15 @@ export function assertTlsForRemote(connectionString: string): void {
   }
 
   if (provider === 'mysql') {
+    // BR-F-05: `sslaccept=preferred` significa "tenta TLS, aceita plain se
+    // servidor não tiver" — NÃO atende "TLS obrigatório". Apenas `strict`
+    // (ou o legado `ssl=true` que falha em plain) cumpre o requisito.
     const hasSsl =
       /[?&]ssl=true/.test(lower) ||
-      /[?&]sslaccept=(strict|preferred)/.test(lower);
+      /[?&]sslaccept=strict/.test(lower);
     if (!hasSsl) {
       throw new ProviderValidationError(
-        'connection string MySQL requer ssl=true (ou sslaccept=strict). Adicione ?ssl=true ao final.',
+        'connection string MySQL requer ssl=true ou sslaccept=strict (preferred é fallback permissivo, não atende BR-F-05). Adicione ?ssl=true ao final.',
         'tls_required',
       );
     }
