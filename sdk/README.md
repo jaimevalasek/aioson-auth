@@ -165,6 +165,8 @@ app.delete(
 
 Pacote em `0.x` enquanto o contrato do aioson-auth não está congelado. Após 1.0 segue semver.
 
+Histórico completo em [`CHANGELOG.md`](./CHANGELOG.md). Versão atual: **0.2.0**.
+
 ## Roadmap
 
 - [ ] JWKS endpoint no aioson-auth + validação offline no SDK (eliminaria `validateOnServer` em prod)

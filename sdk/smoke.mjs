@@ -15,7 +15,16 @@ function header(t) { console.log(`\n── ${t} ──`); }
 function ok(m) { console.log(`  ✅ ${m}`); }
 function fail(m, err) { console.error(`  ❌ ${m}`, err ?? ''); process.exitCode = 1; }
 
-const auth = createAuthClient({ baseUrl: BASE, bindingId: BINDING });
+// Spy fetch — registra a última chamada pra inspecionar headers.
+// Não substitui globalThis.fetch para não contaminar outros consumidores no
+// mesmo processo; o SDK aceita `fetch:` via options.
+let lastRequest = null;
+const spyFetch = async (url, init = {}) => {
+  lastRequest = { url, method: init.method ?? 'GET', headers: { ...(init.headers ?? {}) } };
+  return globalThis.fetch(url, init);
+};
+
+const auth = createAuthClient({ baseUrl: BASE, bindingId: BINDING, fetch: spyFetch });
 
 header('1. login');
 let session;
@@ -46,21 +55,46 @@ header('4. getPermissions');
 const perms = auth.getPermissions();
 console.log('  ', perms);
 
-header('5. /me');
+header('5. /me (Authorization: Bearer)');
 try {
   const me = await auth.me();
   console.log('  ', JSON.stringify(me, null, 2));
   if (me?.binding_id === BINDING && Array.isArray(me?.permissions)) ok('/me carrega binding_id + permissions');
   else fail('/me incompleto');
+  const authz = lastRequest?.headers?.Authorization;
+  if (authz === `Bearer ${session.accessToken}`) ok('header Authorization: Bearer enviado');
+  else fail(`header Authorization ausente/incorreto: ${authz}`);
+  if (!lastRequest?.url?.includes('?token=')) ok('sem fallback ?token= na URL');
+  else fail(`?token= ainda na URL: ${lastRequest.url}`);
 } catch (err) {
   fail('me failed', err);
 }
 
-header('6. check (defense-in-depth server-side)');
+header('6. /me/permissions (Slice E)');
+try {
+  const list = await auth.mePermissions();
+  console.log('  ', list);
+  if (Array.isArray(list)) ok(`mePermissions retornou array (len=${list.length})`);
+  else fail('mePermissions não retornou array');
+  if (list.includes('tickets:read')) ok('contém tickets:read');
+  else fail('deveria conter tickets:read');
+  if (!list.includes('foo:bar')) ok('não contém foo:bar (sanity)');
+  else fail('não deveria conter foo:bar');
+  const authz = lastRequest?.headers?.Authorization;
+  if (authz === `Bearer ${session.accessToken}`) ok('header Authorization: Bearer enviado');
+  else fail(`header Authorization ausente/incorreto: ${authz}`);
+} catch (err) {
+  fail('mePermissions failed', err);
+}
+
+header('7. check (defense-in-depth server-side)');
 try {
   const allowed = await auth.check('tickets:read');
   if (allowed) ok('check(tickets:read) → true');
   else fail('check(tickets:read) deveria ser true');
+  const authzAllowed = lastRequest?.headers?.Authorization;
+  if (authzAllowed === `Bearer ${session.accessToken}`) ok('header Authorization: Bearer enviado');
+  else fail(`header Authorization ausente/incorreto: ${authzAllowed}`);
   const denied = await auth.check('foo:bar');
   if (!denied) ok('check(foo:bar) → false');
   else fail('check(foo:bar) deveria ser false');
@@ -68,7 +102,7 @@ try {
   fail('check failed', err);
 }
 
-header('7. refresh (re-agrega permissions e rotaciona refresh token)');
+header('8. refresh (re-agrega permissions e rotaciona refresh token)');
 try {
   // Espera 1.1s pra garantir que o `iat` do JWT (em segundos) muda — caso
   // contrário login+refresh sub-segundo geram bytes idênticos no access token.
@@ -85,7 +119,7 @@ try {
   fail('refresh failed', err);
 }
 
-header('8. logout');
+header('9. logout');
 try {
   await auth.logout();
   if (await auth.getSession() === null) ok('sessão limpa após logout');
