@@ -67,10 +67,19 @@ export interface ResetPasswordInput {
 }
 
 export interface AuthClientOptions {
-  /** URL base do aioson-auth, ex.: `http://localhost:3001`. */
-  baseUrl: string;
+  /**
+   * URL base do aioson-auth, ex.: `http://localhost:3001`.
+   * Opcional em embedded mode (`embedded: true`) — usa `location.origin`.
+   */
+  baseUrl?: string;
   /** UUID do AppBinding criado pelo admin no painel. */
   bindingId: string;
+  /**
+   * Embedded mode: auth roda no próprio app (sem serviço externo).
+   * Quando `true` e `baseUrl` não informado, usa `location.origin`.
+   * Equivale a `import.meta.env.VITE_AIOSON_AUTH_EMBEDDED === "true"`.
+   */
+  embedded?: boolean;
   /**
    * Onde guardar tokens. Default: `memoryStorage()`. Em browsers use
    * `localStorageAdapter()` para persistir entre reloads.

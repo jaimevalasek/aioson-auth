@@ -90,7 +90,12 @@ export interface AuthClient {
 export function createAuthClient(opts: AuthClientOptions): AuthClient {
   const storage: TokenStorage = opts.storage ?? memoryStorage();
   const autoRefresh = opts.autoRefresh ?? true;
-  const baseUrl = opts.baseUrl.replace(/\/+$/, '');
+  const resolvedUrl = opts.baseUrl
+    ?? (opts.embedded && typeof location !== 'undefined' ? location.origin : undefined);
+  if (!resolvedUrl) {
+    throw new Error('[aioson/auth-sdk] baseUrl is required (or set embedded: true in a browser)');
+  }
+  const baseUrl = resolvedUrl.replace(/\/+$/, '');
   const bindingId = opts.bindingId;
   const fetchImpl = opts.fetch ?? globalThis.fetch.bind(globalThis);
   const listeners = new Set<SessionListener>();

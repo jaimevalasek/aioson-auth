@@ -11,9 +11,9 @@ context_package:
   - /home/jaime/MyProjects/aioson-play/.aioson/context/architecture-aioson-play-identity.md
   - /home/jaime/MyProjects/aioson-play/.aioson/context/requirements-aioson-play-identity.md
   - /home/jaime/MyProjects/aioson-play/.aioson/context/spec-aioson-play-identity.md
-next_step: "S1B.1 + S1B.2 + S1B.3 + S1B.4 entregues por agent-1 cross-repo (chat de agent-3 perdeu sessão; lane-1 do aioson-play implementou daqui). Falta S1B.5 (TokenRevocation) — não é bloqueador imediato; necessária para S2.4 do aioson-play. Repo aioson-auth ainda sem git history; usuário decide se faz git init + commit."
+next_step: "Sprint 1B completa + Phase 6 (sdk-embedded-auth) entregue. Pronto para consumo no aioson-play-online."
 status: in_progress
-updated_at: 2026-05-06
+updated_at: 2026-05-25
 ---
 
 # Dev State — aioson-play-identity (lane agent-3 / aioson-auth)
@@ -33,7 +33,7 @@ updated_at: 2026-05-06
 | **S1B.2** | Seed dos 5 roles padrão idempotente em `prisma/seed.ts` (per ADR-03: owner, admin, manager, operator, viewer) | S1B.1 | **DONE** 2026-05-06 |
 | **S1B.3** | Service `aioson_com_validator` com cache LRU TTL=60s; chama `GET aioson.com/api/app-auth/me` (pronto em agent-2) | S1A.3 ✅ | **DONE** 2026-05-06 |
 | **S1B.4** | Endpoint `POST /api/auth/admin/bindings` + middleware `validate_owner_bearer` per ADR-02 | S1B.1 + S1B.3 + S1A.2 ✅ | **DONE** 2026-05-06 |
-| **S1B.5** | Tabela `TokenRevocation` + cleanup job + integração no validate-token middleware (ADR-07) | S1B.1 | pending (não bloqueia S1C.3) |
+| **S1B.5** | Tabela `TokenRevocation` + cleanup job + integração no validate-token middleware (ADR-07) | S1B.1 | **DONE** (implementado em commits 334d0fb–7c4e4a9) |
 
 Bloqueio externo já resolvido — todas as deps cross-lane (`S1A.2`, `S1A.3`) entregues por agent-2. **Pode rodar a Sprint 1B inteira agora.**
 
@@ -101,12 +101,36 @@ Smoke-test executado (e cleanup feito): `upsertAdminBinding` chamado 2x com mesm
 
 ## Pendências
 
-- **S1B.5** (TokenRevocation): não entregue. Necessária para a Story S2.4 do aioson-play (RemoveOperatorModal revoga tokens), mas não bloqueia S1C.3 que era o gate prioritário.
-- **Git**: este repo ainda não tem `.git/`. Usuário precisa decidir se inicializa + commita as mudanças. Eu não fiz `git init` para preservar autonomia.
+- ~~**S1B.5** (TokenRevocation): entregue~~ — modelo no schema, `revokeUserTokens` + `isUserRevoked` + cleanup job 1h (`TokenRevocationAction.ts`), integração em `verifyAccessToken` (`AuthAction.ts`), cache + poller federation (`revocation-cache.ts` + `revocation_poller.ts`). Callers em `RbacAction`, `routes/rbac.ts`, `routes/admin.ts`.
+- ~~**Git**: resolvido~~ — repo inicializado, 14 commits no main (desde `390bbec first commit` até `7c4e4a9 test(federation)`). Inclui SDK, federation, RBAC, auth slices A–E.
+
+## Phase 6 — sdk-embedded-auth (2026-05-25)
+
+`@aioson/auth-sdk` ganhou 4ª entry `./embedded` com modo EMBEDDED=true (auth roda dentro do app, sem serviço externo).
+
+**Arquivos criados em `sdk/src/embedded/`:**
+- `types.ts` — `PrismaClientLike`, entity types, config types
+- `schema.ts` — CREATE TABLE IF NOT EXISTS para 7 tabelas `aioson_auth_*` (sqlite/pg/mysql)
+- `migrate.ts` — `runEmbeddedMigrations()` + `detectProvider()` + conflict detection
+- `auth-crypto.ts` — JWT HS256 (zero deps), bcryptjs lazy-load, token gen
+- `queries.ts` — Raw SQL CRUD multi-provider
+- `handlers.ts` — Express Router: login, refresh, logout, me, password-reset/*
+- `bootstrap.ts` — 1ª conta admin idempotente
+- `revocation-checker.ts` — Cache 5s + iat-based check
+- `backend.ts` — `createEmbeddedBackend()` facade (AC-SE-01)
+- `index.ts` — Re-exports
+
+**Arquivos modificados:**
+- `sdk/src/express/index.ts` — dual-mode: `jwtSecret` → embedded, senão → service-mode
+- `sdk/src/client.ts` — `embedded: true` → `baseUrl` = `location.origin`
+- `sdk/src/types.ts` — `baseUrl` opcional, campo `embedded`
+- `sdk/tsup.config.ts` + `sdk/package.json` — entry `./embedded`, bcryptjs peer dep
+
+**Validações:** `tsc --noEmit` limpo, `tsup` build ok, 25/25 smoke tests, benchmarks passam (requireAuth p99=0.072ms, bcrypt p99=297ms bcryptjs).
 
 ## Próximo passo concreto
 
-Voltar pra `aioson-play` com o gate S1B.4 desbloqueado. Lá agent-1 implementa **S1C.3** (`auth_app_bindings.rs` Tauri commands) consumindo este `POST /api/auth/admin/bindings`. Depois S1C.4 + S2.3 + S2.4 + S2.5.
+Voltar pra `aioson-play-online` para consumir `@aioson/auth-sdk/embedded` na próxima phase do plano. Gate S1B.4 do aioson-play já desbloqueado.
 
 ## Histórico anterior (lane antiga)
 
