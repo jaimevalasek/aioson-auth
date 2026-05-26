@@ -48,7 +48,7 @@
     "sdk"
   ],
   "author": "AIOSON",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "peerDependencies": {
     "bcryptjs": "^3.0.3",
     "express": ">=4.0.0",
