@@ -7,6 +7,7 @@ import RbacPermissionsPage from './pages/RbacPermissionsPage';
 import GlobalUsersPage from './pages/GlobalUsersPage';
 import AuthPage from './pages/AuthPage';
 import LoginPage from './pages/LoginPage';
+import SsoLoginPage from './pages/SsoLoginPage';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const location = useLocation();
@@ -22,6 +23,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/sso/login" element={<SsoLoginPage />} />
       <Route
         path="/auth/dashboard"
         element={

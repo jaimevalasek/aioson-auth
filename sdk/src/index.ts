@@ -1,5 +1,5 @@
-export { createAuthClient } from './client.js';
-export type { AuthClient } from './client.js';
+export { createAuthClient, redirectToSso, handleSsoCallback } from './client.js';
+export type { AuthClient, SsoOptions } from './client.js';
 export { AuthError, inferErrorCode } from './errors.js';
 export type { AuthErrorCode } from './errors.js';
 export { memoryStorage, localStorageAdapter } from './storage.js';

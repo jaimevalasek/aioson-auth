@@ -1,4 +1,5 @@
 import express from 'express';
+import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import helmet from 'helmet';
 import { existsSync } from 'fs';
@@ -12,6 +13,7 @@ import { adminRouter } from './routes/admin.js';
 import { adminBindingsRouter } from './routes/admin-bindings.js';
 import { adminFederationRouter } from './routes/admin-federation.js';
 import { shellLoginRouter } from './routes/shell-login.js';
+import { ssoRouter } from './routes/sso.js';
 import { scheduleRevocationCleanup } from './actions/TokenRevocationAction.js';
 import { localPrisma, reloadMainPrismaFromConfig } from './lib/prisma-clients.js';
 import { startRevocationPoller } from './services/revocation_poller.js';
@@ -69,7 +71,9 @@ export function createApp() {
     credentials: true,
   }));
   app.use(express.json());
+  app.use(cookieParser());
 
+  app.use('/sso', ssoRouter);
   app.use('/api/auth/settings', settingsRouter);
   app.use('/api/auth/bindings', bindingsRouter);
   app.use('/api/auth/admin/bindings', adminBindingsRouter);

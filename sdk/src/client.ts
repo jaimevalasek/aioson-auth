@@ -405,3 +405,48 @@ function extractErrorMessage(data: unknown): string | null {
   }
   return null;
 }
+
+// ─── SSO helpers ─────────────────────────────────────────────────────────────
+
+export interface SsoOptions {
+  authUrl: string;
+  bindingId: string;
+  redirectUri?: string;
+}
+
+export function redirectToSso(opts: SsoOptions): void {
+  const redirectUri = opts.redirectUri ?? `${window.location.origin}/sso/callback`;
+  const url = `${opts.authUrl}/sso/authorize?binding_id=${encodeURIComponent(opts.bindingId)}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+  window.location.href = url;
+}
+
+export function handleSsoCallback(storage?: TokenStorage): AuthSession | null {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('token');
+  const refresh = params.get('refresh');
+  const userId = params.get('user_id');
+  const email = params.get('email');
+
+  if (!token || !refresh) return null;
+
+  const session: AuthSession = {
+    accessToken: token,
+    refreshToken: refresh,
+    user: { id: userId ?? '', email: email ?? '', name: '' },
+  };
+
+  if (storage) {
+    storage.set('accessToken', token);
+    storage.set('refreshToken', refresh);
+  }
+
+  // Clean URL
+  const url = new URL(window.location.href);
+  url.searchParams.delete('token');
+  url.searchParams.delete('refresh');
+  url.searchParams.delete('user_id');
+  url.searchParams.delete('email');
+  window.history.replaceState({}, '', url.toString());
+
+  return session;
+}
