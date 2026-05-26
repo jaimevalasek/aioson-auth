@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, NavLink } from 'react-router-dom';
 import AuthLayout from '../components/AuthLayout';
 
 interface AuthUser {
@@ -16,22 +16,6 @@ interface Role {
   description: string | null;
 }
 
-function cardStyle() {
-  return {
-    background: 'var(--bg-surface)',
-    border: '1px solid var(--border-subtle)',
-    borderRadius: 'var(--radius-xl)',
-    padding: 'var(--space-6)',
-    boxShadow: 'var(--shadow-sm)',
-  };
-}
-
-function badgeStyle(variant: 'green' | 'gray') {
-  return variant === 'green'
-    ? { background: 'var(--semantic-green-dim)', color: 'var(--semantic-green)' }
-    : { background: 'var(--bg-elevated)', color: 'var(--text-secondary)' };
-}
-
 export default function RbacUsersPage() {
   const { bindingId } = useParams<{ bindingId: string }>();
   const [users, setUsers] = useState<AuthUser[]>([]);
@@ -42,7 +26,6 @@ export default function RbacUsersPage() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [newEmail, setNewEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  // userId → list of role ids assigned to this user
   const [userRoles, setUserRoles] = useState<Record<string, Role[]>>({});
 
   useEffect(() => {
@@ -64,7 +47,6 @@ export default function RbacUsersPage() {
       setUsers(usersData);
       setRoles(rolesData);
 
-      // Load roles for each user
       const roleMap: Record<string, Role[]> = {};
       for (const user of usersData) {
         try {
@@ -150,99 +132,177 @@ export default function RbacUsersPage() {
   if (loading) {
     return (
       <AuthLayout title="Usuários" subtitle={`Binding: ${bindingId}`}>
-        <p style={{ color: 'var(--text-secondary)' }}>Carregando...</p>
+        <div className="auth-empty">
+          <div>
+            <h2>Carregando</h2>
+            <p>Buscando usuários e perfis.</p>
+          </div>
+        </div>
       </AuthLayout>
     );
   }
 
   return (
     <AuthLayout title={`Usuários — ${bindingId}`} subtitle="Gerencie usuários e atribua perfis (roles) para este app.">
-      {/* Nav tabs */}
-      <div style={{ display: 'flex', gap: 'var(--space-4)', marginBottom: 'var(--space-8)', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 'var(--space-4)' }}>
-        <Link to={`/auth/bindings/${bindingId}/users`} style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-semibold)', color: 'var(--accent-strong)', textDecoration: 'none', paddingBottom: 'var(--space-2)', borderBottom: '2px solid var(--accent)' }}>Usuários</Link>
-        <Link to={`/auth/bindings/${bindingId}/roles`} style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-medium)', color: 'var(--text-secondary)', textDecoration: 'none' }}>Perfis</Link>
-        <Link to={`/auth/bindings/${bindingId}/permissions`} style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-medium)', color: 'var(--text-secondary)', textDecoration: 'none' }}>Permissões</Link>
+      <nav className="ao-tabs" role="tablist">
+        <NavLink
+          to={`/auth/bindings/${bindingId}/users`}
+          className={({ isActive }) => `ao-tab${isActive ? ' ao-tab--active' : ''}`}
+          role="tab"
+        >
+          Usuários <span className="ao-tab__count">{users.length}</span>
+        </NavLink>
+        <NavLink
+          to={`/auth/bindings/${bindingId}/roles`}
+          className={({ isActive }) => `ao-tab${isActive ? ' ao-tab--active' : ''}`}
+          role="tab"
+        >
+          Perfis <span className="ao-tab__count">{roles.length}</span>
+        </NavLink>
+        <NavLink
+          to={`/auth/bindings/${bindingId}/permissions`}
+          className={({ isActive }) => `ao-tab${isActive ? ' ao-tab--active' : ''}`}
+          role="tab"
+        >
+          Permissões
+        </NavLink>
+      </nav>
+
+      {message && (
+        <div className={`ao-alert ao-alert--compact auth-message ${message.type === 'success' ? 'ao-alert--success' : 'ao-alert--danger'}`} role="alert">
+          <div className="ao-alert__content">
+            <p className="ao-alert__body">{message.text}</p>
+          </div>
+        </div>
+      )}
+
+      <div className="auth-users-toolbar">
+        <div />
+        <button className="ao-btn ao-btn--primary" onClick={() => setShowCreate((v) => !v)} type="button">
+          {showCreate ? 'Cancelar' : '+ Novo Usuário'}
+        </button>
       </div>
 
-        {message && (
-          <div style={{ marginBottom: 'var(--space-6)', padding: 'var(--space-3) var(--space-4)', borderRadius: 'var(--radius-lg)', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-medium)', ...(message.type === 'success' ? { background: 'var(--semantic-green-dim)', color: 'var(--semantic-green)' } : { background: 'var(--semantic-red-dim)', color: 'var(--semantic-red)' }) }}>
-            {message.text}
+      {showCreate && (
+        <section className="ao-card" style={{ marginBottom: 'var(--ao-space-5)' }}>
+          <div className="ao-card__header">
+            <h2 className="ao-card__title">Criar usuário</h2>
           </div>
-        )}
-
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 'var(--space-6)' }}>
-          <button onClick={() => setShowCreate((v) => !v)} style={{ padding: '0 var(--space-5)', height: 'var(--control-md)', background: 'var(--accent)', color: 'var(--accent-contrast)', border: 'none', borderRadius: 'var(--radius-lg)', fontFamily: 'var(--font-body)', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-semibold)', cursor: 'pointer' }}
-            onMouseEnter={(e) => (e.target as HTMLButtonElement).style.background = 'var(--accent-hover)'}
-            onMouseLeave={(e) => (e.target as HTMLButtonElement).style.background = 'var(--accent)'}>
-            {showCreate ? 'Cancelar' : '+ Novo Usuário'}
-          </button>
-        </div>
-
-        {showCreate && (
-          <form onSubmit={handleCreate} style={{ ...cardStyle(), marginBottom: 'var(--space-8)', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-medium)', color: 'var(--text-heading)', marginBottom: 'var(--space-2)' }}>E-mail</label>
-              <input type="email" required value={newEmail} onChange={(e) => setNewEmail(e.target.value)} style={{ width: '100%', height: 'var(--control-md)', padding: '0 var(--space-4)', background: 'var(--bg-surface)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontFamily: 'var(--font-body)', fontSize: 'var(--text-base)', color: 'var(--text-heading)', outline: 'none' }}
-                onFocus={(e) => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-dim)'; }}
-                onBlur={(e) => { e.target.style.borderColor = 'var(--border-medium)'; e.target.style.boxShadow = 'none'; }} />
+          <form onSubmit={handleCreate}>
+            <div className="ao-card__body">
+              <label className="ao-field">
+                <span className="ao-field__label">E-mail</span>
+                <input
+                  className="ao-input"
+                  type="email"
+                  required
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                />
+              </label>
+              <label className="ao-field">
+                <span className="ao-field__label">Senha</span>
+                <input
+                  className="ao-input"
+                  type="password"
+                  required
+                  minLength={6}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                />
+              </label>
             </div>
-            <div>
-              <label style={{ display: 'block', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-medium)', color: 'var(--text-heading)', marginBottom: 'var(--space-2)' }}>Senha</label>
-              <input type="password" required minLength={6} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} style={{ width: '100%', height: 'var(--control-md)', padding: '0 var(--space-4)', background: 'var(--bg-surface)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontFamily: 'var(--font-body)', fontSize: 'var(--text-base)', color: 'var(--text-heading)', outline: 'none' }}
-                onFocus={(e) => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-dim)'; }}
-                onBlur={(e) => { e.target.style.borderColor = 'var(--border-medium)'; e.target.style.boxShadow = 'none'; }} />
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button type="submit" disabled={creating} style={{ padding: '0 var(--space-5)', height: 'var(--control-md)', background: creating ? 'var(--accent-dim)' : 'var(--accent)', color: 'var(--accent-contrast)', border: 'none', borderRadius: 'var(--radius-lg)', fontFamily: 'var(--font-body)', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-semibold)', cursor: creating ? 'not-allowed' : 'pointer' }}>
+            <div className="ao-card__footer">
+              <button className="ao-btn ao-btn--primary" type="submit" disabled={creating}>
                 {creating ? 'Criando...' : 'Criar Usuário'}
               </button>
             </div>
           </form>
-        )}
+        </section>
+      )}
+
+      <section className="ao-card ao-card--compact">
+        <div className="ao-card__header">
+          <h2 className="ao-card__title">Usuários cadastrados</h2>
+        </div>
 
         {users.length === 0 ? (
-          <div style={{ ...cardStyle(), textAlign: 'center', padding: 'var(--space-12)' }}>
-            <p style={{ color: 'var(--text-muted)' }}>Nenhum usuário ainda.</p>
+          <div className="auth-empty">
+            <div>
+              <h2>Nenhum usuário ainda</h2>
+              <p>Crie o primeiro usuário para este binding.</p>
+            </div>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-            {users.map((user) => (
-              <div key={user.id} style={{ ...cardStyle(), display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 'var(--space-4)' }}>
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 'var(--weight-semibold)', color: 'var(--text-heading)', margin: '0 0 var(--space-1)' }}>{user.email}</p>
-                  <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-3)', flexWrap: 'wrap' }}>
-                    {user.verified
-                      ? <span style={{ ...badgeStyle('green'), display: 'inline-flex', alignItems: 'center', padding: '0 var(--space-3)', height: '22px', borderRadius: 'var(--radius-full)', fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-medium)' }}>Verificado</span>
-                      : <span style={{ ...badgeStyle('gray'), display: 'inline-flex', alignItems: 'center', padding: '0 var(--space-3)', height: '22px', borderRadius: 'var(--radius-full)', fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-medium)' }}>Pendente</span>
-                    }
-                    {(userRoles[user.id] ?? []).map((r) => (
-                      <span key={r.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-1)', padding: '0 var(--space-3)', height: '22px', borderRadius: 'var(--radius-full)', fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-medium)', background: 'rgba(155, 142, 196, 0.12)', color: 'var(--semantic-purple)' }}>
-                        {r.name}
-                        <button onClick={() => handleRemoveRole(user.id, r.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', padding: 0, lineHeight: 1, fontSize: '10px' }}>×</button>
-                      </span>
-                    ))}
-                  </div>
-                  {/* Assign role dropdown */}
-                  <select
-                    value=""
-                    onChange={(e) => { if (e.target.value) handleAssignRole(user.id, e.target.value); }}
-                    style={{ height: 'var(--control-md)', padding: '0 var(--space-3)', background: 'var(--bg-surface)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontFamily: 'var(--font-body)', fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', outline: 'none', cursor: 'pointer' }}
-                  >
-                    <option value="">+ Atribuir perfil...</option>
-                    {roles.filter((r) => !(userRoles[user.id] ?? []).some((ur) => ur.id === r.id)).map((r) => (
-                      <option key={r.id} value={r.id}>{r.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <button onClick={() => handleDelete(user.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 'var(--text-sm)', color: 'var(--text-muted)', padding: 'var(--space-1)', transition: 'var(--transition-fast)' }}
-                  onMouseEnter={(e) => (e.target as HTMLButtonElement).style.color = 'var(--semantic-red)'}
-                  onMouseLeave={(e) => (e.target as HTMLButtonElement).style.color = 'var(--text-muted)'}>
-                  Remover
-                </button>
-              </div>
-            ))}
+          <div className="ao-card__body ao-card__body--flush">
+            <div className="ao-table-wrap">
+              <table className="ao-table ao-table--compact">
+                <thead>
+                  <tr>
+                    <th>Email</th>
+                    <th>Status</th>
+                    <th>Perfis</th>
+                    <th aria-label="Ações" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.map((user) => {
+                    const assigned = userRoles[user.id] ?? [];
+                    const available = roles.filter((r) => !assigned.some((ur) => ur.id === r.id));
+                    return (
+                      <tr key={user.id}>
+                        <td className="ao-td--mono">{user.email}</td>
+                        <td>
+                          {user.verified
+                            ? <span className="ao-chip ao-chip--success ao-chip--sm">Verificado</span>
+                            : <span className="ao-chip ao-chip--sm">Pendente</span>
+                          }
+                        </td>
+                        <td>
+                          <div className="auth-role-list">
+                            {assigned.map((r) => (
+                              <span key={r.id} className="ao-chip ao-chip--secondary ao-chip--sm ao-chip--removable">
+                                {r.name}
+                                <button
+                                  className="ao-chip__remove"
+                                  onClick={() => handleRemoveRole(user.id, r.id)}
+                                  type="button"
+                                  aria-label={`Remover ${r.name}`}
+                                >
+                                  ×
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="ao-td--actions">
+                          <select
+                            className="ao-select ao-select--sm"
+                            value=""
+                            onChange={(e) => { if (e.target.value) handleAssignRole(user.id, e.target.value); }}
+                          >
+                            <option value="">+ Atribuir perfil...</option>
+                            {available.map((r) => (
+                              <option key={r.id} value={r.id}>{r.name}</option>
+                            ))}
+                          </select>
+                          <button
+                            className="ao-btn ao-btn--ghost ao-btn--danger ao-btn--sm"
+                            onClick={() => handleDelete(user.id)}
+                            type="button"
+                          >
+                            Remover
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
+      </section>
     </AuthLayout>
   );
 }

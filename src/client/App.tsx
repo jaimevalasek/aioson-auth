@@ -1,6 +1,5 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import SettingsPage from './pages/SettingsPage';
-import BindingsPage from './pages/BindingsPage';
 import DashboardPage from './pages/DashboardPage';
 import RbacUsersPage from './pages/RbacUsersPage';
 import RbacRolesPage from './pages/RbacRolesPage';
@@ -36,14 +35,6 @@ export default function App() {
         element={
           <RequireAuth>
             <SettingsPage />
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/auth/bindings"
-        element={
-          <RequireAuth>
-            <BindingsPage />
           </RequireAuth>
         }
       />

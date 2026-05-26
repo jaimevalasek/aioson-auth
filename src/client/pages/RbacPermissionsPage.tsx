@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, NavLink } from 'react-router-dom';
 import AuthLayout from '../components/AuthLayout';
 
 interface Permission {
@@ -13,16 +13,6 @@ interface Role {
   id: string;
   name: string;
   description: string;
-}
-
-function cardStyle() {
-  return {
-    background: 'var(--bg-surface)',
-    border: '1px solid var(--border-subtle)',
-    borderRadius: 'var(--radius-xl)',
-    padding: 'var(--space-6)',
-    boxShadow: 'var(--shadow-sm)',
-  };
 }
 
 export default function RbacPermissionsPage() {
@@ -39,7 +29,6 @@ export default function RbacPermissionsPage() {
   const [newAction, setNewAction] = useState('');
   const [attachRoleIds, setAttachRoleIds] = useState<Set<string>>(new Set());
 
-  // Auto-fill `name` = `resource:action` enquanto o user não editou manualmente.
   const autoName = useMemo(
     () => (newResource && newAction ? `${newResource}:${newAction}` : ''),
     [newResource, newAction]
@@ -73,10 +62,9 @@ export default function RbacPermissionsPage() {
       const res = await fetch(`/api/auth/${bindingId}/rbac/roles`);
       if (!res.ok) return;
       const list: Role[] = await res.json();
-      // BR-15: filtra o role reservado `owner` (não pode receber permissions via UI).
       setRoles(list.filter((r) => r.name !== 'owner'));
     } catch {
-      /* lista de roles é nice-to-have — não bloqueia se falhar */
+      /* lista de roles é nice-to-have */
     }
   }
 
@@ -111,8 +99,6 @@ export default function RbacPermissionsPage() {
       if (!res.ok) throw new Error('Failed to create permission');
       const created: Permission = await res.json();
 
-      // Associa a permission aos perfis selecionados (inline, estilo Spatie).
-      // Falhas individuais viram warning no message — não rollback da permission.
       const attachErrors: string[] = [];
       if (attachRoleIds.size > 0) {
         await Promise.all(
@@ -170,12 +156,11 @@ export default function RbacPermissionsPage() {
   if (loading) {
     return (
       <AuthLayout title="Permissões" subtitle={`Binding: ${bindingId}`}>
-        <p style={{ color: 'var(--text-secondary)' }}>Carregando...</p>
+        <p className="auth-muted">Carregando...</p>
       </AuthLayout>
     );
   }
 
-  // Group by resource
   const grouped: Record<string, Permission[]> = {};
   for (const p of permissions) {
     if (!grouped[p.resource]) grouped[p.resource] = [];
@@ -187,122 +172,195 @@ export default function RbacPermissionsPage() {
       title={`Permissões — ${bindingId}`}
       subtitle="Permissões disponíveis para este app. Formato: recurso:acao"
     >
-      {/* Nav tabs */}
-      <div style={{ display: 'flex', gap: 'var(--space-4)', marginBottom: 'var(--space-8)', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 'var(--space-4)' }}>
-        <Link to={`/auth/bindings/${bindingId}/users`} style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-medium)', color: 'var(--text-secondary)', textDecoration: 'none' }}>Usuários</Link>
-        <Link to={`/auth/bindings/${bindingId}/roles`} style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-medium)', color: 'var(--text-secondary)', textDecoration: 'none' }}>Perfis</Link>
-        <Link to={`/auth/bindings/${bindingId}/permissions`} style={{ fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-semibold)', color: 'var(--accent-strong)', textDecoration: 'none', paddingBottom: 'var(--space-2)', borderBottom: '2px solid var(--accent)' }}>Permissões</Link>
-      </div>
+      <nav className="ao-tabs" role="tablist">
+        <NavLink
+          to={`/auth/bindings/${bindingId}/users`}
+          className={({ isActive }) => `ao-tab${isActive ? ' ao-tab--active' : ''}`}
+        >
+          Usuários
+        </NavLink>
+        <NavLink
+          to={`/auth/bindings/${bindingId}/roles`}
+          className={({ isActive }) => `ao-tab${isActive ? ' ao-tab--active' : ''}`}
+        >
+          Perfis
+        </NavLink>
+        <NavLink
+          to={`/auth/bindings/${bindingId}/permissions`}
+          className={({ isActive }) => `ao-tab${isActive ? ' ao-tab--active' : ''}`}
+        >
+          Permissões
+        </NavLink>
+      </nav>
 
       {message && (
-          <div style={{ marginBottom: 'var(--space-6)', padding: 'var(--space-3) var(--space-4)', borderRadius: 'var(--radius-lg)', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-medium)', ...(message.type === 'success' ? { background: 'var(--semantic-green-dim)', color: 'var(--semantic-green)' } : { background: 'var(--semantic-red-dim)', color: 'var(--semantic-red)' }) }}>
-            {message.text}
+        <div
+          className={`ao-alert ao-alert--compact auth-message ${message.type === 'success' ? 'ao-alert--success' : 'ao-alert--danger'}`}
+          role="alert"
+        >
+          <div className="ao-alert__content">
+            <p className="ao-alert__body">{message.text}</p>
           </div>
-        )}
-
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 'var(--space-6)' }}>
-          <button onClick={() => setShowCreate((v) => !v)} style={{ padding: '0 var(--space-5)', height: 'var(--control-md)', background: 'var(--accent)', color: 'var(--accent-contrast)', border: 'none', borderRadius: 'var(--radius-lg)', fontFamily: 'var(--font-body)', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-semibold)', cursor: 'pointer' }}
-            onMouseEnter={(e) => (e.target as HTMLButtonElement).style.background = 'var(--accent-hover)'}
-            onMouseLeave={(e) => (e.target as HTMLButtonElement).style.background = 'var(--accent)'}>
-            {showCreate ? 'Cancelar' : '+ Nova Permissão'}
-          </button>
         </div>
+      )}
 
-        {showCreate && (
-          <form onSubmit={handleCreate} style={{ ...cardStyle(), marginBottom: 'var(--space-8)', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--space-4)' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-medium)', color: 'var(--text-heading)', marginBottom: 'var(--space-2)' }}>Recurso</label>
-                <input type="text" required value={newResource} onChange={(e) => setNewResource(e.target.value)} placeholder="orders" style={{ width: '100%', height: 'var(--control-md)', padding: '0 var(--space-4)', background: 'var(--bg-surface)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontFamily: 'var(--font-body)', fontSize: 'var(--text-base)', color: 'var(--text-heading)', outline: 'none' }}
-                  onFocus={(e) => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-dim)'; }}
-                  onBlur={(e) => { e.target.style.borderColor = 'var(--border-medium)'; e.target.style.boxShadow = 'none'; }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-medium)', color: 'var(--text-heading)', marginBottom: 'var(--space-2)' }}>Ação</label>
-                <input type="text" required value={newAction} onChange={(e) => setNewAction(e.target.value)} placeholder="create" style={{ width: '100%', height: 'var(--control-md)', padding: '0 var(--space-4)', background: 'var(--bg-surface)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontFamily: 'var(--font-body)', fontSize: 'var(--text-base)', color: 'var(--text-heading)', outline: 'none' }}
-                  onFocus={(e) => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-dim)'; }}
-                  onBlur={(e) => { e.target.style.borderColor = 'var(--border-medium)'; e.target.style.boxShadow = 'none'; }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-medium)', color: 'var(--text-heading)', marginBottom: 'var(--space-2)' }}>
-                  Nome completo
-                  {!nameTouched && newName && (
-                    <span style={{ marginLeft: 'var(--space-2)', fontSize: 'var(--text-xs)', color: 'var(--text-muted)', fontWeight: 'var(--weight-normal)' }}>(auto)</span>
-                  )}
-                </label>
-                <input type="text" required value={newName}
-                  onChange={(e) => { setNewName(e.target.value); setNameTouched(true); }}
-                  placeholder={autoName || 'orders:create'}
-                  style={{ width: '100%', height: 'var(--control-md)', padding: '0 var(--space-4)', background: 'var(--bg-surface)', border: '1px solid var(--border-medium)', borderRadius: 'var(--radius-md)', fontFamily: 'var(--font-mono)', fontSize: 'var(--text-base)', color: 'var(--text-heading)', outline: 'none' }}
-                  onFocus={(e) => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px var(--accent-dim)'; }}
-                  onBlur={(e) => { e.target.style.borderColor = 'var(--border-medium)'; e.target.style.boxShadow = 'none'; }} />
-              </div>
-            </div>
+      <div className="auth-page-actions" style={{ justifyContent: 'flex-end', marginBottom: 'var(--ao-space-4)' }}>
+        <button
+          className={`ao-btn ${showCreate ? 'ao-btn--ghost' : 'ao-btn--primary'}`}
+          onClick={() => setShowCreate((v) => !v)}
+          type="button"
+        >
+          {showCreate ? 'Cancelar' : '+ Nova Permissão'}
+        </button>
+      </div>
 
-            {/* Associar a perfis inline (estilo Spatie Laravel-Permission) */}
-            {roles.length > 0 && (
-              <div>
-                <label style={{ display: 'block', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-medium)', color: 'var(--text-heading)', marginBottom: 'var(--space-2)' }}>
-                  Associar a perfis
-                  <span style={{ marginLeft: 'var(--space-2)', fontSize: 'var(--text-xs)', color: 'var(--text-muted)', fontWeight: 'var(--weight-normal)' }}>(opcional)</span>
-                </label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
-                  {roles.map((role) => {
-                    const checked = attachRoleIds.has(role.id);
-                    return (
-                      <label key={role.id} title={role.description || undefined} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', padding: 'var(--space-2) var(--space-3)', background: checked ? 'var(--accent-dim)' : 'var(--bg-elevated)', border: `1px solid ${checked ? 'var(--accent)' : 'var(--border-subtle)'}`, borderRadius: 'var(--radius-md)', cursor: 'pointer', fontSize: 'var(--text-sm)', color: checked ? 'var(--accent-strong)' : 'var(--text-secondary)', fontWeight: checked ? 'var(--weight-semibold)' : 'var(--weight-medium)', transition: 'var(--transition-fast)' }}>
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => toggleAttachRole(role.id)}
-                          style={{ width: '14px', height: '14px', accentColor: 'var(--accent)', cursor: 'pointer' }}
-                        />
-                        {role.name}
-                      </label>
-                    );
-                  })}
-                </div>
-                <p style={{ marginTop: 'var(--space-2)', fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
-                  Perfis selecionados receberão esta permissão imediatamente após a criação.
-                </p>
-              </div>
-            )}
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button type="submit" disabled={creating} style={{ padding: '0 var(--space-5)', height: 'var(--control-md)', background: creating ? 'var(--accent-dim)' : 'var(--accent)', color: 'var(--accent-contrast)', border: 'none', borderRadius: 'var(--radius-lg)', fontFamily: 'var(--font-body)', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-semibold)', cursor: creating ? 'not-allowed' : 'pointer' }}>
-                {creating ? 'Criando...' : attachRoleIds.size > 0 ? `Criar e associar a ${attachRoleIds.size} perfil(s)` : 'Criar Permissão'}
-              </button>
-            </div>
-          </form>
-        )}
-
-        {permissions.length === 0 ? (
-          <div style={{ ...cardStyle(), textAlign: 'center', padding: 'var(--space-12)' }}>
-            <p style={{ color: 'var(--text-muted)' }}>Nenhuma permissão ainda.</p>
+      {showCreate && (
+        <section className="ao-card" style={{ marginBottom: 'var(--ao-space-6)' }}>
+          <div className="ao-card__header">
+            <h2 className="ao-card__title">Nova Permissão</h2>
           </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
-            {Object.entries(grouped).map(([resource, perms]) => (
-              <div key={resource} style={{ ...cardStyle() }}>
-                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-semibold)', color: 'var(--text-heading)', margin: '0 0 var(--space-4)', letterSpacing: 'var(--tracking-tight)', textTransform: 'capitalize' }}>
-                  {resource}
-                </h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 'var(--space-3)' }}>
-                  {perms.map((p) => (
-                    <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--space-3)', background: 'var(--bg-elevated)', borderRadius: 'var(--radius-md)' }}>
-                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-sm)', color: 'var(--text-heading)' }}>{p.action}</span>
-                      <button onClick={() => handleDelete(p.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 'var(--text-xs)', color: 'var(--text-muted)', padding: 'var(--space-1)', transition: 'var(--transition-fast)' }}
-                        onMouseEnter={(e) => (e.target as HTMLButtonElement).style.color = 'var(--semantic-red)'}
-                        onMouseLeave={(e) => (e.target as HTMLButtonElement).style.color = 'var(--text-muted)'}>
-                        ×
-                      </button>
-                    </div>
-                  ))}
+          <div className="ao-card__body">
+            <form onSubmit={handleCreate}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--ao-space-4)' }}>
+                <label className="ao-field">
+                  <span className="ao-field__label">Recurso</span>
+                  <input
+                    className="ao-input"
+                    type="text"
+                    required
+                    value={newResource}
+                    onChange={(e) => setNewResource(e.target.value)}
+                    placeholder="orders"
+                  />
+                </label>
+                <label className="ao-field">
+                  <span className="ao-field__label">Ação</span>
+                  <input
+                    className="ao-input"
+                    type="text"
+                    required
+                    value={newAction}
+                    onChange={(e) => setNewAction(e.target.value)}
+                    placeholder="create"
+                  />
+                </label>
+                <label className="ao-field">
+                  <span className="ao-field__label">
+                    Nome completo
+                    {!nameTouched && newName && (
+                      <span className="auth-muted" style={{ marginLeft: 'var(--ao-space-2)' }}>(auto)</span>
+                    )}
+                  </span>
+                  <input
+                    className="ao-input"
+                    type="text"
+                    required
+                    value={newName}
+                    onChange={(e) => { setNewName(e.target.value); setNameTouched(true); }}
+                    placeholder={autoName || 'orders:create'}
+                    style={{ fontFamily: 'var(--ao-font-mono)' }}
+                  />
+                </label>
+              </div>
+
+              {roles.length > 0 && (
+                <div className="ao-field">
+                  <span className="ao-field__label">
+                    Associar a perfis
+                    <span className="auth-muted" style={{ marginLeft: 'var(--ao-space-2)' }}>(opcional)</span>
+                  </span>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--ao-space-2)' }}>
+                    {roles.map((role) => {
+                      const checked = attachRoleIds.has(role.id);
+                      return (
+                        <label
+                          key={role.id}
+                          title={role.description || undefined}
+                          className={`ao-chip${checked ? ' ao-chip--primary' : ''}`}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleAttachRole(role.id)}
+                            className="ao-sr-only"
+                          />
+                          {role.name}
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <span className="ao-field__helper">
+                    Perfis selecionados receberão esta permissão imediatamente após a criação.
+                  </span>
+                </div>
+              )}
+
+              <div className="auth-modal-actions">
+                <button
+                  className="ao-btn ao-btn--ghost ao-btn--sm"
+                  type="button"
+                  onClick={() => { setShowCreate(false); resetCreateForm(); }}
+                >
+                  Cancelar
+                </button>
+                <button className="ao-btn ao-btn--primary" type="submit" disabled={creating}>
+                  {creating ? 'Criando...' : attachRoleIds.size > 0 ? `Criar e associar a ${attachRoleIds.size} perfil(s)` : 'Criar Permissão'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </section>
+      )}
+
+      {permissions.length === 0 ? (
+        <section className="ao-card">
+          <div className="ao-card__body auth-empty">
+            <p>Nenhuma permissão ainda.</p>
+          </div>
+        </section>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ao-space-4)' }}>
+          {Object.entries(grouped).map(([resource, perms]) => (
+            <section key={resource} className="ao-card ao-card--compact">
+              <div className="ao-card__header">
+                <h3 className="ao-card__title" style={{ textTransform: 'capitalize' }}>{resource}</h3>
+                <span className="ao-chip ao-chip--sm">{perms.length}</span>
+              </div>
+              <div className="ao-card__body ao-card__body--flush">
+                <div className="ao-table-wrap" style={{ border: 'none' }}>
+                  <table className="ao-table ao-table--compact">
+                    <thead>
+                      <tr>
+                        <th>Permissão</th>
+                        <th>Ação</th>
+                        <th className="ao-td--actions" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {perms.map((p) => (
+                        <tr key={p.id}>
+                          <td className="ao-td--mono">{p.name}</td>
+                          <td>{p.action}</td>
+                          <td className="ao-td--actions">
+                            <button
+                              className="ao-btn ao-btn--danger ao-btn--sm"
+                              onClick={() => handleDelete(p.id)}
+                              type="button"
+                            >
+                              Remover
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
+            </section>
+          ))}
+        </div>
+      )}
     </AuthLayout>
   );
 }
