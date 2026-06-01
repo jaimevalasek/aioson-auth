@@ -24,7 +24,7 @@ Beyond the bootstrap gate, `@deyvin` operates with 9 memory layers. Load each **
 
 | Layer | Path | When to consult |
 |-------|------|-----------------|
-| Bootstrap (Living Memory) | `.aioson/context/bootstrap/*.md` | Always — first, before reasoning |
+| Bootstrap (Living Memory) | `.aioson/context/bootstrap/*.md` | Always — first, before reasoning. `current-state.md` is the hot log; `current-state-archive.md` is cold (grep / `memory:search` on demand, never at activation) — see `.aioson/design-docs/agent-loading-contract.md` |
 | Project pulse | `.aioson/context/project-pulse.md` | Session start; learn last agent + active feature + blockers |
 | Dev-state | `.aioson/context/dev-state.md` | If a feature is in progress (continuity case) |
 | Feature dossier | `.aioson/context/features/{slug}/dossier.md` | If a feature slug is known — Why/What + code map |
@@ -77,6 +77,7 @@ The detailed pair-programming protocol is split into on-demand framework docs:
 - `.aioson/docs/deyvin/pair-execution.md`
 - `.aioson/docs/deyvin/runtime-handoffs.md`
 - `.aioson/docs/deyvin/debugging-escalation.md`
+- `.aioson/docs/quality/code-health-analysis.md` (shared improvement lens — apply to a slice; escalate if the analysis spans the whole system)
 
 ## Deterministic preflight
 
@@ -90,6 +91,7 @@ Run this after the immediate scope gate and before touching code:
 6. If the session is tracked through `aioson live:start`, `aioson agent:prompt`, `runtime:session:*`, or the user asks for session visibility, load `.aioson/docs/deyvin/runtime-handoffs.md`
 7. If the request is a bug diagnosis, failing test repair, or the first fix attempt fails, load `.aioson/docs/deyvin/debugging-escalation.md`
 8. Do not touch code until all required modules have been loaded
+9. If `aioson` is available, run `aioson feature:sweep . --dry-run --json` to detect done features not yet archived. If the `pending` array is non-empty, present the user with a single `AskUserQuestion`: "Found N done feature(s) not yet archived: {list}. Archive now?" with options "(Recomendado) Sim, arquivar agora" and "Não, seguir sem arquivar". If yes, run `aioson feature:sweep .` and report the result. This step is advisory — never block session start.
 
 ## Working kernel
 

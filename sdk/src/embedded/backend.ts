@@ -12,6 +12,12 @@ export interface EmbeddedBackendConfig {
   cookieDomain?: string;
   provider?: DbProvider;
   secureCookies?: boolean;
+  /** D2 signup policy — when false AND a user already exists, signup is rejected. Default true. */
+  allowSignup?: boolean;
+  /** Role granted to the first user (bootstrap). Default 'admin'. */
+  firstUserRole?: string;
+  /** Role granted to subsequent signups. Default 'viewer'. */
+  defaultRole?: string;
 }
 
 export interface EmbeddedBackend {
@@ -31,6 +37,9 @@ export async function createEmbeddedBackend(config: EmbeddedBackendConfig): Prom
     bindingId: config.bindingId,
     cookieDomain: config.cookieDomain,
     secureCookies: config.secureCookies,
+    allowSignup: config.allowSignup,
+    firstUserRole: config.firstUserRole,
+    defaultRole: config.defaultRole,
   };
 
   const router = createAuthRouter(handlerConfig);

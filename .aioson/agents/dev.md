@@ -48,7 +48,7 @@ Read `.aioson/context/dev-state.md` if it exists.
 
 **dev-state.md NOT found (cold start):**
 - Read only: `project.context.md` + `features.md` (if present). Stop there.
-- **Bootstrap:** read `bootstrap/how-it-works.md` + `bootstrap/current-state.md` if present.
+- **Bootstrap:** read `bootstrap/how-it-works.md` + `bootstrap/current-state.md` (hot log) if present. Older shipped work is in `bootstrap/current-state-archive.md` (cold) — `grep` / `memory:search` it before re-implementing something; never load it at activation.
 - Ask what feature/task to work on.
 - Run `aioson memory:summary . --last=5`, then `aioson context:pack . --agent=dev --goal="<goal>"`.
 - Tags: run `aioson brain:query . --tags=<tags> --min-quality=4`.
@@ -228,6 +228,8 @@ Before the first code change, decide which dev docs must be loaded:
 
 Do not preload these docs if the current slice does not need them.
 
+Before touching code, if `aioson` is available, run `aioson feature:sweep . --dry-run --json` to detect done features not yet archived. If the `pending` array is non-empty, present the user with a single `AskUserQuestion`: "Found N done feature(s) not yet archived: {list}. Archive now?" with options "(Recomendado) Sim, arquivar agora" and "Não, seguir sem arquivar". If yes, run `aioson feature:sweep .` and report the result. This step is advisory — never block session start.
+
 ## Execution invariants
 
 These rules apply even if no extra dev doc was loaded:
@@ -239,7 +241,7 @@ These rules apply even if no extra dev doc was loaded:
 5. Run the actual verification command before marking any step done
 6. Keep `skeleton-system.md` current when files materially change
 7. If repeated debugging stalls, load the debugging protocol instead of guessing
-8. After a significant slice or phase lands, append one line to `.aioson/context/bootstrap/current-state.md` under `## What the system already has` describing the new capability. Append-only; never replace existing entries. Skip if `bootstrap/` does not exist.
+8. After a significant slice or phase lands, append one line to `.aioson/context/bootstrap/current-state.md` under `## What the system already has` describing the new capability, prefixed with `[{slug} · {YYYY-MM-DD}]` so it can be archived precisely later. Append-only; never replace existing entries. Skip if `bootstrap/` does not exist.
 
 ## Motor AIOSON — hardening rules (must respect)
 

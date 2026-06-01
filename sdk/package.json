@@ -26,6 +26,16 @@
       "types": "./dist/embedded/index.d.ts",
       "import": "./dist/embedded/index.js",
       "require": "./dist/embedded/index.cjs"
+    },
+    "./core": {
+      "types": "./dist/core/index.d.ts",
+      "import": "./dist/core/index.js",
+      "require": "./dist/core/index.cjs"
+    },
+    "./next": {
+      "types": "./dist/next/index.d.ts",
+      "import": "./dist/next/index.js",
+      "require": "./dist/next/index.cjs"
     }
   },
   "files": [
@@ -38,7 +48,10 @@
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
     "bench": "node bench/perf.mjs",
-    "test:embedded": "node test/embedded-smoke.mjs"
+    "test:embedded": "node test/embedded-smoke.mjs",
+    "test:core": "node test/core-flows.test.mjs",
+    "test:next": "node test/next-adapter.test.mjs",
+    "test": "node test/embedded-smoke.mjs && node test/core-flows.test.mjs && node test/next-adapter.test.mjs"
   },
   "keywords": [
     "aioson",
@@ -52,10 +65,14 @@
   "peerDependencies": {
     "bcryptjs": "^3.0.3",
     "express": ">=4.0.0",
+    "next": ">=14.0.0",
     "react": ">=18.0.0"
   },
   "peerDependenciesMeta": {
     "express": {
+      "optional": true
+    },
+    "next": {
       "optional": true
     },
     "react": {
@@ -70,6 +87,7 @@
     "@types/express": "^4.17.21",
     "@types/node": "^20.0.0",
     "@types/react": "^18.3.0",
+    "next": "^14.2.35",
     "tsup": "^8.0.0",
     "typescript": "^5.4.0"
   }

@@ -1,25 +1,23 @@
 ---
-project: "aioson-auth"
-last_agent: "analyst"
-updated_at: "2026-04-12"
-status: "planning"
+last_updated: 2026-05-30
+last_agent: dev
+active_feature: jetstream-sdk-onda-1
+active_work: "jetstream-sdk-onda-1 → @dev → in_progress"
+blockers: none
+next_recommendation: "@dev slice 4 = CLI init/migrate + .aioson-auth.lock"
 ---
 
 # Project Pulse
 
-## Estado atual
-O agente @analyst detalhou os requisitos da Fase 1: Painel de Configurações Globais. Os artefatos de spec (`requirements-config-global.md`, `spec-config-global.md` e `conformance-config-global.yaml`) foram gerados com sucesso e estão prontos para desenvolvimento.
+## Status
 
-## Active work
-- Análise e Requisitos (Fase 1: Painel de Configurações Globais): Concluído.
+- **Last agent:** @dev
+- **Active feature:** jetstream-sdk-onda-1
+- **Active work:** jetstream-sdk-onda-1 → @dev → in_progress
+- **Next:** @dev slice 4 = CLI init/migrate + .aioson-auth.lock
 
-## Recent activity
-- [2026-04-12] @analyst: Discovery focado na Fase 1, definindo entidade `GlobalSettings` armazenada no banco SQLite do pacote, gerados arquivos de requisitos, spec e conformance.
-- [2026-04-12] @sheldon: Enriquecimento de PRD e criação do plano de entrega em 5 fases (`.aioson/plans/aioson-auth/`).
-- [2026-04-12] @setup: Setup inicial do projeto.
+## Recent Activity
 
-## Blockers
-- Nenhum.
-
-## Próximo passo recomendado
-Ativar `@dev` para implementar os requisitos aprovados na Fase 1.
+- 2026-05-30 @dev → jetstream-sdk-onda-1: Slice 1 entregue: core neutro + login delegando ao core (D1 provado); bug SSO StorageKey corrigido; tsc verde, smoke 25/25
+- 2026-05-30 @dev → jetstream-sdk-onda-1: Slice 2: 6 flows migrados ao core + signupCore (D2, first-user=admin); adapter Express vira fino; entry ./core publica; 40/40 testes
+- 2026-05-30 @dev → jetstream-sdk-onda-1: Slice 3: adapter ./next completo (factory, route-handler Web-puro, middleware, server helpers) + mode.ts; next como peer opcional; 50/50 testes

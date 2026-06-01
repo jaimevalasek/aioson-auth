@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "mode": "feature",
+  "classification": "MEDIUM",
+  "sequence": [
+    "product",
+    "analyst",
+    "dev",
+    "pentester",
+    "qa"
+  ],
+  "current": null,
+  "next": "analyst",
+  "completed": [
+    "product"
+  ],
+  "skipped": [],
+  "featureSlug": "jetstream-sdk-onda-1",
+  "detour": null,
+  "updatedAt": "2026-05-30T17:46:21.738Z"
+}

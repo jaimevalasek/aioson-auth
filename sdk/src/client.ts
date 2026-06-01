@@ -436,8 +436,8 @@ export function handleSsoCallback(storage?: TokenStorage): AuthSession | null {
   };
 
   if (storage) {
-    storage.set('accessToken', token);
-    storage.set('refreshToken', refresh);
+    storage.set('access', token);
+    storage.set('refresh', refresh);
   }
 
   // Clean URL
