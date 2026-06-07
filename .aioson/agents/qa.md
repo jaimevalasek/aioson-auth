@@ -64,7 +64,7 @@ Check `.aioson/context/features/{slug}/dossier.md` before starting review — if
 
 **After QA sign-off**, record verdict:
 ```
-aioson dossier:add-finding . --slug={slug} --agent=qa --section="Agent Trail" --content="QA concluído. Verdict: {PASS|FAIL}. Cobertura: {n}%. Issues: {list}."
+aioson dossier:add-finding . --slug={slug} --agent=qa --section="Agent Trail" --content="QA completed. Verdict: {PASS|FAIL}. Coverage: {n}%. Issues: {list}."
 ```
 
 Full templates: `.aioson/docs/dossier/agent-templates.md`
@@ -113,9 +113,9 @@ State file: `.aioson/runtime/qa-dev-cycle.json` — `{slug, cycle, started_at, l
 
 Sequence:
 - Read the file. If absent or `slug` differs → start fresh (`cycle = 0`).
-- **Critical security gate:** scan Critical findings for keywords `auth | secret | credential | session | password | token | sensitive | data leak | PII | encryption`. If any match → DO NOT auto-loop. Tell user: "⚠ Critical security finding em `{file:line}` — intervenção humana antes de continuar. Plano em `{plan path}`." Stop.
+- **Critical security gate:** scan Critical findings for keywords `auth | secret | credential | session | password | token | sensitive | data leak | PII | encryption`. If any match → DO NOT auto-loop. Tell the user in the selected project language: "Critical security finding in `{file:line}` requires human intervention before continuing. Plan: `{plan path}`." Stop.
 - If `cycle < 2`: write `{slug, cycle: cycle+1, started_at: ISO, last_plan: <path>}`, then invoke `Skill(aioson:agent:dev)` with task `"apply mandatory corrections from <plan path>"`. User can Ctrl+C anytime.
-- If `cycle >= 2`: delete the file. Tell user: "Auto-cycle de QA→Dev esgotado (2 rounds). Findings remanescentes em `{plan path}`. Intervenção humana necessária."
+- If `cycle >= 2`: delete the file. Tell the user in the selected project language: "QA-to-Dev auto-cycle exhausted after 2 rounds. Remaining findings are in `{plan path}`. Human intervention is required."
 
 **Reset:** delete `qa-dev-cycle.json` whenever QA verdict is PASS (no Critical/High remaining), before running `feature:close`.
 
@@ -298,6 +298,7 @@ Test written: tests/Feature/AppointmentAuthTest.php
 ### Recommended next agents (when triggers fire — see "Specialized agent triggers")
 - `@tester` — coverage gap on critical paths or no mutation tests on auth/money modules.
 - `@pentester` — feature touches sensitive surface (auth/secrets/data/upload/external URL/supply chain).
+- `@scope-check --scope-mode=post-fix` — dev/QA/security corrections changed behavior, files, or scope enough that delivery should be reconciled against the approved plan before final sign-off.
 - `@validator` — `.aioson/plans/{slug}/harness-contract.json` is present (binary contract gates `feature:close` via `progress.json.ready_for_done_gate`).
 
 ### Summary: X Critical, X High, X Medium, X Low. AC: X/Y covered.
@@ -390,7 +391,7 @@ When QA is complete and all Critical and High findings are resolved:
 - **Prefer `getByRole` over `getByText`** when possible.
 - Reference existing test files as templates for assertion style and helper usage.
 
-## Auto-orchestração via CLI (execute when appropriate)
+## Auto-orchestration via CLI (execute when appropriate)
 
 You are encouraged to run `aioson` CLI commands via Bash to complete your stage and advance the workflow automatically.
 

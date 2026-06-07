@@ -22,6 +22,7 @@ import {
 import type { AuthResult } from '../core/result.js';
 import { COOKIE_ACCESS } from '../core/cookies.js';
 import type { AuthMode } from '../core/mode.js';
+import { normalizeCookieDomain } from '../core/cookie-domain.js';
 
 export interface RouteContext {
   mode: AuthMode;
@@ -35,9 +36,10 @@ export interface RouteContext {
 type Handler = (req: Request) => Promise<Response>;
 
 function serializeCookie(ctx: RouteContext, name: string, value: string, maxAgeSecs: number): string {
+  const cookieDomain = normalizeCookieDomain(ctx.cookieDomain);
   const parts = [`${name}=${encodeURIComponent(value)}`, 'Path=/', `Max-Age=${maxAgeSecs}`, 'HttpOnly', 'SameSite=Lax'];
   if (ctx.secureCookies) parts.push('Secure');
-  if (ctx.cookieDomain) parts.push(`Domain=${ctx.cookieDomain}`);
+  if (cookieDomain) parts.push(`Domain=${cookieDomain}`);
   return parts.join('; ');
 }
 

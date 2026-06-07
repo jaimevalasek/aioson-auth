@@ -4,6 +4,14 @@
 
 O `aioson-auth` é um serviço de autenticação centralizado para o ecossistema AIOSON Play. Cada app consumidor se **vincula** ao serviço e ganha autenticação completa (login, 2FA, RBAC) sem recriar nada.
 
+> Fronteira com o modo anônimo do Play: o acesso anônimo pré-cadastro do
+> `aioson-play` é uma capacidade local do Play para IDE/Terminal em sandbox. Ele
+> não cria `GlobalUser`, funcionário, role, token, sessão, `AppBinding` ou
+> binding especial neste serviço. Depois que uma instalação é reivindicada por
+> uma conta aioson.com, usuários reais, perfis e permissões voltam a ser
+> modelados aqui, preferencialmente usando o binding `shell` para permissões
+> globais do Play e bindings de app para permissões de negócio.
+
 **Modelo de dados:**
 - **Usuários** são globais — um usuário existe uma vez no sistema e pode ter acesso a todos os apps.
 - **Perfis (Roles)** são globais — criados uma vez, reutilizados em todos os apps.

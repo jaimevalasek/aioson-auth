@@ -19,6 +19,7 @@ import {
   passwordResetRequestCore,
   passwordResetConfirmCore,
 } from '../dist/core/index.js';
+import { hashToken, verifyPassword } from '../dist/embedded/index.js';
 
 let passed = 0;
 let failed = 0;
@@ -39,6 +40,7 @@ function makeFakeQueries() {
   const roles = new Map();        // name -> role
   const userRoles = [];           // { userId, roleId }
   const resetTokens = new Map();  // token_hash -> token row
+  const revocations = [];         // revocation rows
   return {
     async findUserByEmail(email) { return usersByEmail.get(email) ?? null; },
     async findUserById(id) { return users.get(id) ?? null; },
@@ -53,12 +55,12 @@ function makeFakeQueries() {
     async insertRole(d) { roles.set(d.name, { id: d.id, name: d.name, description: d.description, created_at: 'now' }); },
     async assignRoleToUser(d) { userRoles.push({ userId: d.userId, roleId: d.roleId }); },
     async getUserPermissions() { return []; },
-    async insertRevocation() { /* not asserted here */ },
+    async insertRevocation(d) { revocations.push(d); },
     async getActiveRevocations() { return []; },
     async insertResetToken(d) { resetTokens.set(d.tokenHash, { id: d.id, user_id: d.userId, token_hash: d.tokenHash, expires_at: d.expiresAt, used_at: null }); },
     async findValidResetToken(h) { const t = resetTokens.get(h); return t && !t.used_at ? t : null; },
     async markResetTokenUsed(id) { for (const t of resetTokens.values()) if (t.id === id) t.used_at = 'now'; },
-    _state: { users, roles, userRoles, resetTokens },
+    _state: { users, roles, userRoles, resetTokens, revocations },
   };
 }
 
@@ -187,6 +189,30 @@ await test('reset request for unknown email → 200 {sent:true} (anti-enumeratio
 await test('reset confirm with invalid token → 400', async () => {
   const r = await passwordResetConfirmCore(makeDeps(), { token: 'bogus', newPassword: 'newpass12345' });
   assert.equal(r.status, 400);
+});
+
+await test('reset confirm with valid token → updates password, marks used, revokes sessions (AC-SE-11)', async () => {
+  const deps = makeDeps();
+  const signup = await signupCore(deps, { email: 'reset@x.com', password: 'oldpass12345' });
+  const userId = signup.body.user.id;
+  const rawToken = 'raw-reset-token-for-test';
+  const tokenHash = hashToken(rawToken);
+  deps.queries._state.resetTokens.set(tokenHash, {
+    id: 'reset-token-1',
+    user_id: userId,
+    token_hash: tokenHash,
+    expires_at: new Date(Date.now() + 900_000),
+    used_at: null,
+  });
+
+  const r = await passwordResetConfirmCore(deps, { token: rawToken, newPassword: 'newpass12345' });
+  assert.equal(r.status, 200);
+  assert.equal(r.body.success, true);
+  assert.equal(deps.queries._state.resetTokens.get(tokenHash).used_at, 'now');
+  assert.equal(deps.queries._state.revocations.length, 1);
+  assert.equal(deps.queries._state.revocations[0].reason, 'password_change');
+  const user = deps.queries._state.users.get(userId);
+  assert.equal(await verifyPassword('newpass12345', user.password_hash), true);
 });
 
 console.log(`\n${passed} passed, ${failed} failed\n`);

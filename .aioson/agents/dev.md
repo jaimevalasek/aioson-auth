@@ -34,7 +34,7 @@ Use output to orient; load listed `rules`/`design_governance` before structural 
 
 **Step 0.1 — Bootstrap gate (Living Memory):** read `aioson memory:status .` output. If `Bootstrap < 4/4` or the bootstrap files are older than 30 days, emit a warning at the top of your response:
 
-> ⚠ [bootstrap] coverage <N>/4 (or stale <D>d). Run `/aioson:agent:discover` (or `aioson memory:refresh`) before continuing on broad work.
+> ⚠ [bootstrap] coverage <N>/4 (or stale <D>d). Run `/aioson:agent:discover` before continuing on broad work.
 
 This is advisory — proceed with the user's task, but the warning surfaces the gap so the next session can fix it. Skip when bootstrap/ does not exist (greenfield).
 
@@ -57,10 +57,11 @@ Read `.aioson/context/dev-state.md` if it exists.
 
 | Mode | Load — nothing more |
 |------|---------------------|
+| Simple Plan | `project.context.md` + `simple-plans/{slug}.md` |
 | Feature MICRO | `project.context.md` + `prd-{slug}.md` |
-| Feature SMALL/MEDIUM | `project.context.md` + `spec-{slug}.md` + `implementation-plan-{slug}.md` |
+| Feature SMALL/MEDIUM | `project.context.md` + `design-doc.md` + `readiness.md` + `spec-{slug}.md` + `implementation-plan-{slug}.md` |
 | Feature with Sheldon plan | `project.context.md` + `spec-{slug}.md` + `.aioson/plans/{slug}/manifest.md` + current phase file |
-| Project mode | `project.context.md` + `spec.md` + `skeleton-system.md` |
+| Project mode | `project.context.md` + `design-doc.md` + `readiness.md` + `spec.md` + `skeleton-system.md` |
 
 **HARD RULE — NEVER LOAD (applies to every session, no exceptions):**
 - Any file in `.aioson/agents/` — agent files are never your context
@@ -73,13 +74,19 @@ If you've read 5 files without writing code: stop and ask what to focus on.
 
 ## Feature mode detection
 
+If `dev-state.md` lists `simple-plans/{slug}.md` in the context package, operate in **Simple Plan mode**:
+- Load the simple plan and `.aioson/docs/dev/simple-plan-lane.md`.
+- Do not require `prd-{slug}.md`, `spec-{slug}.md`, requirements, architecture, or implementation-plan artifacts.
+- Implement only the written scope, done criteria, expected files, and verification command.
+- If the work expands beyond the simple-plan lane, mark the plan `paused`, update `dev-state.md`, and hand off to the correct workflow agent.
+
 Check whether a `prd-{slug}.md` file exists in `.aioson/context/` before reading anything else.
 
 **Feature mode active** — `prd-{slug}.md` found:
 Read in this order before writing any code:
 1. `prd-{slug}.md` — what the feature must do
-2. `design-doc.md` — living decision doc for the current scope (if present)
-3. `readiness.md` — confirm whether implementation can start or if discovery/architecture is still missing
+2. `design-doc.md` — required living code-organization contract for SMALL/MEDIUM
+3. `readiness.md` — required pre-dev handoff; confirm whether implementation can start and which exact paths/modules are approved
 4. `requirements-{slug}.md` — entities, business rules, edge cases (from @analyst)
 5. `spec-{slug}.md` — feature memory: decisions already made, dependencies
 6. `spec.md` — project-level memory: conventions and patterns (if present)
@@ -102,7 +109,7 @@ Before starting any implementation, check whether an implementation plan exists:
 - Read only the listed context package.
 - Update `spec.md` after each phase and check the plan checkpoints.
 - If the plan contradicts reality, stop and ask.
-- "pré-tomadas" are final; "adiadas" are yours to decide and record.
+- "pre-made" decisions are final; "deferred" decisions are yours to decide and record.
 
 **Sheldon phased plan detection (RDA-04):**
 
@@ -128,6 +135,11 @@ Also check `.aioson/plans/{slug}/manifest.md` before any implementation:
 - Implementation plans are optional.
 - Suggest one only if the user asks or the spec is unusually complex.
 
+**Simple Plan exception:**
+- Formal implementation plans are not used.
+- The simple plan itself is the execution contract for bounded technical work.
+- Keep updates in `.aioson/context/simple-plans/{slug}.md`, not in `implementation-plan-{slug}.md`.
+
 **Stale plan detection:** if `aioson plan:stale . --feature={slug}` says `STALE`, regenerate. Otherwise warn when plan inputs are newer than the plan.
 
 ## Context size detection
@@ -140,9 +152,9 @@ If flagged, recommend a new chat and offer a handoff with slug, completed phase,
 
 Check `.aioson/context/features/{slug}/dossier.md` before per-slug PRD/spec. If present, read it FIRST — it consolidates Why/What + code map and is the canonical entry point for chained context. If absent, continue with standard input (legacy flow).
 
-**Auto-resume (session start):** `aioson dev:resume-data .` returns `{feature_slug, classification, current_phase, artifacts_consumed, code_map_paths, sheldon_plan, next_step}` or `null` (cold start). Skip discovery, start on `next_step`, then `runtime-log --type=dev_auto_resume --summary="<feature>: phase <N>"`.
+**Auto-resume (session start):** `aioson dev:resume-data .` returns `{feature_slug, classification, current_phase, artifacts_consumed, code_map_paths, sheldon_plan, next_step}` or `null` (cold start). Skip discovery, start on `next_step`, then emit `aioson runtime:emit . --agent=dev --type=dev_auto_resume --summary="<feature>: phase <N> auto-resumed" 2>/dev/null || true`.
 
-**Drift detection (prompt-driven):** before modifying/creating a file, check if its path is in `code_map_paths`. If registered AND your change diverges from the upstream plan, or a Sheldon plan step already ran without an Agent Trail entry → DRIFT. On DRIFT: emit `runtime-log --type=dev_drift_detected`, give the user 3 options (proceed/revise/abort), record `dossier:add-finding --section="Agent Trail" --content="DRIFT: {what}. Decision. Reason."`.
+**Drift detection (prompt-driven):** before modifying/creating a file, check if its path is in `code_map_paths`. If registered AND your change diverges from the upstream plan, or a Sheldon plan step already ran without an Agent Trail entry → DRIFT. On DRIFT: emit `aioson runtime:emit . --agent=dev --type=dev_drift_detected --summary="Drift detected: {what}" 2>/dev/null || true`, give the user 3 options (proceed/revise/abort), record `dossier:add-finding --section="Agent Trail" --content="DRIFT: {what}. Decision. Reason."`.
 
 **Per slice:** `dossier:add-codemap` per file + `dossier:add-finding --section="Agent Trail" --content="Slice: {desc}. Next: {next}."`. Templates in `.aioson/docs/dossier/agent-templates.md`.
 
@@ -154,13 +166,14 @@ Do NOT load files "just in case." The full list below is the universe of files @
 
 - `.aioson/context/project.context.md` — always
 - `.aioson/context/dev-state.md` — always (if present)
+- `.aioson/context/simple-plans/{slug}.md` — when `dev-state.md` lists it or the active task is simple-plan work
 - `.aioson/context/features.md` — cold start only
 - `.aioson/context/spec-{slug}.md` — active feature only
 - `.aioson/context/implementation-plan-{slug}.md` — if plan exists
 - `.aioson/plans/{slug}/manifest.md` + current phase file — if Sheldon plan exists
 - `.aioson/context/skeleton-system.md` — only when navigating project structure
-- `.aioson/context/design-doc.md` — only if listed in the plan
-- `.aioson/context/readiness.md` — only on first session of a new feature
+- `.aioson/context/design-doc.md` — required for SMALL/MEDIUM before writing code; optional for MICRO unless listed
+- `.aioson/context/readiness.md` — required for SMALL/MEDIUM before writing code; optional for MICRO unless listed
 - `.aioson/context/architecture.md` — SMALL/MEDIUM only, only if listed in the plan
 - `.aioson/context/discovery.md` — SMALL/MEDIUM only, only if listed in the plan
 - `.aioson/context/prd-{slug}.md` — only on first session of a new feature
@@ -201,6 +214,8 @@ After a slice lands a *new* reusable pattern, append a node to the brain (q rate
 - Add tests or validation checks aligned with risk.
 - Follow the architecture sequence — do not skip dependencies.
 - If `readiness.md` says `needs more discovery` or `needs architecture clarification`, do not act as if the scope were implementation-ready.
+- Before the first edit, state in your working notes that `design-doc.md` and `readiness.md` were loaded for SMALL/MEDIUM work. If either is absent, stop and route to `@discovery-design-doc`.
+- Before editing any touched file, estimate whether the resulting file can exceed 500 lines. If yes, emit the file-size alert and 2-3 concrete split/extraction options before continuing.
 
 ## Built-in dev modules
 
@@ -208,6 +223,7 @@ The detailed dev protocol is split into on-demand framework docs:
 
 - `.aioson/docs/dev/stack-conventions.md`
 - `.aioson/docs/dev/execution-discipline.md`
+- `.aioson/docs/dev/simple-plan-lane.md`
 
 ## Security process skill loading
 
@@ -224,11 +240,12 @@ Before the first code change, decide which dev docs must be loaded:
 | Laravel / PHP implementation | `.aioson/docs/dev/stack-conventions.md` |
 | User-facing UI, design skill, component library, React/Next motion, or Web3/dapp work | `.aioson/docs/dev/stack-conventions.md` |
 | Multi-file, ambiguous, or plan-driven implementation | `.aioson/docs/dev/execution-discipline.md` |
+| Simple-plan work, bounded technical request without PRD, or `dev-state.md` context package includes `simple-plans/` | `.aioson/docs/dev/simple-plan-lane.md` |
 | Before the first commit, before marking done, or after repeated failures | `.aioson/docs/dev/execution-discipline.md` |
 
 Do not preload these docs if the current slice does not need them.
 
-Before touching code, if `aioson` is available, run `aioson feature:sweep . --dry-run --json` to detect done features not yet archived. If the `pending` array is non-empty, present the user with a single `AskUserQuestion`: "Found N done feature(s) not yet archived: {list}. Archive now?" with options "(Recomendado) Sim, arquivar agora" and "Não, seguir sem arquivar". If yes, run `aioson feature:sweep .` and report the result. This step is advisory — never block session start.
+Before touching code, if `aioson` is available, run `aioson feature:sweep . --dry-run --json` to detect done features not yet archived. If the `pending` array is non-empty, present the user with a single `AskUserQuestion`: "Found N done feature(s) not yet archived: {list}. Archive now?" with options "(Recommended) Yes, archive now" and "No, continue without archiving". If yes, run `aioson feature:sweep .` and report the result. This step is advisory — never block session start.
 
 ## Execution invariants
 
@@ -237,7 +254,7 @@ These rules apply even if no extra dev doc was loaded:
 1. Work in small validated slices
 2. Reuse project skills before inventing patterns
 3. Use task tools when available to track slices
-4. Update `spec-{slug}.md` or `spec.md` after significant decisions
+4. Update `spec-{slug}.md`, `spec.md`, or the active `simple-plans/{slug}.md` after significant decisions
 5. Run the actual verification command before marking any step done
 6. Keep `skeleton-system.md` current when files materially change
 7. If repeated debugging stalls, load the debugging protocol instead of guessing
@@ -255,7 +272,7 @@ These rules apply even if no extra dev doc was loaded:
 - If the motor reports `[Technical Gate BLOCKED]`, do not finish @dev. Fix the error and re-run the verification.
 - If the motor enters **self-healing mode**, you will receive the previous error in your prompt. Treat it as your top priority and apply the minimal fix.
 
-## Auto-orchestração via CLI
+## Auto-orchestration via CLI
 
 Run `aioson` CLI yourself to keep the workflow moving:
 - After a significant slice: `aioson workflow:next . --complete=dev`
@@ -267,6 +284,10 @@ Run `aioson` CLI yourself to keep the workflow moving:
 ## Auto-cycle return to @qa (corrections mode)
 
 If `.aioson/runtime/qa-dev-cycle.json` exists and its `slug` matches the active feature, you're in an auto-correction cycle started by `@qa`. After applying the plan in `last_plan` and tests pass: (1) update dossier + spec, (2) mark plan `status: resolved`, (3) auto-invoke `Skill(aioson:agent:qa)` with `"re-verify after applying <plan path>"`. No user prompt — Ctrl+C interrupts. If the file is absent or slug differs, manual handoff as before.
+
+## Optional scope drift checkpoint
+
+After a feature slice lands, recommend optional `@scope-check --scope-mode=post-dev` before `@qa` when the implementation changed planned behavior, touched unexpected files, skipped a planned item, or required a trade-off not already captured in the design artifacts. Skip the recommendation for routine implementation that matches the approved plan.
 
 ## Security findings consumption
 
@@ -286,7 +307,9 @@ Interface copy, onboarding text, email content, and marketing text are not withi
 
 ## Hard constraints
 - Use `interaction_language` (fallback: `conversation_language`) from project context for all interaction/output.
-- Never present multiple open questions in one turn when `profile=creator` (or absent/auto). When a real decision requires user input, use `AskUserQuestion` with explicit `(Recomendado)` marker on the first option, plain-language `why`, and `Pausar / quero pensar` non-default option. Never fire `AskUserQuestion` on agent activation without a stated task — see decision-presentation Rule 7.
+- For SMALL/MEDIUM implementation, do not write code before loading `.aioson/context/design-doc.md` and `.aioson/context/readiness.md`.
+- If a touched file is expected to exceed 500 lines, pause with an explicit file-size alert and concrete split options.
+- Never present multiple open questions in one turn when `profile=creator` (or absent/auto). When a real decision requires user input, use `AskUserQuestion` with a localized recommendation marker on the first option, plain-language `why`, and a localized non-default pause option. Never fire `AskUserQuestion` on agent activation without a stated task — see decision-presentation Rule 7.
 - If discovery/architecture is ambiguous, ask for clarification before implementing guessed behavior.
 - If a UI implementation depends on visual direction and `design_skill` is still blank, do not invent one silently.
 - No unnecessary rewrites outside current responsibility.

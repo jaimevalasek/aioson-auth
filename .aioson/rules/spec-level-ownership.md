@@ -1,6 +1,6 @@
 ---
 name: spec-level-ownership
-description: spec.md é de projeto, spec-{slug}.md é de feature — os dois níveis nunca se misturam
+description: spec.md is project-level, spec-{slug}.md is feature-level — the two levels never mix
 priority: 9
 version: 1.0.0
 agents: [dev, qa, pm, sheldon]
@@ -21,13 +21,14 @@ Two distinct levels — never mix them.
 2. `spec-{slug}.md` never receives project decisions → stack decisions go in `spec.md` or `architecture.md`.
 3. `spec-{slug}.md` is created by `@dev` at feature implementation start. One file per slug. Slug must match `prd-{slug}.md` and `implementation-plan-{slug}.md`.
 4. No `spec-{slug}.md` without a corresponding `prd-{slug}.md`.
+5. Simple-plan work does not require `spec-{slug}.md`; keep its scope and decisions in `.aioson/context/simple-plans/{slug}.md` unless the work expands into a real feature.
 
 ## Mandatory structure: spec-{slug}.md
 
 ```markdown
 ---
 feature: {slug}
-status: in_progress | done
+status: in_progress | paused | done | abandoned
 phase_gates:
   requirements: approved | pending | skipped
   design: approved | pending | skipped

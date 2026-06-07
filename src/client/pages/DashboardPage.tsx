@@ -1,365 +1,396 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import AuthLayout from '../components/AuthLayout';
+import { resolveDashboardOwnerContext, type DashboardOwnerContext } from '../lib/dashboard-owner-context';
 
 interface AppBinding {
   id: string;
   app_name: string;
-  connection_name: string;
+  app_slug?: string;
   enable_2fa: boolean;
   enable_rbac: boolean;
 }
 
-function cardStyle() {
-  return {
-    background: 'var(--bg-surface)',
-    border: '1px solid var(--border-subtle)',
-    borderRadius: 'var(--radius-xl)',
-    padding: 'var(--space-6)',
-    boxShadow: 'var(--shadow-sm)',
-  };
+type InventoryLifecycle = 'installed' | 'development';
+type InventorySource = 'marketplace' | 'dev_link' | 'draft' | 'unknown';
+
+interface PlayAppInventoryItem {
+  id: string;
+  inventory_id: string;
+  lifecycle: InventoryLifecycle;
+  source: InventorySource;
+  app_slug: string | null;
+  app_name: string;
+  version: string | null;
+  supports_auth: boolean;
+  accepted_roles: string[];
+  manifest_fingerprint: string | null;
+  warnings: string[];
+  last_seen_at: string;
+  archived_at: string | null;
 }
 
-function badgeStyle(variant: 'accent' | 'purple' | 'gray') {
-  const variants = {
-    accent: { background: 'rgba(224, 122, 95, 0.12)', color: 'var(--accent-strong)' },
-    purple: { background: 'rgba(155, 142, 196, 0.12)', color: 'var(--semantic-purple)' },
-    gray: { background: 'var(--bg-elevated)', color: 'var(--text-secondary)' },
-  };
-  return {
-    display: 'inline-flex',
-    alignItems: 'center',
-    padding: '0 var(--space-3)',
-    height: '24px',
-    borderRadius: 'var(--radius-full)',
-    fontSize: 'var(--text-xs)',
-    fontWeight: 'var(--weight-medium)',
-    ...variants[variant],
-  };
+type InventoryAccess =
+  | { status: 'loading' }
+  | { status: 'ready' }
+  | { status: 'missing-owner-context' }
+  | { status: 'error'; message: string };
+
+type RowState =
+  | 'detected_with_binding'
+  | 'detected_without_binding'
+  | 'binding_not_detected'
+  | 'development_draft'
+  | 'archived'
+  | 'binding_registered';
+
+interface DashboardRow {
+  key: string;
+  appName: string;
+  slug: string | null;
+  lifecycle: InventoryLifecycle | 'binding';
+  source: InventorySource | 'binding';
+  state: RowState;
+  lastSeenAt: string | null;
+  version: string | null;
+  supportsAuth: boolean;
+  acceptedRoles: string[];
+  warnings: string[];
+  fingerprintPrefix: string | null;
+  binding: AppBinding | null;
 }
 
-function ThemeToggle({ theme, onToggle }: { theme: string; onToggle: () => void }) {
-  return (
-    <button
-      onClick={onToggle}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 'var(--space-2)',
-        padding: '0 var(--space-3)',
-        height: 'var(--control-md)',
-        background: 'var(--bg-elevated)',
-        border: '1px solid var(--border-medium)',
-        borderRadius: 'var(--radius-lg)',
-        cursor: 'pointer',
-        fontFamily: 'var(--font-body)',
-        fontSize: 'var(--text-sm)',
-        color: 'var(--text-secondary)',
-        transition: 'var(--transition-fast)',
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = 'var(--border-strong)';
-        e.currentTarget.style.color = 'var(--text-heading)';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = 'var(--border-medium)';
-        e.currentTarget.style.color = 'var(--text-secondary)';
-      }}
-    >
-      {theme === 'dark' ? (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="5"/>
-          <line x1="12" y1="1" x2="12" y2="3"/>
-          <line x1="12" y1="21" x2="12" y2="23"/>
-          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-          <line x1="1" y1="12" x2="3" y2="12"/>
-          <line x1="21" y1="12" x2="23" y2="12"/>
-          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-        </svg>
-      ) : (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-        </svg>
-      )}
-      {theme === 'dark' ? 'Escuro' : 'Claro'}
-    </button>
+function bindingSlug(binding: AppBinding): string | null {
+  const slug = binding.app_slug?.trim();
+  return slug || null;
+}
+
+function buildRows(
+  inventory: PlayAppInventoryItem[],
+  bindings: AppBinding[],
+  inventoryLoaded: boolean,
+): DashboardRow[] {
+  const bindingsBySlug = new Map<string, AppBinding>();
+  for (const binding of bindings) {
+    const slug = bindingSlug(binding);
+    if (slug && !bindingsBySlug.has(slug)) bindingsBySlug.set(slug, binding);
+  }
+
+  const activeInventorySlugs = new Set(
+    inventory
+      .filter((item) => !item.archived_at && item.app_slug)
+      .map((item) => item.app_slug as string),
   );
+
+  const rows = inventory.map((item): DashboardRow => {
+    const binding = item.app_slug ? bindingsBySlug.get(item.app_slug) ?? null : null;
+    let state: RowState = 'detected_without_binding';
+    if (item.archived_at) state = 'archived';
+    else if (item.lifecycle === 'development') state = 'development_draft';
+    else if (binding) state = 'detected_with_binding';
+
+    return {
+      key: `inventory:${item.id}`,
+      appName: item.app_name,
+      slug: item.app_slug,
+      lifecycle: item.lifecycle,
+      source: item.source,
+      state,
+      lastSeenAt: item.last_seen_at,
+      version: item.version,
+      supportsAuth: item.supports_auth,
+      acceptedRoles: item.accepted_roles,
+      warnings: item.warnings,
+      fingerprintPrefix: item.manifest_fingerprint?.slice(0, 12) ?? null,
+      binding,
+    };
+  });
+
+  for (const binding of bindings) {
+    const slug = bindingSlug(binding);
+    const isMissing = inventoryLoaded && (!slug || !activeInventorySlugs.has(slug));
+    if (!inventoryLoaded || isMissing) {
+      rows.push({
+        key: `binding:${binding.id}`,
+        appName: binding.app_name || slug || 'App vinculado',
+        slug,
+        lifecycle: 'binding',
+        source: 'binding',
+        state: inventoryLoaded ? 'binding_not_detected' : 'binding_registered',
+        lastSeenAt: null,
+        version: null,
+        supportsAuth: true,
+        acceptedRoles: [],
+        warnings: [],
+        fingerprintPrefix: null,
+        binding,
+      });
+    }
+  }
+
+  return rows.sort((a, b) => stateOrder(a.state) - stateOrder(b.state) || a.appName.localeCompare(b.appName));
+}
+
+function stateOrder(state: RowState): number {
+  return {
+    detected_with_binding: 0,
+    detected_without_binding: 1,
+    development_draft: 2,
+    binding_not_detected: 3,
+    archived: 4,
+    binding_registered: 5,
+  }[state];
+}
+
+function stateLabel(state: RowState): string {
+  return {
+    detected_with_binding: 'detectado com binding',
+    detected_without_binding: 'detectado sem binding',
+    binding_not_detected: 'binding sem app detectado',
+    development_draft: 'draft em desenvolvimento',
+    archived: 'arquivado',
+    binding_registered: 'binding cadastrado',
+  }[state];
+}
+
+function formatDate(value: string | null): string {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(date);
+}
+
+async function readError(response: Response): Promise<string> {
+  const data = await response.json().catch(() => null) as { error?: string } | null;
+  return data?.error ?? `HTTP ${response.status}`;
+}
+
+function inventoryHeaders(owner: DashboardOwnerContext): HeadersInit {
+  return {
+    Authorization: `Bearer ${owner.token}`,
+    'X-Aioson-Play-Id': owner.playId,
+  };
 }
 
 export default function DashboardPage() {
   const [bindings, setBindings] = useState<AppBinding[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
-  const adminEmail = localStorage.getItem('adminEmail') || '';
+  const [inventory, setInventory] = useState<PlayAppInventoryItem[]>([]);
+  const [access, setAccess] = useState<InventoryAccess>({ status: 'loading' });
+  const [loadingBindings, setLoadingBindings] = useState(true);
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('theme', theme);
-  }, [theme]);
-
-  useEffect(() => {
-    loadBindings();
-  }, []);
-
-  async function loadBindings() {
+  async function loadDashboard() {
+    setLoadingBindings(true);
+    setAccess({ status: 'loading' });
     try {
-      const res = await fetch('/api/auth/bindings');
-      if (res.ok) setBindings(await res.json());
+      const bindingsResponse = await fetch('/api/auth/bindings');
+      if (!bindingsResponse.ok) throw new Error(await readError(bindingsResponse));
+      const bindingData = await bindingsResponse.json() as AppBinding[];
+      setBindings(Array.isArray(bindingData) ? bindingData : []);
     } catch (err) {
-      console.error(err);
+      setBindings([]);
+      setAccess({ status: 'error', message: String(err instanceof Error ? err.message : err) });
+      setLoadingBindings(false);
+      return;
     } finally {
-      setLoading(false);
+      setLoadingBindings(false);
+    }
+
+    let owner: DashboardOwnerContext | null;
+    try {
+      owner = await resolveDashboardOwnerContext();
+    } catch (err) {
+      setInventory([]);
+      setAccess({ status: 'error', message: String(err instanceof Error ? err.message : err) });
+      return;
+    }
+
+    if (!owner) {
+      setInventory([]);
+      setAccess({ status: 'missing-owner-context' });
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/auth/admin/app-inventory', {
+        headers: inventoryHeaders(owner),
+      });
+      if (!response.ok) throw new Error(await readError(response));
+      const data = await response.json() as { items?: PlayAppInventoryItem[] };
+      setInventory(Array.isArray(data.items) ? data.items : []);
+      setAccess({ status: 'ready' });
+    } catch (err) {
+      setInventory([]);
+      setAccess({ status: 'error', message: String(err instanceof Error ? err.message : err) });
     }
   }
 
-  function toggleTheme() {
-    setTheme((t) => (t === 'light' ? 'dark' : 'light'));
-  }
+  useEffect(() => {
+    void loadDashboard();
+  }, []);
+
+  const inventoryLoaded = access.status === 'ready';
+  const rows = useMemo(
+    () => buildRows(inventory, bindings, inventoryLoaded),
+    [inventory, bindings, inventoryLoaded],
+  );
+  const selectedRow = rows.find((row) => row.key === selectedKey) ?? rows[0] ?? null;
+  const metrics = {
+    detected: inventory.filter((item) => !item.archived_at).length,
+    withBinding: rows.filter((row) => row.state === 'detected_with_binding').length,
+    withoutBinding: rows.filter((row) => row.state === 'detected_without_binding').length,
+    staleBindings: rows.filter((row) => row.state === 'binding_not_detected').length,
+    drafts: rows.filter((row) => row.state === 'development_draft').length,
+    archived: rows.filter((row) => row.state === 'archived').length,
+  };
 
   return (
-    <div
-      data-theme={theme}
-      style={{
-        background: 'var(--bg-base)',
-        minHeight: '100vh',
-        padding: 'var(--space-10) var(--space-4)',
-      }}
+    <AuthLayout
+      title="Painel de Autenticação"
+      subtitle="Vínculos, operadores e inventário detectado pelo AIOSON Play."
     >
-      <div style={{ maxWidth: 'var(--content-lg)', margin: '0 auto' }}>
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 'var(--space-10)' }}>
+      <section className="auth-summary" aria-label="Resumo do inventário">
+        <span className="ao-chip ao-chip--primary">{metrics.detected} detectados</span>
+        <span className="ao-chip ao-chip--secondary">{metrics.withBinding} com binding</span>
+        <span className="ao-chip">{metrics.withoutBinding} sem binding</span>
+        <span className="ao-chip">{metrics.drafts} drafts</span>
+        <span className="ao-chip">{metrics.staleBindings} bindings sem app</span>
+        <span className="ao-chip">{metrics.archived} arquivados</span>
+      </section>
+
+      <div className="auth-users-toolbar">
+        <div className="auth-summary" style={{ marginBottom: 0 }}>
+          <Link className="ao-btn ao-btn--secondary" to="/auth/users">Operadores</Link>
+          <Link className="ao-btn ao-btn--secondary" to="/auth/settings">Configurações</Link>
+        </div>
+        <button className="ao-btn ao-btn--ghost" type="button" onClick={() => void loadDashboard()} disabled={loadingBindings || access.status === 'loading'}>
+          {loadingBindings || access.status === 'loading' ? 'Atualizando' : 'Atualizar'}
+        </button>
+      </div>
+
+      {access.status === 'missing-owner-context' && (
+        <div className="ao-alert ao-alert--warning ao-alert--compact auth-message" role="status">
+          <div className="ao-alert__content">
+            <p className="ao-alert__body">
+              Inventário owner-scoped indisponível neste origin. Abra o painel a partir de um contexto que forneça Bearer do owner e X-Aioson-Play-Id, ou sincronize pelo AIOSON Play.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {access.status === 'error' && (
+        <div className="ao-alert ao-alert--danger ao-alert--compact auth-message" role="alert">
+          <div className="ao-alert__content">
+            <p className="ao-alert__body">{access.message}</p>
+          </div>
+        </div>
+      )}
+
+      <section className="ao-card ao-card--compact">
+        <div className="ao-card__header">
           <div>
-            <h1 style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: 'var(--text-3xl)',
-              fontWeight: 'var(--weight-semibold)',
-              color: 'var(--text-heading)',
-              letterSpacing: 'var(--tracking-tight)',
-              margin: '0 0 var(--space-2)',
-            }}>
-              Painel de Autenticação
-            </h1>
-            <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: 'var(--text-sm)' }}>
-              Gerencie auth dos seus apps vinculados.
-            </p>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-            <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>{adminEmail}</span>
-            <ThemeToggle theme={theme} onToggle={toggleTheme} />
+            <h2 className="ao-card__title">Inventário e vínculos</h2>
+            <p className="ao-card__subtitle">Estados de inventário não autorizam acesso e não criam binding automaticamente.</p>
           </div>
         </div>
 
-        {/* Navigation cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 'var(--space-4)', marginBottom: 'var(--space-10)' }}>
-          <Link to="/auth/bindings" style={{ textDecoration: 'none' }}>
-            <div style={{ ...cardStyle(), cursor: 'pointer', transition: 'var(--transition-base)' }}
-              onMouseEnter={(e) => (e.currentTarget.style.boxShadow = 'var(--shadow-md)')}
-              onMouseLeave={(e) => (e.currentTarget.style.boxShadow = 'var(--shadow-sm)')}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-3)' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: 'var(--radius-lg)', background: 'var(--accent-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-strong)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-                  </svg>
-                </div>
-                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-semibold)', color: 'var(--text-heading)', margin: 0 }}>Vínculos</h3>
-              </div>
-              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', margin: 0 }}>
-                Cadastrar e gerenciar apps vinculados ao auth.
-              </p>
+        {loadingBindings ? (
+          <div className="auth-empty">
+            <div>
+              <h2>Carregando dashboard</h2>
+              <p>Buscando vínculos e inventário sincronizado.</p>
             </div>
-          </Link>
-
-          <Link to="/auth/settings" style={{ textDecoration: 'none' }}>
-            <div style={{ ...cardStyle(), cursor: 'pointer', transition: 'var(--transition-base)' }}
-              onMouseEnter={(e) => (e.currentTarget.style.boxShadow = 'var(--shadow-md)')}
-              onMouseLeave={(e) => (e.currentTarget.style.boxShadow = 'var(--shadow-sm)')}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-3)' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: 'var(--radius-lg)', background: 'rgba(155, 142, 196, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--semantic-purple)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="3"/>
-                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.604.852.997 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                  </svg>
-                </div>
-                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-semibold)', color: 'var(--text-heading)', margin: 0 }}>Configurações</h3>
-              </div>
-              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', margin: 0 }}>
-                OAuth, SMTP e configurações globais.
-              </p>
-            </div>
-          </Link>
-
-          <Link to="/auth/users" style={{ textDecoration: 'none' }}>
-            <div style={{ ...cardStyle(), cursor: 'pointer', transition: 'var(--transition-base)' }}
-              onMouseEnter={(e) => (e.currentTarget.style.boxShadow = 'var(--shadow-md)')}
-              onMouseLeave={(e) => (e.currentTarget.style.boxShadow = 'var(--shadow-sm)')}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-3)' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: 'var(--radius-lg)', background: 'rgba(81, 207, 167, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgb(81, 207, 167)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                    <circle cx="9" cy="7" r="4"/>
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                  </svg>
-                </div>
-                <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-semibold)', color: 'var(--text-heading)', margin: 0 }}>Usuários Globais</h3>
-              </div>
-              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', margin: 0 }}>
-                Gerenciar usuários e perfís de todos os vínculos.
-              </p>
-            </div>
-          </Link>
-        </div>
-
-        {/* Apps with bindings */}
-        <div style={{ marginBottom: 'var(--space-6)' }}>
-          <h2 style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: 'var(--text-xl)',
-            fontWeight: 'var(--weight-semibold)',
-            color: 'var(--text-heading)',
-            margin: '0 0 var(--space-1)',
-            letterSpacing: 'var(--tracking-tight)',
-          }}>
-            Apps Vinculados
-          </h2>
-          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', margin: 0 }}>
-            Clique em um app para gerenciar usuários, perfis e permissões.
-          </p>
-        </div>
-
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: 'var(--space-12)' }}>
-            <p style={{ color: 'var(--text-muted)' }}>Carregando...</p>
           </div>
-        ) : bindings.length === 0 ? (
-          <div style={{ ...cardStyle(), textAlign: 'center', padding: 'var(--space-12)' }}>
-            <p style={{ color: 'var(--text-muted)', marginBottom: 'var(--space-4)' }}>
-              Nenhum app vinculado ainda.
-            </p>
-            <Link to="/auth/bindings" style={{ color: 'var(--accent-strong)', fontSize: 'var(--text-sm)', fontWeight: 'var(--weight-medium)' }}>
-              Criar primeiro vínculo →
-            </Link>
+        ) : rows.length === 0 ? (
+          <div className="auth-empty">
+            <div>
+              <h2>Nenhum app no dashboard</h2>
+              <p>Sincronize o inventário pelo AIOSON Play ou crie um vínculo manual.</p>
+            </div>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 'var(--space-5)' }}>
-            {bindings.map((binding) => (
-              <div key={binding.id} style={{ ...cardStyle() }}>
-                <div style={{ marginBottom: 'var(--space-4)' }}>
-                  <h3 style={{
-                    fontFamily: 'var(--font-display)',
-                    fontSize: 'var(--text-lg)',
-                    fontWeight: 'var(--weight-semibold)',
-                    color: 'var(--text-heading)',
-                    margin: '0 0 var(--space-1)',
-                    letterSpacing: 'var(--tracking-tight)',
-                  }}>
-                    {binding.app_name}
-                  </h3>
-                  <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', margin: 0 }}>
-                    {binding.connection_name}
-                  </p>
-                  <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-3)', flexWrap: 'wrap' }}>
-                    {binding.enable_2fa && <span style={badgeStyle('accent')}>2FA</span>}
-                    {binding.enable_rbac && <span style={badgeStyle('purple')}>RBAC</span>}
-                    {!binding.enable_2fa && !binding.enable_rbac && <span style={badgeStyle('gray')}>Básico</span>}
-                  </div>
-                </div>
-
-                {/* Auth URL */}
-                <div style={{ marginBottom: 'var(--space-4)', padding: 'var(--space-3)', background: 'var(--bg-elevated)', borderRadius: 'var(--radius-md)' }}>
-                  <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', margin: '0 0 var(--space-1)' }}>URL de acesso</p>
-                  <code style={{ fontSize: 'var(--text-xs)', color: 'var(--accent-strong)', fontFamily: 'var(--font-mono)' }}>
-                    /auth/{binding.id}
-                  </code>
-                </div>
-
-                {/* Management links */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-                  {binding.enable_rbac && (
-                    <>
-                      <Link
-                        to={`/auth/bindings/${binding.id}/users`}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 'var(--space-2)',
-                          padding: 'var(--space-2) var(--space-3)',
-                          borderRadius: 'var(--radius-md)',
-                          background: 'var(--bg-elevated)',
-                          textDecoration: 'none',
-                          fontSize: 'var(--text-sm)',
-                          color: 'var(--text-heading)',
-                          transition: 'var(--transition-fast)',
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = 'var(--accent-dim)'}
-                        onMouseLeave={(e) => e.currentTarget.style.background = 'var(--bg-elevated)'}
-                      >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                          <circle cx="9" cy="7" r="4"/>
-                          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                        </svg>
-                        Usuários
-                      </Link>
-                      <Link
-                        to={`/auth/bindings/${binding.id}/roles`}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 'var(--space-2)',
-                          padding: 'var(--space-2) var(--space-3)',
-                          borderRadius: 'var(--radius-md)',
-                          background: 'var(--bg-elevated)',
-                          textDecoration: 'none',
-                          fontSize: 'var(--text-sm)',
-                          color: 'var(--text-heading)',
-                          transition: 'var(--transition-fast)',
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = 'var(--accent-dim)'}
-                        onMouseLeave={(e) => e.currentTarget.style.background = 'var(--bg-elevated)'}
-                      >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                        </svg>
-                        Perfis e Permissões
-                      </Link>
-                    </>
-                  )}
-                  <Link
-                    to={`/auth/bindings`}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 'var(--space-2)',
-                      padding: 'var(--space-2) var(--space-3)',
-                      borderRadius: 'var(--radius-md)',
-                      background: 'var(--bg-elevated)',
-                      textDecoration: 'none',
-                      fontSize: 'var(--text-sm)',
-                      color: 'var(--text-muted)',
-                      transition: 'var(--transition-fast)',
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = 'var(--accent-dim)'}
-                    onMouseLeave={(e) => e.currentTarget.style.background = 'var(--bg-elevated)'}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="3"/>
-                      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.604.852.997 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                    </svg>
-                    Editar Vínculo
-                  </Link>
-                </div>
-              </div>
-            ))}
+          <div className="ao-card__body ao-card__body--flush">
+            <div className="ao-table-wrap">
+              <table className="ao-table ao-table--compact">
+                <thead>
+                  <tr>
+                    <th>App</th>
+                    <th>Lifecycle</th>
+                    <th>Auth binding</th>
+                    <th>Última detecção</th>
+                    <th>Avisos</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row) => (
+                    <tr key={row.key} onClick={() => setSelectedKey(row.key)} style={{ cursor: 'pointer' }}>
+                      <td>
+                        <strong>{row.appName}</strong>
+                        <p className="auth-table-note">{row.slug ?? row.key}</p>
+                      </td>
+                      <td>
+                        <span className="ao-chip ao-chip--sm">{row.lifecycle}</span>
+                        <p className="auth-table-note">{row.source}</p>
+                      </td>
+                      <td>
+                        <span className={`ao-chip ao-chip--sm${row.state === 'detected_with_binding' ? ' ao-chip--primary' : ''}`}>
+                          {stateLabel(row.state)}
+                        </span>
+                        {row.binding && (
+                          <p className="auth-table-note">
+                            {row.binding.enable_rbac ? 'RBAC' : 'básico'}{row.binding.enable_2fa ? ' / 2FA' : ''}
+                          </p>
+                        )}
+                      </td>
+                      <td className="ao-td--mono">{formatDate(row.lastSeenAt)}</td>
+                      <td>
+                        {row.warnings.length === 0 ? (
+                          <span className="auth-table-note">-</span>
+                        ) : (
+                          <div className="auth-role-list">
+                            {row.warnings.map((warning) => (
+                              <span className="ao-chip ao-chip--sm" title={warning} key={warning}>{warning}</span>
+                            ))}
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
-      </div>
-    </div>
+      </section>
+
+      {selectedRow && (
+        <section className="ao-card ao-card--compact" style={{ marginTop: 'var(--ao-space-4)' }}>
+          <div className="ao-card__header">
+            <div>
+              <h2 className="ao-card__title">{selectedRow.appName}</h2>
+              <p className="ao-card__subtitle">{stateLabel(selectedRow.state)}</p>
+            </div>
+          </div>
+          <div className="ao-card__body">
+            <div className="auth-summary">
+              <span className="ao-chip">slug: {selectedRow.slug ?? '-'}</span>
+              <span className="ao-chip">versão: {selectedRow.version ?? '-'}</span>
+              <span className="ao-chip">lifecycle: {selectedRow.lifecycle}</span>
+              <span className="ao-chip">source: {selectedRow.source}</span>
+              <span className="ao-chip">auth: {selectedRow.supportsAuth ? 'suportado' : 'não declarado'}</span>
+              <span className="ao-chip">fingerprint: {selectedRow.fingerprintPrefix ?? '-'}</span>
+            </div>
+            <div className="auth-summary" style={{ marginBottom: 0 }}>
+              {(selectedRow.acceptedRoles.length > 0 ? selectedRow.acceptedRoles : ['sem roles declarados']).map((role) => (
+                <span className="ao-chip ao-chip--sm" key={role}>{role}</span>
+              ))}
+              {selectedRow.warnings.map((warning) => (
+                <span className="ao-chip ao-chip--sm" title={warning} key={warning}>{warning}</span>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+    </AuthLayout>
   );
 }

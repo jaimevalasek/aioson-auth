@@ -8,6 +8,12 @@
 
 O `aioson-auth` oferece autenticação e autorização completa para qualquer app Node.js. Ele funciona em **dois modos**, com a mesma API:
 
+> Fronteira com o modo anônimo do Play: o acesso anônimo pré-cadastro do
+> `aioson-play` é uma capacidade local do Play para IDE/Terminal em sandbox. Ele
+> não cria usuário, funcionário, role, token, sessão ou `AppBinding` neste
+> serviço. Depois que a instalação é reivindicada por uma conta aioson.com,
+> usuários reais, perfis e permissões voltam a ser modelados no `aioson-auth`.
+
 | Modo | Quando usar | Como funciona |
 |------|-------------|---------------|
 | **Embedded** | App rodando online (VPS, Vercel, etc.) | Auth roda dentro do processo do seu app — igual ao Jetstream no Laravel |

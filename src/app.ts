@@ -11,6 +11,8 @@ import { authRouter } from './routes/auth.js';
 import { rbacRouter } from './routes/rbac.js';
 import { adminRouter } from './routes/admin.js';
 import { adminBindingsRouter } from './routes/admin-bindings.js';
+import { adminAppInventoryRouter } from './routes/admin-app-inventory.js';
+import { adminDashboardContextRouter } from './routes/admin-dashboard-context.js';
 import { adminFederationRouter } from './routes/admin-federation.js';
 import { shellLoginRouter } from './routes/shell-login.js';
 import { ssoRouter } from './routes/sso.js';
@@ -77,6 +79,8 @@ export function createApp() {
   app.use('/api/auth/settings', settingsRouter);
   app.use('/api/auth/bindings', bindingsRouter);
   app.use('/api/auth/admin/bindings', adminBindingsRouter);
+  app.use('/api/auth/admin/app-inventory', adminAppInventoryRouter);
+  app.use('/api/auth/admin/dashboard-context', adminDashboardContextRouter);
   app.use('/api/auth/admin/federation', adminFederationRouter);
   app.use('/api/auth/shell', shellLoginRouter);
   app.use('/api/auth', authRouter);

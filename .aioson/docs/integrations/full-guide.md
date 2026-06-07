@@ -8,6 +8,13 @@
 
 `aioson-auth` provides complete authentication and authorization for any Node.js app. It works in **two modes** with the same API:
 
+> Boundary with Play anonymous mode: the pre-signup anonymous access in
+> `aioson-play` is a local Play capability for IDE/Terminal use inside a
+> sandbox. It does not create a user, employee, role, token, session or
+> `AppBinding` in this service. After an installation is claimed by an
+> aioson.com account, real users, roles and permissions are modeled in
+> `aioson-auth` again.
+
 | Mode | When to use | How it works |
 |------|-------------|--------------|
 | **Embedded** | App running online (VPS, Vercel, etc.) | Auth runs inside your app's process — like Jetstream in Laravel |

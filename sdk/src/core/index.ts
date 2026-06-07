@@ -4,4 +4,5 @@
 export * from './flows.js';
 export * from './result.js';
 export * from './cookies.js';
+export * from './cookie-domain.js';
 export * from './mode.js';

@@ -92,6 +92,141 @@ for (const provider of ['sqlite', 'postgresql', 'mysql']) {
   });
 }
 
+function makeSqlitePrisma(initialTables = []) {
+  const tables = new Set(initialTables);
+  return {
+    async $queryRawUnsafe(sql) {
+      if (sql.includes('sqlite_version()')) return [{ sqlite_version: '3.45.0' }];
+      if (sql.includes('sqlite_master')) {
+        const names = [...tables].map(name => ({ name }));
+        return names.filter(row => sql.includes(`'${row.name}'`));
+      }
+      return [];
+    },
+    async $executeRawUnsafe(sql) {
+      const match = sql.match(/CREATE TABLE IF NOT EXISTS\s+([a-zA-Z0-9_]+)/i);
+      if (match) tables.add(match[1]);
+      return 0;
+    },
+    _tables: tables,
+  };
+}
+
+console.log('\nMigration runner:');
+
+await testAsync('runEmbeddedMigrations is idempotent and reports conflicts (AC-SE-02)', async () => {
+  const prisma = makeSqlitePrisma(['users']);
+  const first = await sdk.runEmbeddedMigrations({ prisma });
+  assert.equal(first.provider, 'sqlite');
+  assert.deepEqual(first.conflicts, ['users']);
+  assert.equal(first.tablesCreated.length, 7);
+
+  const second = await sdk.runEmbeddedMigrations({ prisma });
+  assert.equal(second.tablesCreated.length, 0);
+  assert.equal(second.alreadyExisted.length, 7);
+});
+
+await testAsync('createEmbeddedBackend accepts prismaClient alias (AC-SE-01)', async () => {
+  const prismaClient = makeSqlitePrisma();
+  const backend = await sdk.createEmbeddedBackend({
+    prismaClient,
+    jwtSecret: 'backend-secret-32-chars-minimum!!',
+    bindingId: 'binding-1',
+    provider: 'sqlite',
+  });
+  assert.equal(typeof backend.migrate, 'function');
+  assert.equal(typeof backend.bootstrap, 'function');
+  assert.equal(typeof backend.checkRevocation, 'function');
+});
+
+await testAsync('createEmbeddedBackend rejects dot-prefixed cookieDomain (AC-SE-15)', async () => {
+  const prisma = makeSqlitePrisma();
+  await assert.rejects(
+    () => sdk.createEmbeddedBackend({
+      prisma,
+      jwtSecret: 'backend-secret-32-chars-minimum!!',
+      bindingId: 'binding-1',
+      provider: 'sqlite',
+      cookieDomain: '.cliente.com',
+    }),
+    /exact host/,
+  );
+});
+
+function makeBootstrapPrisma() {
+  const state = {
+    users: new Map(),
+    usersByEmail: new Map(),
+    roles: new Map(),
+    resetTokens: new Map(),
+    userRoles: [],
+  };
+  return {
+    async $queryRawUnsafe(sql, ...values) {
+      if (sql.includes('COUNT(*) AS c')) return [{ c: state.users.size }];
+      if (sql.includes('FROM aioson_auth_roles WHERE name')) {
+        const role = state.roles.get(values[0]);
+        return role ? [role] : [];
+      }
+      if (sql.includes('FROM aioson_auth_users WHERE email')) {
+        const user = state.usersByEmail.get(values[0]);
+        return user ? [user] : [];
+      }
+      if (sql.includes('FROM aioson_auth_users WHERE id')) {
+        const user = state.users.get(values[0]);
+        return user ? [user] : [];
+      }
+      return [];
+    },
+    async $executeRawUnsafe(sql, ...values) {
+      if (sql.includes('INSERT INTO aioson_auth_users')) {
+        const [id, email, password_hash, name] = values;
+        const user = { id, email, password_hash, name, email_verified: 0, created_at: 'now', last_login_at: null };
+        state.users.set(id, user);
+        state.usersByEmail.set(email, user);
+      } else if (sql.includes('INSERT INTO aioson_auth_roles')) {
+        const [id, name, description] = values;
+        state.roles.set(name, { id, name, description, created_at: 'now' });
+      } else if (sql.includes('INSERT INTO aioson_auth_user_roles')) {
+        const [id, userId, roleId, grantedBy] = values;
+        state.userRoles.push({ id, userId, roleId, grantedBy });
+      } else if (sql.includes('INSERT INTO aioson_auth_password_reset_tokens')) {
+        const [id, userId, tokenHash, expiresAt] = values;
+        state.resetTokens.set(tokenHash, { id, user_id: userId, token_hash: tokenHash, expires_at: expiresAt, used_at: null });
+      }
+      return 0;
+    },
+    _state: state,
+  };
+}
+
+console.log('\nBootstrap:');
+
+await testAsync('bootstrap creates first admin and second call no-ops (AC-SE-03/04)', async () => {
+  const prisma = makeBootstrapPrisma();
+  const first = await sdk.bootstrap({
+    prisma,
+    provider: 'sqlite',
+    ownerEmail: 'owner@example.com',
+    ownerRole: 'admin',
+  });
+  assert.equal(first.created, true);
+  assert.equal(first.tempPassword.length, 16);
+  assert.equal(typeof first.resetToken, 'string');
+  assert.equal(prisma._state.users.size, 1);
+  assert.equal(prisma._state.roles.has('admin'), true);
+  assert.equal(prisma._state.resetTokens.size, 1);
+
+  const second = await sdk.bootstrap({
+    prisma,
+    provider: 'sqlite',
+    ownerEmail: 'owner2@example.com',
+    ownerRole: 'admin',
+  });
+  assert.deepEqual(second, { created: false });
+  assert.equal(prisma._state.users.size, 1);
+});
+
 // ─── JWT lifecycle ──────────────────────────────────────────────────────────
 
 console.log('\nJWT lifecycle:');

@@ -6,7 +6,9 @@ import { createRevocationChecker, type RevocationChecker } from './revocation-ch
 import type { DbProvider, MigrateResult, PrismaClientLike } from './types.js';
 
 export interface EmbeddedBackendConfig {
-  prisma: PrismaClientLike;
+  prisma?: PrismaClientLike;
+  /** Alias accepted by the public AC-SE-01 contract. Prefer `prisma` internally. */
+  prismaClient?: PrismaClientLike;
   jwtSecret: string;
   bindingId: string;
   cookieDomain?: string;
@@ -28,10 +30,14 @@ export interface EmbeddedBackend {
 }
 
 export async function createEmbeddedBackend(config: EmbeddedBackendConfig): Promise<EmbeddedBackend> {
-  const provider = config.provider ?? await detectProvider(config.prisma);
+  const prisma = config.prisma ?? config.prismaClient;
+  if (!prisma) {
+    throw new Error('[aioson-auth/embedded] prisma or prismaClient is required');
+  }
+  const provider = config.provider ?? await detectProvider(prisma);
 
   const handlerConfig: EmbeddedHandlerConfig = {
-    prisma: config.prisma,
+    prisma,
     provider,
     jwtSecret: config.jwtSecret,
     bindingId: config.bindingId,
@@ -43,19 +49,19 @@ export async function createEmbeddedBackend(config: EmbeddedBackendConfig): Prom
   };
 
   const router = createAuthRouter(handlerConfig);
-  const checker = createRevocationChecker(config.prisma, provider);
+  const checker = createRevocationChecker(prisma, provider);
 
   return {
     router,
     checkRevocation: checker,
 
     migrate() {
-      return runEmbeddedMigrations({ prisma: config.prisma, provider });
+      return runEmbeddedMigrations({ prisma, provider });
     },
 
     bootstrap(opts) {
       return bootstrap({
-        prisma: config.prisma,
+        prisma,
         provider,
         ownerEmail: opts.ownerEmail,
         ownerRole: opts.ownerRole,
@@ -63,4 +69,3 @@ export async function createEmbeddedBackend(config: EmbeddedBackendConfig): Prom
     },
   };
 }
-

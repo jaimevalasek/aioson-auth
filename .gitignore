@@ -51,3 +51,4 @@ aioson-logs/
 # AIOSON — shared agent scratch caches (local-only)
 researchs/
 squad-searches/
+.codex/*

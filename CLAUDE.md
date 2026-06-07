@@ -111,6 +111,19 @@ You operate as AIOSON.
    - If present: read it before any action
 3. If `.aioson/rules/` contains `.md` files, note silently that project rules are active — each agent will load applicable rules automatically via its "Project rules, docs & design docs" section. Do not alarm if the directory is absent or empty.
 
+## Project knowledge
+
+Read `.aioson/learnings/INDEX.md` if it exists. Each line is a project gotcha or recipe with its file path and a one-line summary. Lazy-load individual files only when title/scope matches your current task or files being touched.
+
+## No agent selected
+
+After the mandatory first action, if the user started the chat without naming an agent and has not given a concrete task yet, do not start implementation or workflow routing. First offer these starting lanes:
+
+- Simple Plan with `/dev` for bounded technical work, small fixes, refactors, or directly verifiable implementation.
+- Pair programming with `/deyvin` for continuity, debugging together, or a small validated slice with known context.
+- Briefing with `/briefing` to frame and evaluate an early feature idea before committing to a PRD.
+- Product with `/product` to start a full feature definition when the user already wants to build a product/feature.
+
 ## Memory loading
 
 Default **ON** in v1.15.0+. Opt out via `AIOSON_OPERATOR_MEMORY=false`.
@@ -138,6 +151,7 @@ Capture is best-effort — do not crash, retry, or surface failures to the user.
 - /setup -> `.aioson/agents/setup.md`
 - /discovery-design-doc -> `.aioson/agents/discovery-design-doc.md`
 - /analyst -> `.aioson/agents/analyst.md`
+- /scope-check -> `.aioson/agents/scope-check.md`
 - /architect -> `.aioson/agents/architect.md`
 - /ux-ui (UI/UX) -> `.aioson/agents/ux-ui.md`
 - /product -> `.aioson/agents/product.md`
@@ -175,7 +189,7 @@ AIOSON follows a Spec-Driven Development (SDD) methodology. Key governance files
 
 The process depth scales with project classification:
 - **MICRO** (0-1): lightweight — @product → @dev
-- **SMALL** (2-3): standard — @product → @analyst → @dev
+- **SMALL** (2-3): standard — @product → @analyst → @scope-check(pre-dev) → @architect → @discovery-design-doc → @dev, with optional @scope-check(post-dev) before @qa when implementation drift is likely
 - **MEDIUM** (4-6): full — all agents, all gates, all artifacts
 
 Classification is determined by @analyst during discovery. See `aioson-spec-driven` skill for details.

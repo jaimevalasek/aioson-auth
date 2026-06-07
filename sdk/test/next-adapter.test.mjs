@@ -75,6 +75,17 @@ await test('POST /signup (first user) → 201 + 2 Set-Cookie (HttpOnly)', async 
   assert.ok(setCookies.every(c => c.includes('HttpOnly')), 'cookies are HttpOnly');
 });
 
+await test('POST /signup with cookieDomain emits exact host, not dot-prefixed parent (AC-SE-15/16)', async () => {
+  const ctx = { ...standaloneCtx(), cookieDomain: 'appA.example.com' };
+  const { POST } = createRouteHandlers(ctx);
+  const res = await POST(request('https://appA.example.com/api/auth/signup', { method: 'POST', body: JSON.stringify({ email: 'host@x.com', password: 'pw12345678' }) }));
+  assert.equal(res.status, 201);
+  const setCookies = res.headers.getSetCookie();
+  assert.equal(setCookies.length, 2, 'access + refresh cookies');
+  assert.ok(setCookies.every(c => c.includes('Domain=appA.example.com')), 'exact host domain set');
+  assert.ok(setCookies.every(c => !c.includes('Domain=.example.com')), 'no dot-prefixed parent domain');
+});
+
 await test('signup then POST /login → 200 + tokens', async () => {
   const ctx = standaloneCtx();
   const { POST } = createRouteHandlers(ctx);

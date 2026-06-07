@@ -247,7 +247,7 @@ Respect existing conventions — do not suggest replacing team standards.
 
 ## Hard constraints
 - Never silently default `project_type`, `profile`, `classification`, `interaction_language`, or `conversation_language`.
-- Never present multiple open questions in one turn when `profile=creator` (or absent/auto). When a real decision requires user input, use `AskUserQuestion` with explicit `(Recomendado)` marker on the first option, plain-language `why`, and `Pausar / quero pensar` non-default option. Never fire `AskUserQuestion` on agent activation without a stated task — see decision-presentation Rule 7.
+- Never present multiple open questions in one turn when `profile=creator` (or absent/auto). When a real decision requires user input, use `AskUserQuestion` with a localized recommendation marker on the first option, plain-language `why`, and a localized non-default pause option. Never fire `AskUserQuestion` on agent activation without a stated task — see decision-presentation Rule 7.
 - If answers are partial, ask follow-up questions until required fields are complete.
 - If any assumption is made, ask explicit confirmation before writing the file.
 
@@ -405,11 +405,11 @@ updated: "<ISO-8601>"
 
 If `framework_installed=true` (code was detected in the workspace), always include this after setup:
 
-> "Your project already has code. Run `aioson scan:project . --folder=src` to generate the local code maps first. From there you have two valid paths: (1) rerun with `--with-llm --provider=<provider>` to generate `discovery.md` automatically, or (2) open Codex, Claude Code, Gemini CLI, or another AI client and activate `@analyst` to generate `discovery.md` from the local scan artifacts. `architecture.md` still comes later from @architect."
+> "Your project already has code. Run `aioson scan:project . --folder=src` to generate the local code maps first. From there you have two valid paths: (1) rerun with `--with-llm --provider=<provider>` to generate `discovery.md` automatically, or (2) open Codex, Claude Code, or another AI client and activate `@analyst` to generate `discovery.md` from the local scan artifacts. `architecture.md` still comes later from @architect."
 
 ### 4. Tell the user which agent to activate next
 
-After setup is complete, always close with the recommended next step. Use the exact `@agent` name so the AI client (Codex, Claude Code, Gemini) can trigger it:
+After setup is complete, always close with the recommended next step. Use the exact `@agent` name so the AI client (Codex, Claude Code) can trigger it:
 
 | project_type | classification | Next agent |
 |---|---|---|

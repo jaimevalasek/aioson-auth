@@ -81,6 +81,34 @@ model AppBinding {
   @@index([aioson_play_id])
 }
 
+// ─── Play App Inventory ─────────────────────────────────────────────────────
+
+// Snapshot reportado pelo aioson-play. Inventario detectado NAO e AppBinding:
+// este modelo apenas registra quais apps/drafts uma instalacao Play informou.
+model PlayAppInventory {
+  id                   String    @id @default(cuid())
+  aioson_play_id       String
+  inventory_id         String
+  app_slug             String?
+  app_name             String
+  version              String?
+  description          String?
+  lifecycle            String
+  source               String
+  supports_auth        Boolean   @default(false)
+  accepted_roles_json  String    @default("[]")
+  manifest_fingerprint String?
+  warnings_json        String    @default("[]")
+  last_seen_at         DateTime
+  archived_at          DateTime?
+  created_at           DateTime  @default(now())
+  updated_at           DateTime  @updatedAt
+
+  @@unique([aioson_play_id, inventory_id])
+  @@index([aioson_play_id, app_slug])
+  @@index([aioson_play_id, archived_at, lifecycle])
+}
+
 // ─── Global Users ────────────────────────────────────────────────────────────
 
 model GlobalUser {

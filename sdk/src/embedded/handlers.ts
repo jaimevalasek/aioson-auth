@@ -14,6 +14,7 @@ import {
   type FlowDeps,
 } from '../core/flows.js';
 import type { AuthResult } from '../core/result.js';
+import { normalizeCookieDomain } from '../core/cookie-domain.js';
 
 export { COOKIE_ACCESS, COOKIE_REFRESH } from '../core/cookies.js';
 
@@ -79,18 +80,22 @@ function fail500(res: Response, scope: string, e: unknown): void {
 // framework-neutral core in src/core/flows.ts and only translates transport.
 
 export function createAuthRouter(config: EmbeddedHandlerConfig): Router {
+  const normalizedConfig: EmbeddedHandlerConfig = {
+    ...config,
+    cookieDomain: normalizeCookieDomain(config.cookieDomain),
+  };
   const router = Router();
-  const checkRevocation = createRevocationChecker(config.prisma, config.provider) as RevocationChecker & {
+  const checkRevocation = createRevocationChecker(normalizedConfig.prisma, normalizedConfig.provider) as RevocationChecker & {
     invalidate: (u: string) => void;
   };
   const deps: FlowDeps = {
-    queries: createQueries(config.prisma, config.provider),
-    jwtSecret: config.jwtSecret,
-    bindingId: config.bindingId,
+    queries: createQueries(normalizedConfig.prisma, normalizedConfig.provider),
+    jwtSecret: normalizedConfig.jwtSecret,
+    bindingId: normalizedConfig.bindingId,
     checkRevocation,
-    allowSignup: config.allowSignup,
-    firstUserRole: config.firstUserRole,
-    defaultRole: config.defaultRole,
+    allowSignup: normalizedConfig.allowSignup,
+    firstUserRole: normalizedConfig.firstUserRole,
+    defaultRole: normalizedConfig.defaultRole,
   };
 
   router.use(json());
@@ -98,49 +103,49 @@ export function createAuthRouter(config: EmbeddedHandlerConfig): Router {
   // POST /login (AC-SE-05, AC-SE-06, AC-SE-15)
   router.post('/login', async (req: Request, res: Response) => {
     try {
-      applyResult(res, await loginCore(deps, req.body ?? {}), config);
+      applyResult(res, await loginCore(deps, req.body ?? {}), normalizedConfig);
     } catch (e) { fail500(res, 'login', e); }
   });
 
   // POST /signup (D2 — standalone self-service registration)
   router.post('/signup', async (req: Request, res: Response) => {
     try {
-      applyResult(res, await signupCore(deps, req.body ?? {}), config);
+      applyResult(res, await signupCore(deps, req.body ?? {}), normalizedConfig);
     } catch (e) { fail500(res, 'signup', e); }
   });
 
   // POST /refresh (AC-SE-06, AC-SE-15)
   router.post('/refresh', async (req: Request, res: Response) => {
     try {
-      applyResult(res, await refreshCore(deps, req.body ?? {}), config);
+      applyResult(res, await refreshCore(deps, req.body ?? {}), normalizedConfig);
     } catch (e) { fail500(res, 'refresh', e); }
   });
 
   // POST /logout (AC-SE-07, AC-SE-15)
   router.post('/logout', async (req: Request, res: Response) => {
     try {
-      applyResult(res, await logoutCore(deps, { token: extractBearerToken(req) }), config);
+      applyResult(res, await logoutCore(deps, { token: extractBearerToken(req) }), normalizedConfig);
     } catch (e) { fail500(res, 'logout', e); }
   });
 
   // GET /me (AC-SE-08)
   router.get('/me', async (req: Request, res: Response) => {
     try {
-      applyResult(res, await meCore(deps, { token: extractBearerToken(req) }), config);
+      applyResult(res, await meCore(deps, { token: extractBearerToken(req) }), normalizedConfig);
     } catch (e) { fail500(res, 'me', e); }
   });
 
   // POST /password-reset/request (AC-SE-10)
   router.post('/password-reset/request', async (req: Request, res: Response) => {
     try {
-      applyResult(res, await passwordResetRequestCore(deps, req.body ?? {}), config);
+      applyResult(res, await passwordResetRequestCore(deps, req.body ?? {}), normalizedConfig);
     } catch (e) { fail500(res, 'password-reset/request', e); }
   });
 
   // POST /password-reset/confirm (AC-SE-11)
   router.post('/password-reset/confirm', async (req: Request, res: Response) => {
     try {
-      applyResult(res, await passwordResetConfirmCore(deps, req.body ?? {}), config);
+      applyResult(res, await passwordResetConfirmCore(deps, req.body ?? {}), normalizedConfig);
     } catch (e) { fail500(res, 'password-reset/confirm', e); }
   });
 

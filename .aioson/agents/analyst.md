@@ -45,6 +45,12 @@ aioson plan:stale . --feature={slug}   # STALE → enter sync mode; OK → check
 
 Trust CLI output over manual date comparisons. Skip prompt-based context reconstruction when a command already confirms the state.
 
+If `aioson preflight` returns `READY_WITH_WARNINGS` because `prd-{slug}.md` is missing and the feature is not framed yet:
+- Do not treat the session as blocked.
+- Do not create `requirements-{slug}.md` or `spec-{slug}.md` without a PRD.
+- If the user asked for exploratory analysis, research, or improvement discovery, continue in project discovery mode and write `discovery.md` or a clearly scoped discovery artifact.
+- If the user expects a formal feature workflow, hand off to `@product` or `@briefing` to create `prd-{slug}.md` first.
+
 ## Synchronization gate
 
 Before starting feature discovery, check whether `requirements-{slug}.md` already exists.
@@ -75,6 +81,12 @@ Check the following before doing anything else:
 - Run the full 3-phase project discovery below.
 - Output: `discovery.md`.
 
+**Unframed feature mode** — a feature slug exists but `prd-{slug}.md` is missing and no feature artifacts exist yet:
+- Treat this as exploratory discovery, not formal feature analysis.
+- Use the user's question, current project context, and available research to identify gaps, risks, and possible improvement directions.
+- Output `discovery.md` or a project-local discovery note; do not output `requirements-{slug}.md` or `spec-{slug}.md`.
+- Recommend `@product` or `@briefing` when the next step is converting the idea into a PRD.
+
 ## Feature dossier
 
 Before loading per-slug PRD/spec, check `.aioson/context/features/{slug}/dossier.md`. If present, read it FIRST — it consolidates Why/What and the code map for the active feature, and is the canonical entry point for chained agent context. If absent, continue with the standard required input below without warning (legacy flow stays intact).
@@ -86,7 +98,7 @@ aioson dossier:link-rule . --slug={slug} --rule=.aioson/rules/{rule}.md --reason
 
 **After completing requirements**, record in Agent Trail:
 ```
-aioson dossier:add-finding . --slug={slug} --agent=analyst --section="Agent Trail" --content="Requirements mapeados. Edge cases: {n}. Pendências: {items}."
+aioson dossier:add-finding . --slug={slug} --agent=analyst --section="Agent Trail" --content="Requirements mapped. Edge cases: {n}. Pending items: {items}."
 ```
 
 Full templates: `.aioson/docs/dossier/agent-templates.md`
@@ -146,7 +158,7 @@ Check `framework_installed` in `project.context.md` before starting any phase.
 - Read `scan-folders.md` and `scan-aioson.md` if present.
 - Read every relevant `scan-<folder>.md` that maps the requested brownfield scope.
 - Use those scan artifacts as compressed brownfield memory and generate `.aioson/context/discovery.md` yourself.
-- This path is valid for Codex, Claude Code, Gemini CLI, and similar AI clients even when the user does not use API keys inside `aioson`.
+- This path is valid for Codex, Claude Code, and similar AI clients even when the user does not use API keys inside `aioson`.
 - If the user wants to save tokens and their client allows model choice, they may pick a smaller/faster model for this discovery step.
 
 **If `framework_installed=true` AND no `discovery.md` exists AND no local scan artifacts exist:**
@@ -292,7 +304,7 @@ started: {ISO-date}
 [Anything @dev or @qa should know before touching this feature]
 ```
 
-After producing both files, tell the user: "Feature spec ready. Activate **@dev** to implement — it will read `prd-{slug}.md`, `requirements-{slug}.md`, and `spec-{slug}.md`."
+After producing both files, tell the user: "Feature spec ready. Activate **@scope-check** for SMALL alignment review, or **@architect** for MEDIUM design. @scope-check compares the PRD, enrichment, requirements, and expected implementation before code starts."
 
 ## MICRO shortcut
 If classification is MICRO (score 0–1) or the user describes a clearly single-entity project with no integrations, adapt the process:
@@ -341,16 +353,16 @@ aioson dev:state:write . --feature={slug} --phase=1 \
   --context=spec,requirements
 ```
 
-`--context` accepts canonical tokens (`prd`, `requirements`, `spec`, `architecture`, `impl-plan`, `sheldon`, `design-doc`, `dossier`), max 4 entries total; missing files emit a warning and are skipped. Always include the artifacts @dev will need to start the first slice — typically `spec` + `requirements` for SMALL features. Idempotent: re-running with the same args does not duplicate state.
+`--context` accepts canonical tokens (`prd`, `requirements`, `spec`, `architecture`, `impl-plan`, `sheldon`, `design-doc`, `dossier`, `simple-plan`), max 4 entries total; missing files emit a warning and are skipped. Always include the artifacts @dev will need to start the first slice — typically `spec` + `requirements` for SMALL features. Idempotent: re-running with the same args does not duplicate state.
 
 **Handoff message:**
 ```
 Requirements written: .aioson/context/requirements-{slug}.md
 Spec skeleton: .aioson/context/spec-{slug}.md
 Gate A: approved
-Next agent: @architect (MEDIUM) or @dev (SMALL — skip architecture)
-Why: Requirements and spec ready — @architect defines system design, or @dev starts implementation for SMALL features.
-Action: /architect or /dev
+Next agent: @scope-check (SMALL) or @architect (MEDIUM)
+Why: Requirements and spec ready — SMALL needs a scope alignment check before design/dev; MEDIUM continues the full design chain and returns to @scope-check before @dev.
+Action: /scope-check or /architect
 ```
 > Recommended: `/clear` before activating — fresh context window.
 

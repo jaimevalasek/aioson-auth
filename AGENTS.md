@@ -197,6 +197,19 @@ You operate as AIOSON — an AI development squad with specialized agents.
    - If present: read it before any action
 3. If `.aioson/rules/` contains `.md` files, note silently that project rules are active — each agent will load applicable rules automatically via its "Project rules, docs & design docs" section. Do not alarm if the directory is absent or empty.
 
+## Project knowledge
+
+Read `.aioson/learnings/INDEX.md` if it exists. Each line is a project gotcha or recipe with its file path and a one-line summary. Lazy-load individual files only when title/scope matches your current task or files being touched.
+
+## No agent selected
+
+After the mandatory first action, if the user started the chat without naming an agent and has not given a concrete task yet, do not start implementation or workflow routing. First offer these starting lanes:
+
+- Simple Plan with `@dev` for bounded technical work, small fixes, refactors, or directly verifiable implementation.
+- Pair programming with `@deyvin` for continuity, debugging together, or a small validated slice with known context.
+- Briefing with `@briefing` to frame and evaluate an early feature idea before committing to a PRD.
+- Product with `@product` to start a full feature definition when the user already wants to build a product/feature.
+
 ## Memory loading
 
 Default **ON** in v1.15.0+. Opt out via `AIOSON_OPERATOR_MEMORY=false`.
@@ -237,10 +250,11 @@ Describe your intent. The agent system will match and execute.
 | @setup | "start the project setup", "use the setup agent", "iniciar o setup" |
 | @discovery-design-doc | "prepare the discovery and design doc", "use the discovery design doc agent" |
 | @analyst | "analyze the requirements", "use the analyst agent" |
+| @scope-check | "check scope before implementation", "confront intent with plan", "validate what will be built", "check what dev delivered against the plan", "post-fix scope check" |
 | @architect | "design the architecture", "use the architect agent" |
 | @ux-ui | "design the UI", "use the UI/UX agent" |
 | @product | "define the product vision", "use the product agent", "start the product wizard" |
-| @sheldon | "deep technical review", "analyze the architecture", "use the sheldon agent" |
+| @sheldon | "review/enrich this PRD before implementation", "validate the PRD", "use the sheldon agent" |
 | @deyvin | "continue what we were doing", "use the deyvin agent", "let's fix this together" |
 | @pm | "create the user stories", "use the pm agent" |
 | @dev | "implement the feature", "use the dev agent" |
@@ -273,7 +287,7 @@ When running Codex directly (without `aioson workflow:next`), these rules apply:
 **Hard constraints — no exceptions:**
 - For implementation requests (code changes, feature build, refactor, bugfix), default to workflow routing and execute via the next workflow stage agent (typically `@dev` after required upstream stages).
 - Exception: if the user explicitly activates `@deyvin` (or the compatibility alias `@pair`), it may work directly only as a continuity / pair-programming agent for existing known context and a small validated slice. If the request is a new project, greenfield build, new feature, broad redesign, vague or contradictory, or mixes product + UX + implementation scope, `@deyvin` must hand off immediately and must not code first.
-- Official workflow agents (`@setup`, `@product`, `@analyst`, `@architect`, `@ux-ui`, `@pm`, `@orchestrator`, `@dev`, `@qa`) must stay inside the workflow. Do not answer requests outside the current agent's scope.
+- Official workflow agents (`@setup`, `@product`, `@analyst`, `@scope-check`, `@architect`, `@ux-ui`, `@pm`, `@orchestrator`, `@dev`, `@qa`) must stay inside the workflow. Do not answer requests outside the current agent's scope.
 - Between agent handoffs, your ONLY valid output is: which agent is next and why. Do not continue into that agent's work.
 - If `project.context.md` is inconsistent, stale, or partially invalid, repair it inside the workflow when the correct value is objectively inferable from the active context and artifacts.
 - If a context field is still uncertain, route back to `@setup` inside the workflow instead of offering direct execution as a workaround.
@@ -295,6 +309,7 @@ When running Codex directly (without `aioson workflow:next`), these rules apply:
 - @setup → `.aioson/agents/setup.md`
 - @discovery-design-doc → `.aioson/agents/discovery-design-doc.md`
 - @analyst → `.aioson/agents/analyst.md`
+- @scope-check → `.aioson/agents/scope-check.md`
 - @architect → `.aioson/agents/architect.md`
 - @ux-ui → `.aioson/agents/ux-ui.md`
 - @product → `.aioson/agents/product.md`
@@ -349,7 +364,7 @@ Located at: `.aioson/skills/process/aioson-spec-driven/SKILL.md`
 
 This is a first-party process skill. It teaches agents how phases connect, when to apply which depth, and how to prepare clean handoffs.
 
-Agents that load it: @product, @analyst, @architect, @sheldon, @dev, @deyvin, @qa, @tester, @orchestrator, @pm
+Agents that load it: @product, @analyst, @scope-check, @architect, @sheldon, @dev, @deyvin, @qa, @tester, @orchestrator, @pm
 When to load: at the start of any spec work (PRD, requirements, architecture, implementation, testing)
 What to load: `SKILL.md` first, then only the `references/` file relevant to the current phase
 
@@ -362,6 +377,15 @@ This is a first-party process skill for generating project-local hybrid design s
 Activated by: @design-hybrid-forge
 Default output: `.aioson/installed-skills/{hybrid-name}/`
 What to load: `SKILL.md` first, then only the `references/` file relevant to the current phase
+
+## Process skill: prompt-sharpener
+
+Located at: `.aioson/skills/process/prompt-sharpener/SKILL.md`
+
+This is a first-party process skill for improving agents, skills, PRDs, plans, handoffs, and instruction-heavy markdown by turning vague guidance into evidence-driven decision behavior.
+
+Use when: improving AIOSON prompts/skills, reducing dead context without losing contracts, or sharpening artifacts before downstream handoff.
+What to load: `SKILL.md` first; load `references/prompt-diagnostics.md` only for multi-prompt audits or adoption planning.
 
 ## Shared research cache: researchs/
 

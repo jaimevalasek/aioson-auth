@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "allowPaths": [],
+  "contentAllowPaths": [
+    "sdk/test/core-flows.test.mjs",
+    "sdk/test/next-adapter.test.mjs"
+  ],
+  "blockPaths": [
+    "node_modules/**",
+    "aioson-logs/**"
+  ],
+  "allowExtensions": [],
+  "blockExtensions": []
+}
