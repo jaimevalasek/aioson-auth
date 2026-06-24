@@ -13,9 +13,10 @@ interface AuthLayoutProps {
   children: React.ReactNode;
   title: string;
   subtitle?: string;
+  onBack?: () => void;
 }
 
-export default function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
+export default function AuthLayout({ children, title, subtitle, onBack }: AuthLayoutProps) {
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
 
   useEffect(() => {
@@ -49,6 +50,9 @@ export default function AuthLayout({ children, title, subtitle }: AuthLayoutProp
           >
             Operadores
           </NavLink>
+          <Link className="ao-appbar__link" to="/auth/dashboard#access-control">
+            Acesso
+          </Link>
         </nav>
 
         <div className="ao-appbar__spacer" />
@@ -65,6 +69,11 @@ export default function AuthLayout({ children, title, subtitle }: AuthLayoutProp
             <h1 className="auth-page-title">{title}</h1>
             {subtitle && <p className="auth-page-subtitle">{subtitle}</p>}
           </div>
+          {onBack && (
+            <button className="ao-btn ao-btn--ghost ao-btn--sm" type="button" onClick={onBack}>
+              Voltar
+            </button>
+          )}
         </div>
 
         {children}

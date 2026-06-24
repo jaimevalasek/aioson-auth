@@ -1,4 +1,8 @@
 import { prisma } from '../lib/prisma.js';
+import {
+  registerBindingAuthManifest,
+  type BindingAuthManifestInput,
+} from './AppBindingAction.js';
 
 export type PlayAppInventoryLifecycle = 'installed' | 'development';
 export type PlayAppInventorySource = 'marketplace' | 'dev_link' | 'draft' | 'unknown';
@@ -13,6 +17,7 @@ export interface SyncedPlayAppInventoryItem {
   description: string | null;
   supports_auth: boolean;
   accepted_roles: string[];
+  auth_manifest: BindingAuthManifestInput | null;
   manifest_fingerprint: string | null;
   warnings: string[];
 }
@@ -27,16 +32,18 @@ export interface SyncPlayAppInventoryResult {
   reported: number;
   upserted: number;
   archived: number;
+  synced_auth_manifests: number;
+  synced_permissions: number;
+  added_permissions: number;
+  skipped_auth_manifests: number;
   warnings: string[];
 }
 
-export async function syncPlayAppInventory(
-  input: SyncPlayAppInventoryInput,
-): Promise<SyncPlayAppInventoryResult> {
+export async function syncPlayAppInventory(input: SyncPlayAppInventoryInput): Promise<SyncPlayAppInventoryResult> {
   const now = new Date();
   const inventoryIds = input.items.map((item) => item.inventory_id);
 
-  return prisma.$transaction(async (tx) => {
+  const inventoryResult = await prisma.$transaction(async (tx) => {
     for (const item of input.items) {
       await tx.playAppInventory.upsert({
         where: {
@@ -90,13 +97,78 @@ export async function syncPlayAppInventory(
     });
 
     return {
-      ok: true,
+      ok: true as const,
       reported: input.items.length,
       upserted: input.items.length,
       archived: archived.count,
-      warnings: [],
     };
   });
+
+  const manifestResult = await syncAuthManifestsForExistingBindings(input);
+
+  return {
+    ...inventoryResult,
+    ...manifestResult,
+    warnings: [],
+  };
+}
+
+async function syncAuthManifestsForExistingBindings(input: SyncPlayAppInventoryInput) {
+  const candidates = input.items.filter(
+    (item) =>
+      item.lifecycle === 'installed' &&
+      item.app_slug &&
+      item.auth_manifest &&
+      item.auth_manifest.permissions.length > 0,
+  );
+  const slugs = uniqueStrings(candidates.map((item) => item.app_slug).filter((slug): slug is string => Boolean(slug)));
+  if (slugs.length === 0) {
+    return {
+      synced_auth_manifests: 0,
+      synced_permissions: 0,
+      added_permissions: 0,
+      skipped_auth_manifests: 0,
+    };
+  }
+
+  const bindings = await prisma.appBinding.findMany({
+    where: {
+      aioson_play_id: input.aioson_play_id,
+      app_slug: { in: slugs },
+    },
+    select: { id: true, app_slug: true, enable_rbac: true },
+  });
+  const bindingsBySlug = new Map(bindings.map((binding) => [binding.app_slug, binding]));
+
+  let syncedAuthManifests = 0;
+  let syncedPermissions = 0;
+  let addedPermissions = 0;
+  let skippedAuthManifests = 0;
+  const visitedSlugs = new Set<string>();
+
+  for (const item of candidates) {
+    const appSlug = item.app_slug;
+    if (!appSlug || visitedSlugs.has(appSlug)) continue;
+    visitedSlugs.add(appSlug);
+
+    const binding = bindingsBySlug.get(appSlug);
+    if (!binding?.enable_rbac || !item.auth_manifest) {
+      skippedAuthManifests++;
+      continue;
+    }
+
+    const result = await registerBindingAuthManifest(binding.id, item.auth_manifest);
+    syncedAuthManifests++;
+    syncedPermissions += item.auth_manifest.permissions.length;
+    addedPermissions += result.added;
+  }
+
+  return {
+    synced_auth_manifests: syncedAuthManifests,
+    synced_permissions: syncedPermissions,
+    added_permissions: addedPermissions,
+    skipped_auth_manifests: skippedAuthManifests,
+  };
 }
 
 export async function listPlayAppInventory(aiosonPlayId: string) {

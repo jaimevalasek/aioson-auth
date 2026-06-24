@@ -15,10 +15,41 @@ interface Role {
   description: string;
 }
 
+interface AppBinding {
+  id: string;
+  app_name: string;
+  system_permissions: string;
+}
+
+function extractManifestPermissionNames(raw: string): Set<string> {
+  const names = new Set<string>();
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return names;
+    for (const entry of parsed) {
+      if (
+        entry &&
+        typeof entry === 'object' &&
+        'source' in entry &&
+        (entry as { source?: unknown }).source === 'auth_manifest' &&
+        'name' in entry &&
+        typeof (entry as { name?: unknown }).name === 'string'
+      ) {
+        names.add((entry as { name: string }).name);
+      }
+    }
+  } catch {
+    return names;
+  }
+  return names;
+}
+
 export default function RbacPermissionsPage() {
   const { bindingId } = useParams<{ bindingId: string }>();
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
+  const [binding, setBinding] = useState<AppBinding | null>(null);
+  const [manifestPermissionNames, setManifestPermissionNames] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -39,9 +70,30 @@ export default function RbacPermissionsPage() {
 
   useEffect(() => {
     if (!bindingId) return;
+    loadBindingMetadata();
     loadPermissions();
     loadRoles();
   }, [bindingId]);
+
+  useEffect(() => {
+    if (manifestPermissionNames.size > 0 && showCreate) {
+      setShowCreate(false);
+      resetCreateForm();
+    }
+  }, [manifestPermissionNames, showCreate]);
+
+  async function loadBindingMetadata() {
+    if (!bindingId) return;
+    try {
+      const res = await fetch(`/api/auth/bindings/${bindingId}`);
+      if (!res.ok) return;
+      const data: AppBinding = await res.json();
+      setBinding(data);
+      setManifestPermissionNames(extractManifestPermissionNames(data.system_permissions));
+    } catch {
+      /* metadata do binding é complementar ao catálogo */
+    }
+  }
 
   async function loadPermissions() {
     if (!bindingId) return;
@@ -166,11 +218,12 @@ export default function RbacPermissionsPage() {
     if (!grouped[p.resource]) grouped[p.resource] = [];
     grouped[p.resource].push(p);
   }
+  const manifestManaged = manifestPermissionNames.size > 0;
 
   return (
     <AuthLayout
       title={`Permissões — ${bindingId}`}
-      subtitle="Permissões disponíveis para este app. Formato: recurso:acao"
+      subtitle={binding?.app_name ? `App: ${binding.app_name}` : 'Permissões disponíveis para este app'}
     >
       <nav className="ao-tabs" role="tablist">
         <NavLink
@@ -204,17 +257,27 @@ export default function RbacPermissionsPage() {
         </div>
       )}
 
-      <div className="auth-page-actions" style={{ justifyContent: 'flex-end', marginBottom: 'var(--ao-space-4)' }}>
-        <button
-          className={`ao-btn ${showCreate ? 'ao-btn--ghost' : 'ao-btn--primary'}`}
-          onClick={() => setShowCreate((v) => !v)}
-          type="button"
-        >
-          {showCreate ? 'Cancelar' : '+ Nova Permissão'}
-        </button>
-      </div>
+      {manifestManaged ? (
+        <div className="ao-alert ao-alert--compact" role="status" style={{ marginBottom: 'var(--ao-space-4)' }}>
+          <div className="ao-alert__content">
+            <p className="ao-alert__body">
+              Permissões sincronizadas pelo manifesto do app. Edite o `manifest.json` do app e sincronize pelo Play para alterar o catálogo.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="auth-page-actions" style={{ justifyContent: 'flex-end', marginBottom: 'var(--ao-space-4)' }}>
+          <button
+            className={`ao-btn ${showCreate ? 'ao-btn--ghost' : 'ao-btn--primary'}`}
+            onClick={() => setShowCreate((v) => !v)}
+            type="button"
+          >
+            {showCreate ? 'Cancelar' : '+ Nova Permissão'}
+          </button>
+        </div>
+      )}
 
-      {showCreate && (
+      {!manifestManaged && showCreate && (
         <section className="ao-card" style={{ marginBottom: 'var(--ao-space-6)' }}>
           <div className="ao-card__header">
             <h2 className="ao-card__title">Nova Permissão</h2>
@@ -343,13 +406,17 @@ export default function RbacPermissionsPage() {
                           <td className="ao-td--mono">{p.name}</td>
                           <td>{p.action}</td>
                           <td className="ao-td--actions">
-                            <button
-                              className="ao-btn ao-btn--danger ao-btn--sm"
-                              onClick={() => handleDelete(p.id)}
-                              type="button"
-                            >
-                              Remover
-                            </button>
+                            {manifestPermissionNames.has(p.name) ? (
+                              <span className="ao-chip ao-chip--sm">Manifesto</span>
+                            ) : (
+                              <button
+                                className="ao-btn ao-btn--danger ao-btn--sm"
+                                onClick={() => handleDelete(p.id)}
+                                type="button"
+                              >
+                                Remover
+                              </button>
+                            )}
                           </td>
                         </tr>
                       ))}

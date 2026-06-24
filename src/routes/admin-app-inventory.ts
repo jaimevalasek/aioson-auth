@@ -10,6 +10,30 @@ adminAppInventoryRouter.use(validateOwnerBearer);
 
 const WARNING_CODE_REGEX = /^[a-z0-9_:-]+$/;
 const SHA256_REGEX = /^[a-f0-9]{64}$/i;
+const PERMISSION_NAME_REGEX = /^(?:\*|[a-z0-9_.-]+:(?:\*|[a-z0-9_.-]+))$/;
+
+const authPermissionSchema = z.object({
+  name: z.string().min(1).max(160).regex(PERMISSION_NAME_REGEX),
+  resource: z.string().min(1).max(160),
+  action: z.string().min(1).max(160),
+  label: z.string().max(120).nullable().optional(),
+  description: z.string().max(500).nullable().optional(),
+}).strict();
+
+const authPolicySchema = z.object({
+  id: z.string().min(1).max(160),
+  kind: z.string().min(1).max(80),
+  requires: z.array(z.string().min(1).max(160).regex(PERMISSION_NAME_REGEX)).max(50),
+  path: z.string().max(160).nullable().optional(),
+  method: z.string().max(16).nullable().optional(),
+  description: z.string().max(500).nullable().optional(),
+}).strict();
+
+const authManifestSchema = z.object({
+  version: z.number().int().min(1).max(1),
+  permissions: z.array(authPermissionSchema).max(200),
+  policies: z.array(authPolicySchema).max(200),
+}).strict();
 
 const inventoryItemSchema = z.object({
   inventory_id: z.string().min(1).max(180),
@@ -21,6 +45,7 @@ const inventoryItemSchema = z.object({
   description: z.string().max(500).nullable().optional(),
   supports_auth: z.boolean(),
   accepted_roles: z.array(z.string()).max(4),
+  auth_manifest: authManifestSchema.nullable().optional(),
   manifest_fingerprint: z.string().regex(SHA256_REGEX).nullable().optional(),
   warnings: z.array(z.string().max(80).regex(WARNING_CODE_REGEX)).max(50),
 }).strict();
@@ -74,6 +99,7 @@ adminAppInventoryRouter.post('/sync', async (req, res) => {
         description: item.description ?? null,
         supports_auth: item.supports_auth,
         accepted_roles: item.accepted_roles,
+        auth_manifest: item.auth_manifest ?? null,
         manifest_fingerprint: item.manifest_fingerprint ?? null,
         warnings: item.warnings,
       })),
@@ -102,6 +128,23 @@ function validateItems(items: Array<z.infer<typeof inventoryItemSchema>>): strin
     }
     if (new Set(item.accepted_roles).size !== item.accepted_roles.length) {
       return 'duplicate_accepted_roles';
+    }
+    const permissionNames = item.auth_manifest?.permissions.map((permission) => permission.name) ?? [];
+    if (new Set(permissionNames).size !== permissionNames.length) {
+      return 'duplicate_auth_permissions';
+    }
+    if (
+      item.auth_manifest?.permissions.some((permission) =>
+        permission.name === '*'
+          ? permission.resource !== '*' || permission.action !== '*'
+          : permission.name !== `${permission.resource}:${permission.action}`
+      )
+    ) {
+      return 'invalid_auth_permissions';
+    }
+    const policyIds = item.auth_manifest?.policies.map((policy) => policy.id) ?? [];
+    if (new Set(policyIds).size !== policyIds.length) {
+      return 'duplicate_auth_policies';
     }
   }
 

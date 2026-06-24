@@ -24,6 +24,12 @@ interface RolePerms {
   [roleId: string]: { [bindingId: string]: Permission[] };
 }
 
+interface PermissionModalState {
+  roleId: string;
+  bindingId: string;
+  selectedIds: string[];
+}
+
 export default function RbacRolesPage() {
   const { bindingId } = useParams<{ bindingId: string }>();
   const [roles, setRoles] = useState<Role[]>([]);
@@ -36,7 +42,8 @@ export default function RbacRolesPage() {
   const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
-  const [permModal, setPermModal] = useState<{ roleId: string; bindingId: string } | null>(null);
+  const [permModal, setPermModal] = useState<PermissionModalState | null>(null);
+  const [assigningPerms, setAssigningPerms] = useState(false);
 
   useEffect(() => {
     if (!bindingId) return;
@@ -71,7 +78,7 @@ export default function RbacRolesPage() {
       for (const role of rolesData || []) {
         rpMap[role.id] = {};
         for (const b of rbacBindings) {
-          const r = await fetch(`/api/rbac/roles/${role.id}/permissions?bindingId=${b.id}`);
+          const r = await fetch(`/api/auth/rbac/roles/${role.id}/permissions?bindingId=${b.id}`);
           if (r.ok) rpMap[role.id][b.id] = await r.json();
         }
       }
@@ -88,7 +95,7 @@ export default function RbacRolesPage() {
     setCreating(true);
     setMsg(null);
     try {
-      const res = await fetch('/api/rbac/roles', {
+      const res = await fetch('/api/auth/rbac/roles', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newName, description: newDesc || undefined }),
@@ -112,7 +119,8 @@ export default function RbacRolesPage() {
   async function handleDelete(roleId: string) {
     if (!confirm('Remover este perfil?')) return;
     try {
-      await fetch(`/api/rbac/roles/${roleId}`, { method: 'DELETE' });
+      const res = await fetch(`/api/auth/rbac/roles/${roleId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed');
       setMsg({ type: 'success', text: 'Perfil removido.' });
       await loadData();
     } catch {
@@ -120,24 +128,99 @@ export default function RbacRolesPage() {
     }
   }
 
-  async function handleAssignPerm(roleId: string, bindingId: string, permId: string) {
+  function assignedPermissions(roleId: string, bindingId: string): Permission[] {
+    return rolePerms[roleId]?.[bindingId] || [];
+  }
+
+  function availablePermissions(roleId: string, bindingId: string): Permission[] {
+    const assignedIds = new Set(assignedPermissions(roleId, bindingId).map((p) => p.id));
+    return (bindingPerms[bindingId] || []).filter((p) => !assignedIds.has(p.id));
+  }
+
+  function openPermissionModal(roleId: string, bindingId: string) {
+    if (availablePermissions(roleId, bindingId).length === 0) return;
+    setPermModal({ roleId, bindingId, selectedIds: [] });
+  }
+
+  function toggleModalPermission(permissionId: string) {
+    setPermModal((current) => {
+      if (!current) return current;
+      const selected = new Set(current.selectedIds);
+      if (selected.has(permissionId)) selected.delete(permissionId);
+      else selected.add(permissionId);
+      return { ...current, selectedIds: Array.from(selected) };
+    });
+  }
+
+  function toggleAllModalPermissions(permissions: Permission[]) {
+    setPermModal((current) => {
+      if (!current) return current;
+      const allIds = permissions.map((p) => p.id);
+      const allSelected = allIds.length > 0 && allIds.every((id) => current.selectedIds.includes(id));
+      return { ...current, selectedIds: allSelected ? [] : allIds };
+    });
+  }
+
+  async function handleAssignSelectedPerms() {
+    if (!permModal || permModal.selectedIds.length === 0) return;
+    const { roleId, bindingId, selectedIds } = permModal;
+    const selectedPermissions = (bindingPerms[bindingId] || []).filter((p) => selectedIds.includes(p.id));
+    setAssigningPerms(true);
+    setMsg(null);
     try {
-      await fetch(`/api/rbac/roles/${roleId}/permissions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ permissionId: permId, bindingId }),
+      const results = await Promise.all(
+        selectedIds.map((permissionId) =>
+          fetch(`/api/auth/rbac/roles/${roleId}/permissions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ permissionId, bindingId }),
+          })
+        )
+      );
+      if (results.some((res) => !res.ok)) throw new Error('Failed');
+
+      setRolePerms((current) => {
+        const roleMap = current[roleId] || {};
+        const currentPerms = roleMap[bindingId] || [];
+        const currentIds = new Set(currentPerms.map((p) => p.id));
+        const nextPerms = [
+          ...currentPerms,
+          ...selectedPermissions.filter((p) => !currentIds.has(p.id)),
+        ];
+        return {
+          ...current,
+          [roleId]: {
+            ...roleMap,
+            [bindingId]: nextPerms,
+          },
+        };
       });
+
       setPermModal(null);
-      await loadData();
+      setMsg({ type: 'success', text: `${selectedIds.length} permissão(ões) adicionada(s).` });
     } catch {
       setMsg({ type: 'error', text: 'Falha ao atribuir.' });
+    } finally {
+      setAssigningPerms(false);
     }
   }
 
   async function handleRemovePerm(roleId: string, bindingId: string, permId: string) {
     try {
-      await fetch(`/api/rbac/roles/${roleId}/permissions/${permId}?bindingId=${bindingId}`, { method: 'DELETE' });
-      await loadData();
+      const res = await fetch(`/api/auth/rbac/roles/${roleId}/permissions/${permId}?bindingId=${bindingId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed');
+      setRolePerms((current) => {
+        const roleMap = current[roleId] || {};
+        const currentPerms = roleMap[bindingId] || [];
+        return {
+          ...current,
+          [roleId]: {
+            ...roleMap,
+            [bindingId]: currentPerms.filter((p) => p.id !== permId),
+          },
+        };
+      });
+      setMsg({ type: 'success', text: 'Permissão removida.' });
     } catch {
       setMsg({ type: 'error', text: 'Falha ao remover.' });
     }
@@ -150,6 +233,15 @@ export default function RbacRolesPage() {
       </AuthLayout>
     );
   }
+
+  const bindingsWithPermissions = bindings.filter((b) => (bindingPerms[b.id] || []).length > 0);
+  const modalBinding = permModal ? bindings.find((b) => b.id === permModal.bindingId) : null;
+  const modalRole = permModal ? roles.find((role) => role.id === permModal.roleId) : null;
+  const modalAvailablePermissions = permModal
+    ? availablePermissions(permModal.roleId, permModal.bindingId)
+    : [];
+  const modalAllSelected = modalAvailablePermissions.length > 0 &&
+    modalAvailablePermissions.every((p) => permModal?.selectedIds.includes(p.id));
 
   return (
     <AuthLayout
@@ -248,26 +340,35 @@ export default function RbacRolesPage() {
               </div>
 
               <div className="ao-card__body">
-                {bindings.map((b) => {
-                  const perms = rolePerms[role.id]?.[b.id] || [];
+                {bindingsWithPermissions.length === 0 ? (
+                  <p className="auth-muted">Nenhum app com permissões registradas ainda.</p>
+                ) : bindingsWithPermissions.map((b) => {
+                  const perms = assignedPermissions(role.id, b.id);
+                  const available = availablePermissions(role.id, b.id);
                   return (
-                    <div key={b.id} style={{ marginBottom: 'var(--ao-space-4)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--ao-space-2)', marginBottom: 'var(--ao-space-2)' }}>
-                        <span className="ao-chip ao-chip--secondary ao-chip--sm">{b.app_name}</span>
+                    <div key={b.id} className="auth-role-binding">
+                      <div className="auth-role-binding__head">
+                        <div className="auth-role-binding__title">
+                          <span className="ao-chip ao-chip--secondary ao-chip--sm">{b.app_name}</span>
+                          <span className="auth-table-note">
+                            {perms.length}/{bindingPerms[b.id]?.length || 0} permissões
+                          </span>
+                        </div>
                         <button
                           className="ao-btn ao-btn--ghost ao-btn--sm"
                           style={{ borderStyle: 'dashed' }}
-                          onClick={() => setPermModal({ roleId: role.id, bindingId: b.id })}
+                          onClick={() => openPermissionModal(role.id, b.id)}
+                          disabled={available.length === 0}
                         >
-                          + Adicionar
+                          {available.length === 0 ? 'Completo' : `Adicionar (${available.length})`}
                         </button>
                       </div>
-                      <div style={{ display: 'flex', gap: 'var(--ao-space-2)', flexWrap: 'wrap' }}>
+                      <div className="auth-role-list">
                         {perms.length === 0 && <span className="auth-muted">Nenhuma permissão</span>}
                         {perms.map((p) => (
                           <span key={p.id} className="ao-chip ao-chip--primary ao-chip--removable">
                             {p.name}
-                            <button className="ao-chip__remove" onClick={() => handleRemovePerm(role.id, b.id, p.id)}>×</button>
+                            <button className="ao-chip__remove" onClick={() => handleRemovePerm(role.id, b.id, p.id)} type="button">×</button>
                           </span>
                         ))}
                       </div>
@@ -282,27 +383,65 @@ export default function RbacRolesPage() {
 
       {permModal && (
         <div className="ao-modal-backdrop ao-modal-backdrop--centered" onClick={() => setPermModal(null)}>
-          <div className="ao-modal ao-modal--sm" onClick={(e) => e.stopPropagation()}>
+          <div className="ao-modal ao-modal--lg" onClick={(e) => e.stopPropagation()}>
             <div className="ao-modal__header">
-              <h3 className="ao-modal__title">Adicionar Permissão</h3>
-              <button className="ao-modal__close" onClick={() => setPermModal(null)}>×</button>
+              <div>
+                <h3 className="ao-modal__title">Adicionar permissões</h3>
+                <p className="ao-modal__subtitle">
+                  {modalRole?.name} / {modalBinding?.app_name}
+                </p>
+              </div>
+              <button className="ao-modal__close" onClick={() => setPermModal(null)} type="button">×</button>
             </div>
             <div className="ao-modal__body">
-              <p className="ao-modal__subtitle" style={{ marginBottom: 'var(--ao-space-4)' }}>
-                Binding: <strong>{bindings.find((b) => b.id === permModal.bindingId)?.app_name}</strong>
-              </p>
-              <select
-                className="ao-select"
-                autoFocus
-                onChange={(e) => {
-                  if (e.target.value) handleAssignPerm(permModal.roleId, permModal.bindingId, e.target.value);
-                }}
+              {modalAvailablePermissions.length === 0 ? (
+                <p className="auth-muted">Todas as permissões deste app já estão neste perfil.</p>
+              ) : (
+                <>
+                  <div className="auth-permission-modal-toolbar">
+                    <button
+                      className="ao-btn ao-btn--ghost ao-btn--sm"
+                      type="button"
+                      onClick={() => toggleAllModalPermissions(modalAvailablePermissions)}
+                    >
+                      {modalAllSelected ? 'Limpar seleção' : 'Selecionar todas'}
+                    </button>
+                    <span className="auth-table-note">
+                      {permModal.selectedIds.length} de {modalAvailablePermissions.length} selecionadas
+                    </span>
+                  </div>
+
+                  <div className="auth-permission-checklist">
+                    {modalAvailablePermissions.map((permission) => (
+                      <label className="auth-permission-option" key={permission.id}>
+                        <input
+                          className="auth-permission-option__input"
+                          type="checkbox"
+                          checked={permModal.selectedIds.includes(permission.id)}
+                          onChange={() => toggleModalPermission(permission.id)}
+                        />
+                        <span className="auth-permission-option__content">
+                          <span className="auth-permission-option__name">{permission.name}</span>
+                          <span className="auth-permission-option__meta">{permission.resource}:{permission.action}</span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="ao-modal__footer">
+              <button className="ao-btn ao-btn--secondary" type="button" onClick={() => setPermModal(null)} disabled={assigningPerms}>
+                Cancelar
+              </button>
+              <button
+                className="ao-btn ao-btn--primary"
+                type="button"
+                onClick={() => void handleAssignSelectedPerms()}
+                disabled={assigningPerms || permModal.selectedIds.length === 0}
               >
-                <option value="">Selecione uma permissão...</option>
-                {(bindingPerms[permModal.bindingId] || []).map((p) => (
-                  <option key={p.id} value={p.id}>{p.name} ({p.resource}:{p.action})</option>
-                ))}
-              </select>
+                {assigningPerms ? 'Adicionando' : `Adicionar ${permModal.selectedIds.length}`}
+              </button>
             </div>
           </div>
         </div>

@@ -21,6 +21,27 @@ export interface AppBindingOutput {
   updated_at: Date;
 }
 
+export interface BindingPermissionRegistrationInput {
+  name: string;
+  resource?: string | null;
+  action?: string | null;
+  label?: string | null;
+  description?: string | null;
+  source?: 'runtime' | 'auth_manifest';
+}
+
+export interface BindingAuthManifestInput {
+  version: number;
+  permissions: BindingPermissionRegistrationInput[];
+  policies?: unknown[];
+}
+
+type StoredSystemPermission = SystemPermission & {
+  label?: string;
+  description?: string;
+  source?: 'runtime' | 'auth_manifest';
+};
+
 export async function listAppBindings(): Promise<AppBindingOutput[]> {
   const bindings = await prisma.appBinding.findMany({
     orderBy: { created_at: 'desc' },
@@ -80,38 +101,159 @@ export async function updateAppBinding(
 
 // ─── Permission registration & merge ────────────────────────────────────────
 
-export async function registerBindingPermissions(
+function parseStoredSystemPermissions(raw: string): { entries: unknown[]; names: Set<string> } {
+  let entries: unknown[] = [];
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    entries = Array.isArray(parsed) ? parsed : [];
+  } catch {
+    entries = [];
+  }
+
+  const names = new Set<string>();
+  for (const entry of entries) {
+    if (typeof entry === 'string' && entry.trim()) {
+      names.add(entry.trim());
+      continue;
+    }
+
+    if (
+      entry &&
+      typeof entry === 'object' &&
+      'name' in entry &&
+      typeof (entry as { name?: unknown }).name === 'string' &&
+      (entry as { name: string }).name.trim()
+    ) {
+      names.add((entry as { name: string }).name.trim());
+    }
+  }
+
+  return { entries, names };
+}
+
+function getStoredPermissionName(entry: unknown): string | null {
+  if (typeof entry === 'string') return entry.trim() || null;
+  if (
+    entry &&
+    typeof entry === 'object' &&
+    'name' in entry &&
+    typeof (entry as { name?: unknown }).name === 'string'
+  ) {
+    return (entry as { name: string }).name.trim() || null;
+  }
+  return null;
+}
+
+function normalizePermissionRegistrations(
+  permissions: BindingPermissionRegistrationInput[],
+): StoredSystemPermission[] {
+  const byName = new Map<string, StoredSystemPermission>();
+
+  for (const input of permissions) {
+    const name = input.name.trim();
+    if (!name) continue;
+    const parsed = parsePermission(name);
+    const resource = input.resource?.trim() || parsed.resource;
+    const action = input.action?.trim() || parsed.action;
+    const normalized: StoredSystemPermission = {
+      name,
+      resource,
+      action,
+      ...(input.label?.trim() ? { label: input.label.trim() } : {}),
+      ...(input.description?.trim() ? { description: input.description.trim() } : {}),
+      ...(input.source ? { source: input.source } : {}),
+    };
+    byName.set(name, normalized);
+  }
+
+  return Array.from(byName.values());
+}
+
+function mergeStoredPermissionEntries(
+  entries: unknown[],
+  permissions: StoredSystemPermission[],
+): { entries: unknown[]; added: number } {
+  const nextEntries = [...entries];
+  let added = 0;
+
+  for (const permission of permissions) {
+    const existingIndex = nextEntries.findIndex((entry) => getStoredPermissionName(entry) === permission.name);
+    if (existingIndex >= 0) {
+      nextEntries[existingIndex] = {
+        ...(typeof nextEntries[existingIndex] === 'object' && nextEntries[existingIndex] !== null
+          ? nextEntries[existingIndex] as Record<string, unknown>
+          : {}),
+        ...permission,
+      };
+      continue;
+    }
+
+    nextEntries.push(permission);
+    added++;
+  }
+
+  return { entries: nextEntries, added };
+}
+
+async function registerBindingPermissionEntries(
   bindingId: string,
-  newPermissions: string[]
+  permissions: BindingPermissionRegistrationInput[],
 ): Promise<{ added: number; merged: boolean }> {
   const binding = await prisma.appBinding.findUnique({ where: { id: bindingId } });
   if (!binding) throw new Error('Binding not found');
 
-  // Parse existing
-  let existing: SystemPermission[] = [];
-  try {
-    existing = JSON.parse(binding.system_permissions) as SystemPermission[];
-  } catch {
-    existing = [];
-  }
+  const normalized = normalizePermissionRegistrations(permissions);
+  const { entries } = parseStoredSystemPermissions(binding.system_permissions);
+  const mergedEntries = mergeStoredPermissionEntries(entries, normalized);
 
-  const existingNames = new Set(existing.map((p) => p.name));
+  await prisma.$transaction(async (tx) => {
+    await tx.appBinding.update({
+      where: { id: bindingId },
+      data: { system_permissions: JSON.stringify(mergedEntries.entries) },
+    });
 
-  // Merge: adiciona só as novas
-  let added = 0;
-  for (const name of newPermissions) {
-    if (!existingNames.has(name)) {
-      existing.push(parsePermission(name));
-      added++;
+    // Catálogo canônico usado pela UI de Permissões/Perfis e pelo JWT.
+    for (const permission of normalized) {
+      await tx.bindingPermission.upsert({
+        where: { binding_id_name: { binding_id: bindingId, name: permission.name } },
+        create: {
+          binding_id: bindingId,
+          name: permission.name,
+          resource: permission.resource,
+          action: permission.action,
+        },
+        update: {
+          resource: permission.resource,
+          action: permission.action,
+        },
+      });
     }
-  }
-
-  await prisma.appBinding.update({
-    where: { id: bindingId },
-    data: { system_permissions: JSON.stringify(existing) },
   });
 
-  return { added, merged: added > 0 };
+  return { added: mergedEntries.added, merged: mergedEntries.added > 0 };
+}
+
+export async function registerBindingPermissions(
+  bindingId: string,
+  newPermissions: string[]
+): Promise<{ added: number; merged: boolean }> {
+  return registerBindingPermissionEntries(
+    bindingId,
+    newPermissions.map((name) => ({ name, source: 'runtime' })),
+  );
+}
+
+export async function registerBindingAuthManifest(
+  bindingId: string,
+  manifest: BindingAuthManifestInput,
+): Promise<{ added: number; merged: boolean }> {
+  return registerBindingPermissionEntries(
+    bindingId,
+    manifest.permissions.map((permission) => ({
+      ...permission,
+      source: 'auth_manifest',
+    })),
+  );
 }
 
 export async function getBindingPermissions(bindingId: string): Promise<SystemPermission[]> {

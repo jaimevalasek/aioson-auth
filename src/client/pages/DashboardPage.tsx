@@ -172,12 +172,46 @@ function inventoryHeaders(owner: DashboardOwnerContext): HeadersInit {
   };
 }
 
+interface AccessActionCardProps {
+  title: string;
+  description: string;
+  meta: string;
+  to?: string;
+  disabledLabel?: string;
+}
+
+function AccessActionCard({ title, description, meta, to, disabledLabel = 'Indisponível' }: AccessActionCardProps) {
+  const content = (
+    <>
+      <span className="auth-access-card__meta">{meta}</span>
+      <span className="auth-access-card__title">{title}</span>
+      <span className="auth-access-card__body">{description}</span>
+      <span className="auth-access-card__action">{to ? 'Abrir' : disabledLabel}</span>
+    </>
+  );
+
+  if (!to) {
+    return (
+      <button className="auth-access-card auth-access-card--disabled" type="button" disabled>
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <Link className="auth-access-card" to={to}>
+      {content}
+    </Link>
+  );
+}
+
 export default function DashboardPage() {
   const [bindings, setBindings] = useState<AppBinding[]>([]);
   const [inventory, setInventory] = useState<PlayAppInventoryItem[]>([]);
   const [access, setAccess] = useState<InventoryAccess>({ status: 'loading' });
   const [loadingBindings, setLoadingBindings] = useState(true);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [activeAccessBindingId, setActiveAccessBindingId] = useState<string | null>(null);
 
   async function loadDashboard() {
     setLoadingBindings(true);
@@ -229,12 +263,31 @@ export default function DashboardPage() {
     void loadDashboard();
   }, []);
 
+  const accessBindings = useMemo(
+    () => bindings.filter((binding) => binding.enable_rbac),
+    [bindings],
+  );
+
+  useEffect(() => {
+    if (accessBindings.length === 0) {
+      if (activeAccessBindingId) setActiveAccessBindingId(null);
+      return;
+    }
+
+    const currentIsValid = activeAccessBindingId
+      ? accessBindings.some((binding) => binding.id === activeAccessBindingId)
+      : false;
+    if (!currentIsValid) setActiveAccessBindingId(accessBindings[0].id);
+  }, [accessBindings, activeAccessBindingId]);
+
   const inventoryLoaded = access.status === 'ready';
   const rows = useMemo(
     () => buildRows(inventory, bindings, inventoryLoaded),
     [inventory, bindings, inventoryLoaded],
   );
   const selectedRow = rows.find((row) => row.key === selectedKey) ?? rows[0] ?? null;
+  const activeAccessBinding = accessBindings.find((binding) => binding.id === activeAccessBindingId) ?? accessBindings[0] ?? null;
+  const activeAccessPath = activeAccessBinding ? `/auth/bindings/${activeAccessBinding.id}` : null;
   const metrics = {
     detected: inventory.filter((item) => !item.archived_at).length,
     withBinding: rows.filter((row) => row.state === 'detected_with_binding').length,
@@ -258,9 +311,67 @@ export default function DashboardPage() {
         <span className="ao-chip">{metrics.archived} arquivados</span>
       </section>
 
+      <section className="auth-access-panel" id="access-control" aria-labelledby="access-control-title">
+        <div className="auth-section-head">
+          <div>
+            <h2 className="auth-section-title" id="access-control-title">Controle de acesso</h2>
+            <p className="auth-section-subtitle">Operadores globais, usuários por app, perfis e permissões.</p>
+          </div>
+          {accessBindings.length > 0 && (
+            <label className="auth-binding-picker">
+              <span>Vínculo ativo</span>
+              <select
+                className="ao-select"
+                value={activeAccessBinding?.id ?? ''}
+                onChange={(event) => setActiveAccessBindingId(event.target.value)}
+              >
+                {accessBindings.map((binding) => (
+                  <option value={binding.id} key={binding.id}>
+                    {binding.app_name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+        </div>
+
+        <div className="auth-access-grid">
+          <AccessActionCard
+            title="Operadores"
+            description="Contas globais do aioson-auth."
+            meta={`${bindings.length} vínculos`}
+            to="/auth/users"
+          />
+          <AccessActionCard
+            title="Usuários"
+            description={activeAccessBinding ? activeAccessBinding.app_name : 'Nenhum vínculo com RBAC ativo.'}
+            meta="por app"
+            to={activeAccessPath ? `${activeAccessPath}/users` : undefined}
+            disabledLabel="RBAC ausente"
+          />
+          <AccessActionCard
+            title="Perfis"
+            description={activeAccessBinding ? 'Perfis reutilizáveis com escopo por vínculo.' : 'Ative RBAC em um vínculo.'}
+            meta={activeAccessBinding ? activeAccessBinding.app_name : 'sem vínculo'}
+            to={activeAccessPath ? `${activeAccessPath}/roles` : undefined}
+            disabledLabel="RBAC ausente"
+          />
+          <AccessActionCard
+            title="Permissões"
+            description={activeAccessBinding ? 'Permissões de recurso e ação deste app.' : 'Ative RBAC em um vínculo.'}
+            meta={activeAccessBinding ? activeAccessBinding.app_name : 'sem vínculo'}
+            to={activeAccessPath ? `${activeAccessPath}/permissions` : undefined}
+            disabledLabel="RBAC ausente"
+          />
+        </div>
+      </section>
+
       <div className="auth-users-toolbar">
         <div className="auth-summary" style={{ marginBottom: 0 }}>
           <Link className="ao-btn ao-btn--secondary" to="/auth/users">Operadores</Link>
+          {activeAccessPath && <Link className="ao-btn ao-btn--secondary" to={`${activeAccessPath}/users`}>Usuários do app</Link>}
+          {activeAccessPath && <Link className="ao-btn ao-btn--secondary" to={`${activeAccessPath}/roles`}>Perfis</Link>}
+          {activeAccessPath && <Link className="ao-btn ao-btn--secondary" to={`${activeAccessPath}/permissions`}>Permissões</Link>}
           <Link className="ao-btn ao-btn--secondary" to="/auth/settings">Configurações</Link>
         </div>
         <button className="ao-btn ao-btn--ghost" type="button" onClick={() => void loadDashboard()} disabled={loadingBindings || access.status === 'loading'}>
@@ -323,7 +434,14 @@ export default function DashboardPage() {
                 </thead>
                 <tbody>
                   {rows.map((row) => (
-                    <tr key={row.key} onClick={() => setSelectedKey(row.key)} style={{ cursor: 'pointer' }}>
+                    <tr
+                      key={row.key}
+                      className={`auth-dashboard-row${selectedRow?.key === row.key ? ' auth-dashboard-row--selected' : ''}`}
+                      onClick={() => {
+                        setSelectedKey(row.key);
+                        if (row.binding?.enable_rbac) setActiveAccessBindingId(row.binding.id);
+                      }}
+                    >
                       <td>
                         <strong>{row.appName}</strong>
                         <p className="auth-table-note">{row.slug ?? row.key}</p>
@@ -388,6 +506,28 @@ export default function DashboardPage() {
                 <span className="ao-chip ao-chip--sm" title={warning} key={warning}>{warning}</span>
               ))}
             </div>
+
+            {selectedRow.binding?.enable_rbac ? (
+              <div className="auth-selected-actions" aria-label="Ações do vínculo selecionado">
+                <Link className="ao-btn ao-btn--secondary" to={`/auth/bindings/${selectedRow.binding.id}/users`}>
+                  Gerenciar usuários
+                </Link>
+                <Link className="ao-btn ao-btn--secondary" to={`/auth/bindings/${selectedRow.binding.id}/roles`}>
+                  Gerenciar perfis
+                </Link>
+                <Link className="ao-btn ao-btn--secondary" to={`/auth/bindings/${selectedRow.binding.id}/permissions`}>
+                  Gerenciar permissões
+                </Link>
+              </div>
+            ) : selectedRow.binding ? (
+              <div className="auth-selected-actions" aria-label="Ações do vínculo selecionado">
+                <button className="ao-btn ao-btn--secondary" type="button" disabled>
+                  RBAC desativado
+                </button>
+              </div>
+            ) : (
+              <p className="auth-table-note auth-selected-note">Sem vínculo de autenticação cadastrado para este item.</p>
+            )}
           </div>
         </section>
       )}
