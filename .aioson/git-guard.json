@@ -3,7 +3,9 @@
   "allowPaths": [],
   "contentAllowPaths": [
     "sdk/test/core-flows.test.mjs",
-    "sdk/test/next-adapter.test.mjs"
+    "sdk/test/next-adapter.test.mjs",
+    "sdk/test/embedded-smoke.mjs",
+    "test/dashboard-owner-context.test.mjs"
   ],
   "blockPaths": [
     "node_modules/**",

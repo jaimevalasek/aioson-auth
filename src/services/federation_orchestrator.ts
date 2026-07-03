@@ -21,6 +21,7 @@ import {
   KeyringBridgeError,
   readConnectionString,
 } from './connection_string_keyring.js';
+import { startRevocationPoller, stopRevocationPoller } from './revocation_poller.js';
 
 export type ActivationResult =
   | { ok: true; provider: DbProvider; activated_at: string }
@@ -177,11 +178,64 @@ export async function activateFederation(input: {
     };
   }
 
+  // M-2 da auditoria 2026-07-02: a ativação em runtime não iniciava o poller
+  // (só o boot iniciava) — status ficava "never_started" até reiniciar.
+  try {
+    startRevocationPoller(input.aiosonPlayId);
+  } catch (err) {
+    console.warn('[federation] activate: startRevocationPoller falhou (não-fatal):', err);
+  }
+
   return {
     ok: true,
     provider,
     activated_at: now.toISOString(),
   };
+}
+
+/**
+ * Desativa Federação (era 501 no MVP): marca `federation_active=false` no
+ * SQLite local, para o poller e devolve o mainPrisma pro destino local.
+ * Idempotente — desativar já-desativada é no-op ok.
+ *
+ * NÃO apaga a connection string do keyring — quem guarda/apaga é o lado
+ * Tauri (Play), dono do keyring.
+ */
+export async function deactivateFederation(): Promise<
+  { ok: true } | { ok: false; error: string; code: 'persist_failed' }
+> {
+  try {
+    const existing = await localPrisma.federationConfig.findUnique({
+      where: { id: 'singleton' },
+    });
+    if (existing?.federation_active) {
+      await localPrisma.federationConfig.update({
+        where: { id: 'singleton' },
+        data: { federation_active: false },
+      });
+    }
+  } catch (err) {
+    return {
+      ok: false,
+      error: `falha ao persistir desativação: ${(err as Error).message}`,
+      code: 'persist_failed',
+    };
+  }
+
+  try {
+    stopRevocationPoller();
+  } catch (err) {
+    console.warn('[federation] deactivate: stopRevocationPoller falhou (não-fatal):', err);
+  }
+  try {
+    await reloadMainPrismaFromConfig();
+  } catch (err) {
+    console.warn(
+      '[federation] deactivate: reload mainPrisma falhou (volta ao local no próximo boot):',
+      err,
+    );
+  }
+  return { ok: true };
 }
 
 /**

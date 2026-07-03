@@ -2,6 +2,15 @@ import { useState, useEffect } from 'react';
 import { useParams, NavLink } from 'react-router-dom';
 import AuthLayout from '../components/AuthLayout';
 
+function adminHeaders(): HeadersInit {
+  const token = localStorage.getItem('adminToken');
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
+
+
 interface AuthUser {
   id: string;
   email: string;
@@ -73,7 +82,7 @@ export default function RbacUsersPage() {
     try {
       const res = await fetch(`/api/auth/${bindingId}/rbac/users`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify({ email: newEmail, password: newPassword }),
       });
       if (!res.ok) {
@@ -96,7 +105,7 @@ export default function RbacUsersPage() {
     if (!confirm('Remover este usuário?')) return;
     if (!bindingId) return;
     try {
-      const res = await fetch(`/api/auth/${bindingId}/rbac/users/${userId}`, { method: 'DELETE' });
+      const res = await fetch(`/api/auth/${bindingId}/rbac/users/${userId}`, { method: 'DELETE', headers: adminHeaders() });
       if (!res.ok) throw new Error('Failed to delete');
       setMessage({ type: 'success', text: 'Usuário removido.' });
       await loadData();
@@ -110,7 +119,7 @@ export default function RbacUsersPage() {
     try {
       await fetch(`/api/auth/${bindingId}/rbac/users/${userId}/roles`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify({ roleId }),
       });
       await loadData();
@@ -122,7 +131,7 @@ export default function RbacUsersPage() {
   async function handleRemoveRole(userId: string, roleId: string) {
     if (!bindingId) return;
     try {
-      await fetch(`/api/auth/${bindingId}/rbac/users/${userId}/roles/${roleId}`, { method: 'DELETE' });
+      await fetch(`/api/auth/${bindingId}/rbac/users/${userId}/roles/${roleId}`, { method: 'DELETE', headers: adminHeaders() });
       await loadData();
     } catch {
       setMessage({ type: 'error', text: 'Falha ao remover role.' });

@@ -4,7 +4,7 @@
 //   POST /api/auth/admin/federation/test-connection
 //   POST /api/auth/admin/federation/activate
 //   GET  /api/auth/admin/federation/status
-//   POST /api/auth/admin/federation/deactivate   (501 stub no MVP)
+//   POST /api/auth/admin/federation/deactivate   (real desde 2026-07-02)
 //
 // Todos protegidos por `validateOwnerBearer` (ADR-02) — caller precisa de
 // Bearer aioson.com válido + header X-Aioson-Play-Id que bata com a
@@ -17,6 +17,7 @@ import { z } from 'zod';
 import { validateOwnerBearer } from '../middleware/validate_owner_bearer.js';
 import {
   activateFederation,
+  deactivateFederation,
   getFederationStatus,
   testConnection,
 } from '../services/federation_orchestrator.js';
@@ -130,11 +131,13 @@ adminFederationRouter.post(
   '/deactivate',
   validateOwnerBearer,
   async (_req, res) => {
-    // MVP: 501 Not Implemented. Roadmap futuro (vide architecture §9).
-    return res.status(501).json({
-      error: 'not_implemented',
-      message:
-        'Desativar Federação não está disponível no MVP — re-instale o Play em modo single-device pra reverter.',
-    });
+    // Era 501 no MVP (ativação sem volta). Auditoria 2026-07-02 (CO-F3/AU-G4):
+    // desativa de verdade — federation_active=false + para poller + mainPrisma
+    // volta pro local. O keyring é limpo pelo lado Tauri (Play).
+    const result = await deactivateFederation();
+    if (!result.ok) {
+      return res.status(500).json({ error: result.code, message: result.error });
+    }
+    return res.json({ ok: true });
   },
 );

@@ -337,6 +337,16 @@ POST /api/auth/:bindingId/2fa/disable?token=<accessToken>
 ## 6 — RBAC (Perfis e Permissões)
 
 > **Pré-requisito:** O vínculo precisa ter `enable_rbac: true`.
+>
+> **Autenticação (desde 2026-07-02):** todas as operações de **escrita** de
+> RBAC (criar/editar/apagar perfis, criar/apagar usuários, criar/apagar
+> permissões, vincular/desvincular perfil↔permissão e usuário↔perfil) exigem
+> `Authorization: Bearer <adminToken do painel>` OU o Bearer de dono
+> (`Authorization: Bearer aioson-com:<jwt>` + header `X-Aioson-Play-Id`).
+> Antes ficavam abertas — qualquer processo local podia criar/apagar perfis.
+> As **leituras** (GET) seguem sem autenticação, pois apps as consomem em
+> runtime. O `POST /:bindingId/register-permissions` (auto-registro de
+> permissões no boot do app) também segue aberto.
 
 ### 6.1 Perfis Globais (Roles)
 

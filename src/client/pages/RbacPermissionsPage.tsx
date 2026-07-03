@@ -2,6 +2,15 @@ import { useState, useEffect, useMemo } from 'react';
 import { useParams, NavLink } from 'react-router-dom';
 import AuthLayout from '../components/AuthLayout';
 
+function adminHeaders(): HeadersInit {
+  const token = localStorage.getItem('adminToken');
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
+
+
 interface Permission {
   id: string;
   name: string;
@@ -145,7 +154,7 @@ export default function RbacPermissionsPage() {
     try {
       const res = await fetch(`/api/auth/${bindingId}/rbac/permissions`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify({ name: newName, resource: newResource, action: newAction }),
       });
       if (!res.ok) throw new Error('Failed to create permission');
@@ -158,7 +167,7 @@ export default function RbacPermissionsPage() {
             try {
               const r = await fetch(`/api/auth/rbac/roles/${roleId}/permissions`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: adminHeaders(),
                 body: JSON.stringify({ permissionId: created.id, bindingId }),
               });
               if (!r.ok) attachErrors.push(roleId);
@@ -197,7 +206,7 @@ export default function RbacPermissionsPage() {
     if (!bindingId) return;
     if (!confirm('Remover esta permissão?')) return;
     try {
-      await fetch(`/api/auth/${bindingId}/rbac/permissions/${permissionId}`, { method: 'DELETE' });
+      await fetch(`/api/auth/${bindingId}/rbac/permissions/${permissionId}`, { method: 'DELETE', headers: adminHeaders() });
       setMessage({ type: 'success', text: 'Permissão removida.' });
       await loadPermissions();
     } catch {

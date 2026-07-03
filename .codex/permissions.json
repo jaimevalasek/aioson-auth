@@ -43,7 +43,8 @@
     "dossier:add-codemap",
     "dossier:add-finding",
     "dossier:link-rule",
-    "notify"
+    "notify",
+    "memory:trim"
   ],
   "shell_denied": [
     "git push *",

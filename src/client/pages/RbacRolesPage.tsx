@@ -2,6 +2,15 @@ import { useState, useEffect } from 'react';
 import { useParams, NavLink } from 'react-router-dom';
 import AuthLayout from '../components/AuthLayout';
 
+function adminHeaders(): HeadersInit {
+  const token = localStorage.getItem('adminToken');
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
+
+
 interface Role {
   id: string;
   name: string;
@@ -97,7 +106,7 @@ export default function RbacRolesPage() {
     try {
       const res = await fetch('/api/auth/rbac/roles', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: adminHeaders(),
         body: JSON.stringify({ name: newName, description: newDesc || undefined }),
       });
       if (!res.ok) {
@@ -119,7 +128,7 @@ export default function RbacRolesPage() {
   async function handleDelete(roleId: string) {
     if (!confirm('Remover este perfil?')) return;
     try {
-      const res = await fetch(`/api/auth/rbac/roles/${roleId}`, { method: 'DELETE' });
+      const res = await fetch(`/api/auth/rbac/roles/${roleId}`, { method: 'DELETE', headers: adminHeaders() });
       if (!res.ok) throw new Error('Failed');
       setMsg({ type: 'success', text: 'Perfil removido.' });
       await loadData();
@@ -172,7 +181,7 @@ export default function RbacRolesPage() {
         selectedIds.map((permissionId) =>
           fetch(`/api/auth/rbac/roles/${roleId}/permissions`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: adminHeaders(),
             body: JSON.stringify({ permissionId, bindingId }),
           })
         )
@@ -207,7 +216,7 @@ export default function RbacRolesPage() {
 
   async function handleRemovePerm(roleId: string, bindingId: string, permId: string) {
     try {
-      const res = await fetch(`/api/auth/rbac/roles/${roleId}/permissions/${permId}?bindingId=${bindingId}`, { method: 'DELETE' });
+      const res = await fetch(`/api/auth/rbac/roles/${roleId}/permissions/${permId}?bindingId=${bindingId}`, { method: 'DELETE', headers: adminHeaders() });
       if (!res.ok) throw new Error('Failed');
       setRolePerms((current) => {
         const roleMap = current[roleId] || {};
