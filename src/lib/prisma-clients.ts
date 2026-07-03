@@ -29,6 +29,19 @@
 //
 // Quando o motor multi-provider runtime estiver disponível (Prisma 7+
 // roadmap ou Drizzle/Kysely), isto é o ponto a refatorar.
+//
+// ── DECISÃO 2026-07-02 (auditoria federação + dono): modelo oficial é
+// MASTER-COMO-SERVIDOR — satélites autenticam operadores direto no
+// aioson-auth do MASTER via rede (shell login/unlock/refresh do Play já
+// fazem isso). Consequência: a maquinaria de "sync via banco compartilhado"
+// deste arquivo é VESTIGIAL — as actions de negócio escrevem no cliente
+// legado `lib/prisma.ts` (nunca no mainPrisma), o revocation_poller lê um
+// cache que nenhum caminho de produção consulta, e as colunas de origem
+// (aioson_play_origin_id) nunca são populadas. NÃO construir features novas
+// em cima do mainPrisma/poller sem antes resolver essa contradição
+// (dossiê: aioson-play/.aioson/context/simple-plans/federation-audit.md,
+// findings AU-C1/C2/C3 + G-1). Doc do modelo:
+// aioson-play/.aioson/docs/integrations/federation-model.md
 
 import { PrismaClient } from '@prisma/client';
 
