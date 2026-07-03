@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import { prisma } from '../lib/prisma.js';
 import { z } from 'zod';
 
-const JWT_SECRET = process.env['JWT_SECRET'] || 'dev-secret-change-in-production';
+import { JWT_SECRET } from '../lib/jwt-secret.js';
 const ADMIN_TOKEN_TTL_SECS = 8 * 60 * 60; // 8 hours
 
 export interface AdminLoginInput {

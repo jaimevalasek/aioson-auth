@@ -52,3 +52,5 @@ aioson-logs/
 researchs/
 squad-searches/
 .codex/*
+prisma/.jwt-secret
+
