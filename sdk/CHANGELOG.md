@@ -4,9 +4,18 @@ Todas as mudanças relevantes do `@aioson/auth-sdk` ficam registradas aqui.
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e o projeto segue [Semantic Versioning](https://semver.org/lang/pt-BR/) (em `0.x` enquanto o contrato do `aioson-auth` não está congelado — minor pode quebrar API).
 
+## [Unreleased]
+
+- Removida a compatibilidade de Bearer em query string no servidor e no
+  middleware Express; use sempre `Authorization: Bearer <jwt>`.
+- Callbacks SSO do SDK leem tokens no fragmento e limpam o fragmento após a
+  leitura, evitando tokens em histórico, logs de URL e cabeçalho Referer.
+
 ## [0.2.0] — 2026-05-13
 
-Consolida as slices C, D e E entregues após o release inicial. Sem breaking changes em runtime — o servidor continua aceitando `?token=` query para clientes antigos, mas o SDK passa a usar o header canônico.
+Consolida as slices C, D e E entregues após o release inicial. Na versão
+original, o servidor ainda aceitava `?token=` durante a janela de migração;
+essa compatibilidade foi removida em `Unreleased` por segurança.
 
 ### Added
 
@@ -18,7 +27,7 @@ Consolida as slices C, D e E entregues após o release inicial. Sem breaking cha
 
 ### Changed
 
-- **Authorization header** — `auth.me()`, `auth.check()` e o novo `auth.mePermissions()` agora enviam `Authorization: Bearer <jwt>` (RFC 6750) em vez do query param `?token=`. O servidor (aioson-auth ≥ commit `0800f82`, Slices D+E) aceita ambos, então clientes em versões antigas seguem funcionando até atualizarem. (Slice D)
+- **Authorization header** — `auth.me()`, `auth.check()` e o novo `auth.mePermissions()` enviam `Authorization: Bearer <jwt>` (RFC 6750) em vez do query param `?token=`. (Slice D)
 - README com tabela completa de métodos do core e nota sobre o header canônico.
 
 ## [0.1.0] — 2026-05-13

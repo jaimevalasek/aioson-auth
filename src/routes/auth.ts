@@ -1,9 +1,7 @@
-import { Router } from 'express';
+import { Router, type Request } from 'express';
 import {
   register,
   login,
-  oauthLogin,
-  verifyAccessToken,
   validateRefreshToken,
   logout,
   forgotPassword,
@@ -11,10 +9,17 @@ import {
 } from '../actions/AuthAction.js';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
-import { extractAccessToken } from '../lib/extract-token.js';
 import { getUserPermissionsForBinding } from '../actions/RbacAction.js';
+import { authenticateBindingRequest } from '../lib/binding-auth.js';
+import { AuthError, sendAuthError } from '../lib/auth-error.js';
+import { authRateLimiters } from '../middleware/auth-rate-limit.js';
 
 export const authRouter = Router({ mergeParams: true });
+
+function getBindingId(req: Request): string {
+  const bindingId = req.params.bindingId;
+  return typeof bindingId === 'string' ? bindingId : bindingId?.[0] ?? '';
+}
 
 const RegisterSchema = z.object({
   email: z.string().email(),
@@ -29,7 +34,7 @@ const LoginSchema = z.object({
 const OAuthSchema = z.object({
   email: z.string().email(),
   provider: z.enum(['google', 'github']),
-  providerId: z.string(),
+  providerId: z.string().min(1),
   name: z.string().optional(),
 });
 
@@ -51,122 +56,105 @@ const ResetSchema = z.object({
 });
 
 // POST /api/auth/:bindingId/register
-authRouter.post('/:bindingId/register', async (req, res) => {
+authRouter.post('/:bindingId/register', ...authRateLimiters, async (req, res) => {
   try {
-    const { bindingId } = req.params;
+    const bindingId = getBindingId(req);
     const binding = await prisma.appBinding.findUnique({ where: { id: bindingId } });
-    if (!binding) return res.status(404).json({ error: 'Binding not found' });
+    if (!binding) throw new AuthError('binding_not_found');
 
     const parsed = RegisterSchema.parse(req.body);
     const result = await register(parsed.email, parsed.password);
     return res.status(201).json(result);
   } catch (err) {
-    if (err instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Validation failed', details: err.errors });
-    }
-    console.error('[auth/register]', err);
-    return res.status(400).json({ error: String(err) });
+    return sendAuthError(req, res, err, 'register', getBindingId(req));
   }
 });
 
 // POST /api/auth/:bindingId/login
-authRouter.post('/:bindingId/login', async (req, res) => {
+authRouter.post('/:bindingId/login', ...authRateLimiters, async (req, res) => {
   try {
-    const { bindingId } = req.params;
+    const bindingId = getBindingId(req);
     const binding = await prisma.appBinding.findUnique({ where: { id: bindingId } });
-    if (!binding) return res.status(404).json({ error: 'Binding not found' });
+    if (!binding) throw new AuthError('binding_not_found');
 
     const parsed = LoginSchema.parse(req.body);
     const result = await login(parsed.email, parsed.password, bindingId);
     return res.json(result);
   } catch (err) {
-    if (err instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Validation failed', details: err.errors });
-    }
-    console.error('[auth/login]', err);
-    return res.status(401).json({ error: String(err) });
+    return sendAuthError(req, res, err, 'login', getBindingId(req));
   }
 });
 
 // POST /api/auth/:bindingId/oauth
-authRouter.post('/:bindingId/oauth', async (req, res) => {
+authRouter.post('/:bindingId/oauth', ...authRateLimiters, async (req, res) => {
   try {
-    const { bindingId } = req.params;
+    const bindingId = getBindingId(req);
     const binding = await prisma.appBinding.findUnique({ where: { id: bindingId } });
-    if (!binding) return res.status(404).json({ error: 'Binding not found' });
+    if (!binding) throw new AuthError('binding_not_found');
 
-    const parsed = OAuthSchema.parse(req.body);
-    const result = await oauthLogin(parsed.email, parsed.name, bindingId);
-    return res.json(result);
+    OAuthSchema.parse(req.body);
+    // Client-supplied email/providerId is not an OAuth proof. Keep this
+    // endpoint fail-closed until a server-side provider verifier is wired.
+    throw new AuthError('oauth_verification_required');
   } catch (err) {
-    if (err instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Validation failed', details: err.errors });
-    }
-    console.error('[auth/oauth]', err);
-    return res.status(400).json({ error: String(err) });
+    return sendAuthError(req, res, err, 'oauth', getBindingId(req));
   }
 });
 
 // POST /api/auth/:bindingId/refresh
 authRouter.post('/:bindingId/refresh', async (req, res) => {
   try {
-    const { bindingId } = req.params;
+    const bindingId = getBindingId(req);
     const parsed = RefreshSchema.parse(req.body);
     const result = await validateRefreshToken(parsed.refreshToken, bindingId);
     return res.json(result);
   } catch (err) {
-    console.error('[auth/refresh]', err);
-    return res.status(401).json({ error: String(err) });
+    return sendAuthError(req, res, err, 'refresh', getBindingId(req));
   }
 });
 
 // POST /api/auth/:bindingId/logout
 authRouter.post('/:bindingId/logout', async (req, res) => {
   try {
+    const bindingId = getBindingId(req);
     const parsed = LogoutSchema.parse(req.body);
-    await logout(parsed.refreshToken);
+    await logout(parsed.refreshToken, bindingId);
     return res.status(204).send();
   } catch (err) {
-    console.error('[auth/logout]', err);
-    return res.status(500).json({ error: String(err) });
+    return sendAuthError(req, res, err, 'logout', getBindingId(req));
   }
 });
 
 // POST /api/auth/:bindingId/forgot-password
-authRouter.post('/:bindingId/forgot-password', async (req, res) => {
+authRouter.post('/:bindingId/forgot-password', ...authRateLimiters, async (req, res) => {
   try {
     const parsed = ForgotSchema.parse(req.body);
     const result = await forgotPassword(parsed.email);
     return res.json(result);
   } catch (err) {
-    console.error('[auth/forgot-password]', err);
-    return res.status(500).json({ error: String(err) });
+    return sendAuthError(req, res, err, 'forgot_password', getBindingId(req));
   }
 });
 
 // POST /api/auth/:bindingId/reset-password
-authRouter.post('/:bindingId/reset-password', async (req, res) => {
+authRouter.post('/:bindingId/reset-password', ...authRateLimiters, async (req, res) => {
   try {
     const parsed = ResetSchema.parse(req.body);
     const result = await resetPassword(parsed.token, parsed.newPassword);
     return res.json(result);
   } catch (err) {
-    console.error('[auth/reset-password]', err);
-    return res.status(400).json({ error: String(err) });
+    return sendAuthError(req, res, err, 'reset_password', getBindingId(req));
   }
 });
 
 // GET /api/auth/:bindingId/me
-// Aceita `Authorization: Bearer <jwt>` (preferido) ou `?token=<jwt>` (legacy).
+// Aceita somente `Authorization: Bearer <jwt>`.
 authRouter.get('/:bindingId/me', async (req, res) => {
   try {
-    const token = extractAccessToken(req);
-    if (!token) return res.status(401).json({ error: 'Missing token' });
-
-    const payload = await verifyAccessToken(token);
+    const payload = await authenticateBindingRequest(req, getBindingId(req));
     return res.json(payload);
   } catch (err) {
-    return res.status(401).json({ error: String(err) });
+    return sendAuthError(req, res, err, 'me', getBindingId(req));
   }
 });
 
@@ -176,15 +164,11 @@ authRouter.get('/:bindingId/me', async (req, res) => {
 // Bate na mesma fonte de verdade que /rbac/check usa.
 authRouter.get('/:bindingId/me/permissions', async (req, res) => {
   try {
-    const { bindingId } = req.params;
-    const token = extractAccessToken(req);
-    if (!token) return res.status(401).json({ error: 'Missing token' });
-    const payload = await verifyAccessToken(token);
-    const permissions = await getUserPermissionsForBinding(payload.sub, bindingId).catch(
-      () => []
-    );
+    const bindingId = getBindingId(req);
+    const payload = await authenticateBindingRequest(req, bindingId);
+    const permissions = await getUserPermissionsForBinding(payload.sub, bindingId);
     return res.json({ permissions });
   } catch (err) {
-    return res.status(401).json({ error: String(err) });
+    return sendAuthError(req, res, err, 'me_permissions', getBindingId(req));
   }
 });

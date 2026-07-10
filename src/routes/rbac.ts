@@ -1,10 +1,10 @@
 import { Router, type Request, type Response, type NextFunction } from 'express';
 import { z } from 'zod';
-import { verifyAccessToken } from '../actions/AuthAction.js';
 import { verifyAdminToken } from '../actions/AdminAuthAction.js';
 import { validateOwnerBearer } from '../middleware/validate_owner_bearer.js';
 import { getBinding } from '../actions/AppBindingAction.js';
-import { extractAccessToken } from '../lib/extract-token.js';
+import { authenticateBindingRequest } from '../lib/binding-auth.js';
+import { AuthError, sendAuthError } from '../lib/auth-error.js';
 import {
   generateTotpSecret,
   verifyTotpSetup,
@@ -62,51 +62,40 @@ const requireRbacAdmin = async (req: any, res: any, next: any): Promise<void> =>
 
 // ─── 2FA Routes ────────────────────────────────────────────────────────
 
-// 2FA endpoints aceitam `Authorization: Bearer <jwt>` (preferido) ou
-// `?token=<jwt>` (legacy) — Slice D.
+// 2FA endpoints aceitam somente `Authorization: Bearer <jwt>`.
 
 rbacRouter.post('/:bindingId/2fa/setup', async (req, res) => {
   try {
     const { bindingId } = req.params;
-    const token = extractAccessToken(req);
-    if (!token) return res.status(401).json({ error: 'Missing token' });
-    const payload = await verifyAccessToken(token);
+    const payload = await authenticateBindingRequest(req, bindingId);
     const result = await generateTotpSecret(bindingId, payload.sub);
     return res.json(result);
   } catch (err) {
-    console.error('[2fa/setup]', err);
-    return res.status(400).json({ error: String(err) });
+    return sendAuthError(req, res, err, 'two_factor_setup', req.params.bindingId);
   }
 });
 
 rbacRouter.post('/:bindingId/2fa/verify', async (req, res) => {
   try {
     const { bindingId } = req.params;
-    const token = extractAccessToken(req);
-    if (!token) return res.status(401).json({ error: 'Missing token' });
-    const payload = await verifyAccessToken(token);
+    const payload = await authenticateBindingRequest(req, bindingId);
     const schema = z.object({ totpToken: z.string().length(6) });
     const { totpToken } = schema.parse(req.body);
     const result = await verifyTotpSetup(bindingId, payload.sub, totpToken);
     return res.json(result);
   } catch (err) {
-    if (err instanceof z.ZodError) return res.status(400).json({ error: 'Validation failed', details: err.errors });
-    console.error('[2fa/verify]', err);
-    return res.status(400).json({ error: String(err) });
+    return sendAuthError(req, res, err, 'two_factor_verify', req.params.bindingId);
   }
 });
 
 rbacRouter.post('/:bindingId/2fa/disable', async (req, res) => {
   try {
     const { bindingId } = req.params;
-    const token = extractAccessToken(req);
-    if (!token) return res.status(401).json({ error: 'Missing token' });
-    const payload = await verifyAccessToken(token);
+    const payload = await authenticateBindingRequest(req, bindingId);
     await disableTotp(bindingId, payload.sub);
     return res.json({ disabled: true });
   } catch (err) {
-    console.error('[2fa/disable]', err);
-    return res.status(400).json({ error: String(err) });
+    return sendAuthError(req, res, err, 'two_factor_disable', req.params.bindingId);
   }
 });
 
@@ -366,20 +355,19 @@ rbacRouter.get('/:bindingId/rbac/users/:userId', async (req, res) => {
 
 // ─── Permission check (for app runtime) ────────────────────────────────
 
-// /rbac/check aceita Bearer header (preferido) ou ?token= (legacy) — Slice D.
+// /rbac/check aceita somente Bearer header.
 rbacRouter.get('/:bindingId/rbac/check', async (req, res) => {
   try {
     const { bindingId } = req.params;
-    const token = extractAccessToken(req);
     const permission = req.query['permission'] as string | undefined;
-    if (!token) return res.status(401).json({ error: 'Missing token' });
-    if (!permission) return res.status(400).json({ error: 'Missing permission' });
-    const payload = await verifyAccessToken(token);
+    if (!permission) {
+      return sendAuthError(req, res, new AuthError('validation_failed'), 'rbac_check', bindingId);
+    }
+    const payload = await authenticateBindingRequest(req, bindingId);
     const allowed = await checkUserPermissionForBinding(payload.sub, bindingId, permission);
     return res.json({ allowed });
   } catch (err) {
-    console.error('[rbac/check]', err);
-    return res.status(500).json({ error: String(err) });
+    return sendAuthError(req, res, err, 'rbac_check', req.params.bindingId);
   }
 });
 

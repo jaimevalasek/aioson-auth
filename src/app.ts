@@ -20,6 +20,8 @@ import { scheduleRevocationCleanup } from './actions/TokenRevocationAction.js';
 import { localPrisma, reloadMainPrismaFromConfig } from './lib/prisma-clients.js';
 import { startRevocationPoller } from './services/revocation_poller.js';
 import { readConnectionString } from './services/connection_string_keyring.js';
+import { AuthError, sendAuthError } from './lib/auth-error.js';
+import { requestContext } from './lib/request-context.js';
 
 function resolveClientDistPath() {
   const currentDir = dirname(fileURLToPath(import.meta.url));
@@ -42,6 +44,7 @@ export function createApp() {
     crossOriginResourcePolicy: false,
     frameguard: false,
   }));
+  app.use(requestContext);
   // Slice C (auth-integration-gaps.md): CORS configurável por env. Permite
   // que apps cloud (Vercel, custom domain, etc.) consumam o aioson-auth sem
   // mudar código. Formato de `ALLOWED_ORIGINS`:
@@ -50,7 +53,9 @@ export function createApp() {
   //   - cada entry pode começar com `http://` ou `https://`; matching é exato
   //   - default (env ausente): localhost/127.0.0.1 — comportamento legado.
   const rawAllowed = process.env['ALLOWED_ORIGINS']?.trim();
-  const allowAny = rawAllowed === '*';
+  const allowAny = rawAllowed === '*'
+    && process.env['NODE_ENV'] !== 'production'
+    && process.env['AIOSON_AUTH_ALLOW_ANY_ORIGIN'] === 'true';
   const allowedOrigins = rawAllowed && !allowAny
     ? rawAllowed.split(',').map((s) => s.trim()).filter(Boolean)
     : null;
@@ -62,13 +67,12 @@ export function createApp() {
       if (allowAny) return callback(null, true);
       if (allowedOrigins) {
         if (allowedOrigins.includes(origin)) return callback(null, true);
-        return callback(new Error('Not allowed by CORS'));
+        return callback(new AuthError('cors_origin_not_allowed'));
       }
-      // Fallback legado: localhost/127.0.0.1 em qualquer porta
-      if (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')) {
+      if (isLocalPlayOrigin(origin)) {
         return callback(null, true);
       }
-      return callback(new Error('Not allowed by CORS'));
+      return callback(new AuthError('cors_origin_not_allowed'));
     },
     credentials: true,
   }));
@@ -91,6 +95,15 @@ export function createApp() {
     res.json({ status: 'ok' });
   });
 
+  app.get('/ready', async (_req, res) => {
+    try {
+      await localPrisma.$queryRaw`SELECT 1`;
+      return res.json({ status: 'ready', version: process.env['npm_package_version'] ?? 'unknown' });
+    } catch (error) {
+      return sendAuthError(_req, res, error, 'readiness');
+    }
+  });
+
   const clientDistPath = resolveClientDistPath();
   if (clientDistPath) {
     app.use(express.static(clientDistPath));
@@ -98,6 +111,10 @@ export function createApp() {
       res.sendFile(resolve(clientDistPath, 'index.html'));
     });
   }
+
+  app.use((error: unknown, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    return sendAuthError(req, res, error, 'http_request');
+  });
 
   // S1B.5 — agenda cleanup do TokenRevocation a cada 1h (ADR-07).
   scheduleRevocationCleanup();
@@ -110,6 +127,17 @@ export function createApp() {
   void bootstrapFederation();
 
   return app;
+}
+
+function isLocalPlayOrigin(origin: string): boolean {
+  try {
+    const url = new URL(origin);
+    return url.protocol === 'http:'
+      && Boolean(url.port)
+      && (url.hostname === 'localhost' || url.hostname === '127.0.0.1');
+  } catch {
+    return false;
+  }
 }
 
 async function bootstrapFederation(): Promise<void> {

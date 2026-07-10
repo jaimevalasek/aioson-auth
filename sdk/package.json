@@ -51,7 +51,8 @@
     "test:embedded": "node test/embedded-smoke.mjs",
     "test:core": "node test/core-flows.test.mjs",
     "test:next": "node test/next-adapter.test.mjs",
-    "test": "node test/embedded-smoke.mjs && node test/core-flows.test.mjs && node test/next-adapter.test.mjs"
+    "test:remote": "node --test test/remote-verifier.test.mjs",
+    "test": "node test/embedded-smoke.mjs && node test/core-flows.test.mjs && node test/next-adapter.test.mjs && node --test test/remote-verifier.test.mjs"
   },
   "keywords": [
     "aioson",

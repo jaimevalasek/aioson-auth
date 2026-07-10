@@ -3,10 +3,19 @@
 // imports são avaliados na ordem em que aparecem.
 import 'dotenv/config';
 import { createApp } from './app.js';
+import { ensureAuthSessionBindingSchema } from './lib/auth-session-binding-migration.js';
 
-const app = createApp();
-const PORT = process.env['PORT'] || 3001;
+async function startServer(): Promise<void> {
+  await ensureAuthSessionBindingSchema();
 
-app.listen(PORT, () => {
-  console.log(`[server] running on http://localhost:${PORT}`);
+  const app = createApp();
+  const port = process.env['PORT'] || 3091;
+  app.listen(port, () => {
+    console.log(`[server] running on http://localhost:${port}`);
+  });
+}
+
+void startServer().catch((error) => {
+  console.error('[server] startup failed', error);
+  process.exit(1);
 });

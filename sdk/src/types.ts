@@ -13,6 +13,12 @@ export interface AuthSession {
   user: User;
 }
 
+export interface InitialAuthSession {
+  accessToken: string;
+  refreshToken: string;
+  user?: User;
+}
+
 /**
  * Payload do JWT do access token. Desde Slice A (2026-05-13) inclui
  * `binding_id` e `permissions` quando o login foi feito contra um binding
@@ -85,6 +91,11 @@ export interface AuthClientOptions {
    * `localStorageAdapter()` para persistir entre reloads.
    */
   storage?: TokenStorage;
+  /**
+   * Sessão opcional injetada explicitamente pelo runtime (por exemplo, SSO
+   * do AIOSON Play). Só é aceita se o JWT pertencer ao mesmo bindingId.
+   */
+  initialSession?: InitialAuthSession;
   /**
    * Se true (default), a próxima request após 401 tenta renovar o access
    * token automaticamente usando o refresh token armazenado.

@@ -148,7 +148,7 @@ app.delete(
 
 | Export | Notas |
 |---|---|
-| `requireAuth(opts?)` | Valida Bearer header (e fallback `?token=`). Popula `req.auth: TokenPayload`. |
+| `requireAuth(opts?)` | Valida o Bearer header. Popula `req.auth: TokenPayload`. |
 | `requirePermission(perm, opts?)` | Aplique **depois** de `requireAuth`. Usa o claim `permissions` do JWT. |
 
 `opts` ou `process.env.AIOSON_AUTH_URL` + `AIOSON_AUTH_BINDING_ID`.

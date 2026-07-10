@@ -16,6 +16,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { login } from '../actions/AuthAction.js';
+import { authRateLimiters } from '../middleware/auth-rate-limit.js';
 
 export const shellLoginRouter = Router();
 
@@ -26,7 +27,7 @@ const ShellLoginBodySchema = z.object({
 
 const SHELL_BINDING_ID = 'shell';
 
-shellLoginRouter.post('/login', async (req, res) => {
+shellLoginRouter.post('/login', ...authRateLimiters, async (req, res) => {
   const parsed = ShellLoginBodySchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({

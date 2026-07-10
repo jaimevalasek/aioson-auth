@@ -3,7 +3,7 @@
   "name": "AIOSON Auth",
   "version": "1.0.0",
   "description": "Serviço centralizado de autenticação para apps do AIOSON Play.",
-  "port": 3001,
+  "port": 3091,
   "autostart": true,
   "dev_command": "node dist/server/server.js",
   "health_check": "/health"

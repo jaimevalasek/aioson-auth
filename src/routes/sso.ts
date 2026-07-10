@@ -1,7 +1,10 @@
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
-import { login, validateRefreshToken, type LoginOutput } from '../actions/AuthAction.js';
+import { getRefreshSessionUser, login, validateRefreshToken, type LoginOutput } from '../actions/AuthAction.js';
+import { authRateLimiters } from '../middleware/auth-rate-limit.js';
+import { AuthError, sendAuthError } from '../lib/auth-error.js';
+import { isAllowedSsoRedirectUri } from '../lib/sso-redirect.js';
 
 export const ssoRouter = Router();
 
@@ -15,7 +18,8 @@ const AuthorizeSchema = z.object({
 
 // GET /sso/authorize?binding_id=X&redirect_uri=https://app.domain.com/sso/callback
 //
-// If user has a valid SSO cookie → issue tokens for the binding and redirect back.
+// If user has a valid SSO cookie, issue tokens for the binding and redirect
+// back with the callback values in the URL fragment (never the query string).
 // If not → redirect to /sso/login with the same params so the user logs in first.
 ssoRouter.get('/authorize', async (req: Request, res: Response) => {
   const parsed = AuthorizeSchema.safeParse(req.query);
@@ -24,6 +28,10 @@ ssoRouter.get('/authorize', async (req: Request, res: Response) => {
   }
 
   const { binding_id, redirect_uri } = parsed.data;
+
+  if (!isAllowedSsoRedirectUri(redirect_uri)) {
+    return sendAuthError(req, res, new AuthError('redirect_uri_not_allowed'), 'sso_authorize', binding_id);
+  }
 
   const binding = await prisma.appBinding.findUnique({ where: { id: binding_id } });
   if (!binding) {
@@ -49,7 +57,7 @@ ssoRouter.get('/authorize', async (req: Request, res: Response) => {
 
 // POST /sso/authenticate — called by the SsoLoginPage after user submits credentials.
 // Sets the SSO cookie and redirects back to the app with tokens.
-ssoRouter.post('/authenticate', async (req: Request, res: Response) => {
+ssoRouter.post('/authenticate', ...authRateLimiters, async (req: Request, res: Response) => {
   const BodySchema = z.object({
     email: z.string().email(),
     password: z.string().min(1),
@@ -64,7 +72,13 @@ ssoRouter.post('/authenticate', async (req: Request, res: Response) => {
 
   const { email, password, binding_id, redirect_uri } = parsed.data;
 
+  if (!isAllowedSsoRedirectUri(redirect_uri)) {
+    return sendAuthError(req, res, new AuthError('redirect_uri_not_allowed'), 'sso_authenticate', binding_id);
+  }
+
   try {
+    const binding = await prisma.appBinding.findUnique({ where: { id: binding_id } });
+    if (!binding) throw new AuthError('binding_not_found');
     const session = await login(email, password, binding_id);
 
     // Set httpOnly SSO cookie with the refresh token
@@ -81,8 +95,7 @@ ssoRouter.post('/authenticate', async (req: Request, res: Response) => {
       redirect: buildCallbackUrl(redirect_uri, session),
     });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'login failed';
-    return res.status(401).json({ error: msg });
+    return sendAuthError(req, res, err, 'sso_authenticate', binding_id);
   }
 });
 
@@ -94,10 +107,10 @@ ssoRouter.get('/status', async (req: Request, res: Response) => {
   }
 
   try {
-    const session = await validateRefreshToken(ssoCookie);
+    const user = await getRefreshSessionUser(ssoCookie);
     return res.json({
       authenticated: true,
-      user: session.user,
+      user,
     });
   } catch {
     res.clearCookie(SSO_COOKIE);
@@ -116,11 +129,13 @@ function redirectWithTokens(res: Response, redirectUri: string, session: LoginOu
   return res.redirect(url);
 }
 
-function buildCallbackUrl(redirectUri: string, session: LoginOutput): string {
+export function buildCallbackUrl(redirectUri: string, session: LoginOutput): string {
   const url = new URL(redirectUri);
-  url.searchParams.set('token', session.accessToken);
-  url.searchParams.set('refresh', session.refreshToken);
-  url.searchParams.set('user_id', session.user.id);
-  url.searchParams.set('email', session.user.email);
+  url.hash = new URLSearchParams({
+    token: session.accessToken,
+    refresh: session.refreshToken,
+    user_id: session.user.id,
+    email: session.user.email,
+  }).toString();
   return url.toString();
 }

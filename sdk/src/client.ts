@@ -1,4 +1,4 @@
-import { AuthError, inferErrorCode } from './errors.js';
+import { AuthError, authErrorFromResponse } from './errors.js';
 import { decodeJwtPayload, isTokenExpired } from './jwt.js';
 import { memoryStorage } from './storage.js';
 import type {
@@ -7,6 +7,7 @@ import type {
   ForgotPasswordInput,
   LoginInput,
   MePayload,
+  InitialAuthSession,
   OAuthInput,
   RegisterInput,
   RegisterOutput,
@@ -111,9 +112,41 @@ export function createAuthClient(opts: AuthClientOptions): AuthClient {
   let refreshInFlight: Promise<AuthSession> | null = null;
 
   async function loadFromStorage(): Promise<void> {
-    cachedAccess = await storage.get('access');
-    cachedRefresh = await storage.get('refresh');
-    cachedPayload = cachedAccess ? decodeJwtPayload(cachedAccess) : null;
+    const storedAccess = await storage.get('access');
+    const storedRefresh = await storage.get('refresh');
+    const storedSession = normalizeInitialSession({
+      accessToken: storedAccess ?? '',
+      refreshToken: storedRefresh ?? '',
+    });
+    const initialSession = storedSession ?? normalizeInitialSession(opts.initialSession);
+
+    if (!initialSession) {
+      await storage.set('access', null);
+      await storage.set('refresh', null);
+      return;
+    }
+
+    cachedAccess = initialSession.accessToken;
+    cachedRefresh = initialSession.refreshToken;
+    cachedPayload = decodeJwtPayload(initialSession.accessToken);
+    cachedUser = initialSession.user;
+    if (!storedSession && opts.initialSession) {
+      await storage.set('access', initialSession.accessToken);
+      await storage.set('refresh', initialSession.refreshToken);
+    }
+  }
+
+  function normalizeInitialSession(session: InitialAuthSession | undefined): AuthSession | null {
+    if (!session?.accessToken || !session.refreshToken) return null;
+    const payload = decodeJwtPayload(session.accessToken);
+    if (!payload?.binding_id || payload.binding_id !== bindingId || !payload.sub || !payload.email) return null;
+    return {
+      accessToken: session.accessToken,
+      refreshToken: session.refreshToken,
+      user: session.user?.id
+        ? session.user
+        : { id: payload.sub, email: payload.email, name: '' },
+    };
   }
 
   // Carrega tokens persistidos eagerly. Não await na construção (vai
@@ -162,15 +195,15 @@ export function createAuthClient(opts: AuthClientOptions): AuthClient {
       const headers: Record<string, string> = {};
       if (body) headers['Content-Type'] = 'application/json';
       // Slice D: usa `Authorization: Bearer` em vez de `?token=` (RFC 6750).
-      // O servidor aceita ambos por retro-compat.
+      // O servidor rejeita tokens em URL para evitar vazamento em logs/referrers.
       if (opts2.authToken) headers['Authorization'] = `Bearer ${opts2.authToken}`;
       response = await fetchImpl(`${baseUrl}${path}`, {
         method,
         headers,
         body: body ? JSON.stringify(body) : undefined,
       });
-    } catch (err) {
-      throw new AuthError('network', String(err), 0);
+    } catch {
+      throw new AuthError('auth_unavailable', 'Authentication service is temporarily unavailable', 503);
     }
 
     if (response.status === 204) return undefined as T;
@@ -202,8 +235,7 @@ export function createAuthClient(opts: AuthClientOptions): AuthClient {
           // refresh falhou — propaga erro original do servidor abaixo.
         }
       }
-      const msg = extractErrorMessage(data) ?? `HTTP ${response.status}`;
-      throw new AuthError(inferErrorCode(response.status, msg), msg, response.status, data);
+      throw authErrorFromResponse(response.status, data, response.headers.get('x-request-id'));
     }
 
     return data as T;
@@ -397,15 +429,6 @@ export function createAuthClient(opts: AuthClientOptions): AuthClient {
   };
 }
 
-function extractErrorMessage(data: unknown): string | null {
-  if (typeof data === 'string') return data;
-  if (data && typeof data === 'object' && 'error' in data) {
-    const e = (data as { error: unknown }).error;
-    if (typeof e === 'string') return e;
-  }
-  return null;
-}
-
 // ─── SSO helpers ─────────────────────────────────────────────────────────────
 
 export interface SsoOptions {
@@ -421,7 +444,7 @@ export function redirectToSso(opts: SsoOptions): void {
 }
 
 export function handleSsoCallback(storage?: TokenStorage): AuthSession | null {
-  const params = new URLSearchParams(window.location.search);
+  const params = new URLSearchParams(window.location.hash.replace(/^#/, ''));
   const token = params.get('token');
   const refresh = params.get('refresh');
   const userId = params.get('user_id');
@@ -442,10 +465,7 @@ export function handleSsoCallback(storage?: TokenStorage): AuthSession | null {
 
   // Clean URL
   const url = new URL(window.location.href);
-  url.searchParams.delete('token');
-  url.searchParams.delete('refresh');
-  url.searchParams.delete('user_id');
-  url.searchParams.delete('email');
+  url.hash = '';
   window.history.replaceState({}, '', url.toString());
 
   return session;

@@ -18,7 +18,11 @@
     "db:studio": "npm run db:build-schema && prisma studio",
     "db:validate": "npm run db:build-schema && prisma validate",
     "lint": "eslint src --ext .ts,.tsx",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc -p tsconfig.server.json --noEmit",
+    "test": "node --import tsx --test test",
+    "test:integration": "node --import tsx --test test/auth-security-contract.test.mjs",
+    "test:integration:migration": "node scripts/test-auth-session-binding-migration.mjs",
+    "smoke:boot": "node scripts/smoke-boot.mjs"
   },
   "dependencies": {
     "@aioson/auth-sdk": "file:./sdk",

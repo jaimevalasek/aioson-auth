@@ -86,8 +86,6 @@ function extractToken(req: Request): string | null {
   if (auth && auth.startsWith('Bearer ')) {
     return auth.slice('Bearer '.length).trim();
   }
-  const q = req.query['token'];
-  if (typeof q === 'string') return q;
   // Fallback: read from aioson_access cookie (embedded mode)
   return parseCookieValue(req, 'aioson_access');
 }
@@ -104,9 +102,9 @@ async function validateRemote(
   resolved: ResolvedOptions,
   token: string
 ): Promise<TokenPayload | null> {
-  const url = `${resolved.baseUrl}/api/auth/${resolved.bindingId}/me?token=${encodeURIComponent(token)}`;
+  const url = `${resolved.baseUrl}/api/auth/${resolved.bindingId}/me`;
   try {
-    const response = await resolved.fetch(url);
+    const response = await resolved.fetch(url, { headers: { authorization: `Bearer ${token}` } });
     if (!response.ok) return null;
     return (await response.json()) as TokenPayload;
   } catch {
