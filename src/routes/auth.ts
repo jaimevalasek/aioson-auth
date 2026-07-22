@@ -61,6 +61,7 @@ authRouter.post('/:bindingId/register', ...authRateLimiters, async (req, res) =>
     const bindingId = getBindingId(req);
     const binding = await prisma.appBinding.findUnique({ where: { id: bindingId } });
     if (!binding) throw new AuthError('binding_not_found');
+    if (binding.enable_rbac) throw new AuthError('self_registration_disabled');
 
     const parsed = RegisterSchema.parse(req.body);
     const result = await register(parsed.email, parsed.password);

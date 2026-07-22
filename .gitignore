@@ -44,6 +44,10 @@ build/
 .vscode/
 .idea/
 *.env
+/dev.db
+/prisma/*.db
+/prisma/*.db-journal
+/src/generated/prisma/**/query_engine-*.node
 mappings/
 .claude/
 .gemini/
@@ -53,4 +57,3 @@ researchs/
 squad-searches/
 .codex/*
 prisma/.jwt-secret
-

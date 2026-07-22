@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "feature": "auth-remote-database-migration",
+  "run_id": "19d3d002-6161-4cdc-b2fa-7a71b62ce48a",
+  "attempt_id": "0e33e48a-b667-4a65-a51d-b26c4d7f1357",
+  "agent": "qa",
+  "host": "codex",
+  "model_requested": "gpt-5.6-luna",
+  "model_resolved": "gpt-5.6-luna",
+  "model_resolution_strategy": "exact_slug",
+  "reasoning_effort": null,
+  "manifest_digest": "c7382f5915590c1203ccabbf1f5c65de7bd28570b81eac06edf0b279da0af2b6",
+  "writable_roots": [
+    "C:\\dev\\services\\aioson-auth"
+  ],
+  "started_at": "2026-07-11T18:55:00-03:00",
+  "finished_at": "2026-07-11T19:02:35-03:00",
+  "verdict": "PASS",
+  "findings": [],
+  "evidence": [
+    {
+      "criterion": "C-provider-runtime",
+      "kind": "command",
+      "command": "npm --prefix C:\\dev\\services\\aioson-auth run test:database:providers",
+      "status": "passed",
+      "details": "Generated isolated sqlite, postgresql, and mysql clients; provider integration tests passed 4/4."
+    },
+    {
+      "criterion": "C-provider-runtime",
+      "kind": "command",
+      "command": "npm --prefix C:\\dev\\services\\aioson-auth run typecheck",
+      "status": "passed",
+      "details": "tsc -p tsconfig.server.json --noEmit completed successfully."
+    },
+    {
+      "criterion": "C-provider-runtime",
+      "kind": "command",
+      "command": "npm --prefix C:\\dev\\services\\aioson-auth run smoke:boot",
+      "status": "passed",
+      "details": "Auth boot smoke passed on a runtime port."
+    },
+    {
+      "criterion": "C-provider-runtime",
+      "kind": "focused_code_review",
+      "status": "passed",
+      "details": "DatabaseProviderRegistry serializes activation, disconnects before switching, enforces one active provider, defaults to sqlite, and rejects unsupported providers. Generated outputs and shared AuthDatabaseMetadata migrations exist for all three providers. prisma-clients.ts is a compatibility alias facade over lib/prisma.ts without a second client, and app.ts no longer starts the legacy federation client/poller bootstrap."
+    }
+  ]
+}

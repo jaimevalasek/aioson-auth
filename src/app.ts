@@ -13,15 +13,15 @@ import { adminRouter } from './routes/admin.js';
 import { adminBindingsRouter } from './routes/admin-bindings.js';
 import { adminAppInventoryRouter } from './routes/admin-app-inventory.js';
 import { adminDashboardContextRouter } from './routes/admin-dashboard-context.js';
+import { adminDatabaseRouter } from './routes/admin-database.js';
 import { adminFederationRouter } from './routes/admin-federation.js';
 import { shellLoginRouter } from './routes/shell-login.js';
 import { ssoRouter } from './routes/sso.js';
 import { scheduleRevocationCleanup } from './actions/TokenRevocationAction.js';
-import { localPrisma, reloadMainPrismaFromConfig } from './lib/prisma-clients.js';
-import { startRevocationPoller } from './services/revocation_poller.js';
-import { readConnectionString } from './services/connection_string_keyring.js';
+import { prisma } from './lib/prisma.js';
 import { AuthError, sendAuthError } from './lib/auth-error.js';
 import { requestContext } from './lib/request-context.js';
+import { isOriginAllowedForRequest } from './lib/app-origin.js';
 
 function resolveClientDistPath() {
   const currentDir = dirname(fileURLToPath(import.meta.url));
@@ -52,30 +52,16 @@ export function createApp() {
   //   - lista CSV: `https://app.example.com,https://admin.example.com`
   //   - cada entry pode começar com `http://` ou `https://`; matching é exato
   //   - default (env ausente): localhost/127.0.0.1 — comportamento legado.
-  const rawAllowed = process.env['ALLOWED_ORIGINS']?.trim();
-  const allowAny = rawAllowed === '*'
-    && process.env['NODE_ENV'] !== 'production'
-    && process.env['AIOSON_AUTH_ALLOW_ANY_ORIGIN'] === 'true';
-  const allowedOrigins = rawAllowed && !allowAny
-    ? rawAllowed.split(',').map((s) => s.trim()).filter(Boolean)
-    : null;
-
-  app.use(cors({
+  app.use((req, res, next) => cors({
     origin: (origin, callback) => {
-      // Same-origin (curl, server-to-server) e requests sem Origin sempre OK
+      // Same-origin (curl, server-to-server) e requests sem Origin sempre OK.
       if (!origin) return callback(null, true);
-      if (allowAny) return callback(null, true);
-      if (allowedOrigins) {
-        if (allowedOrigins.includes(origin)) return callback(null, true);
-        return callback(new AuthError('cors_origin_not_allowed'));
-      }
-      if (isLocalPlayOrigin(origin)) {
-        return callback(null, true);
-      }
-      return callback(new AuthError('cors_origin_not_allowed'));
+      void isOriginAllowedForRequest(origin, req.originalUrl)
+        .then((allowed) => callback(allowed ? null : new AuthError('cors_origin_not_allowed'), allowed))
+        .catch(() => callback(new AuthError('cors_origin_not_allowed')));
     },
     credentials: true,
-  }));
+  })(req, res, next));
   app.use(express.json());
   app.use(cookieParser());
 
@@ -85,6 +71,7 @@ export function createApp() {
   app.use('/api/auth/admin/bindings', adminBindingsRouter);
   app.use('/api/auth/admin/app-inventory', adminAppInventoryRouter);
   app.use('/api/auth/admin/dashboard-context', adminDashboardContextRouter);
+  app.use('/api/auth/admin/database', adminDatabaseRouter);
   app.use('/api/auth/admin/federation', adminFederationRouter);
   app.use('/api/auth/shell', shellLoginRouter);
   app.use('/api/auth', authRouter);
@@ -97,8 +84,12 @@ export function createApp() {
 
   app.get('/ready', async (_req, res) => {
     try {
-      await localPrisma.$queryRaw`SELECT 1`;
-      return res.json({ status: 'ready', version: process.env['npm_package_version'] ?? 'unknown' });
+      await prisma.$queryRaw`SELECT 1`;
+      return res.json({
+        status: 'ready',
+        version: process.env['npm_package_version'] ?? 'unknown',
+        databaseProvider: process.env['AUTH_DATABASE_PROVIDER'] ?? 'sqlite',
+      });
     } catch (error) {
       return sendAuthError(_req, res, error, 'readiness');
     }
@@ -119,58 +110,5 @@ export function createApp() {
   // S1B.5 — agenda cleanup do TokenRevocation a cada 1h (ADR-07).
   scheduleRevocationCleanup();
 
-  // play-federation S2B — bootstrap Federação:
-  //   1. Carrega FederationConfig do SQLite local
-  //   2. Se federation_active=true: lê connection string via keyring bridge
-  //      e recarrega mainPrisma + dispara revocation_poller
-  //   3. Se inativo: no-op silencioso (modo single-device legado preservado)
-  void bootstrapFederation();
-
   return app;
-}
-
-function isLocalPlayOrigin(origin: string): boolean {
-  try {
-    const url = new URL(origin);
-    return url.protocol === 'http:'
-      && Boolean(url.port)
-      && (url.hostname === 'localhost' || url.hostname === '127.0.0.1');
-  } catch {
-    return false;
-  }
-}
-
-async function bootstrapFederation(): Promise<void> {
-  try {
-    const config = await localPrisma.federationConfig.findUnique({
-      where: { id: 'singleton' },
-    });
-    if (!config?.federation_active) {
-      // Modo single-device — sem polling, mainPrisma fica no SQLite local.
-      return;
-    }
-
-    const aiosonPlayId = process.env['AIOSON_PLAY_ID'];
-    if (!aiosonPlayId) {
-      console.warn(
-        '[bootstrap] FederationConfig.federation_active=true mas AIOSON_PLAY_ID env não setado — poller não inicia',
-      );
-      return;
-    }
-
-    let connectionString: string | null = null;
-    try {
-      connectionString = await readConnectionString(aiosonPlayId);
-    } catch (err) {
-      console.warn('[bootstrap] keyring bridge indisponível no boot:', err);
-    }
-
-    if (connectionString) {
-      await reloadMainPrismaFromConfig(connectionString);
-    }
-
-    startRevocationPoller(aiosonPlayId);
-  } catch (err) {
-    console.error('[bootstrap] erro inesperado em bootstrapFederation:', err);
-  }
 }

@@ -110,3 +110,30 @@ export async function readConnectionString(
   }
   return cs;
 }
+
+export async function readStagedConnectionString(
+  credentialReference: string,
+  aiosonPlayId: string,
+): Promise<string | null> {
+  const token = bearerToken();
+  if (!token) throw new KeyringBridgeError('bridge token ausente', 'no_token');
+  const params = new URLSearchParams({
+    credential_reference: credentialReference,
+    aioson_play_id: aiosonPlayId,
+  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    const response = await fetch(`${BRIDGE_BASE}/api/auth-database/keyring/staged?${params}`, {
+      headers: { Authorization: `Bearer ${token}` }, signal: controller.signal,
+    });
+    if (response.status === 401 || response.status === 403) throw new KeyringBridgeError('bridge rejeitou bearer', 'unauthorized');
+    if (response.status === 404) return null;
+    if (!response.ok) throw new KeyringBridgeError('bridge indisponível', 'network');
+    const body = await response.json() as { connection_string?: unknown };
+    return typeof body.connection_string === 'string' && body.connection_string ? body.connection_string : null;
+  } catch (error) {
+    if (error instanceof KeyringBridgeError) throw error;
+    throw new KeyringBridgeError('falha de rede no bridge', 'network');
+  } finally { clearTimeout(timeout); }
+}

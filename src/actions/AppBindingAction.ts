@@ -36,6 +36,10 @@ export interface BindingAuthManifestInput {
   policies?: unknown[];
 }
 
+export interface BindingManifestSyncOptions {
+  fingerprint?: string | null;
+}
+
 type StoredSystemPermission = SystemPermission & {
   label?: string;
   description?: string;
@@ -246,14 +250,85 @@ export async function registerBindingPermissions(
 export async function registerBindingAuthManifest(
   bindingId: string,
   manifest: BindingAuthManifestInput,
+  options: BindingManifestSyncOptions = {},
 ): Promise<{ added: number; merged: boolean }> {
-  return registerBindingPermissionEntries(
-    bindingId,
-    manifest.permissions.map((permission) => ({
-      ...permission,
-      source: 'auth_manifest',
-    })),
+  const normalized = normalizePermissionRegistrations(
+    manifest.permissions.map((permission) => ({ ...permission, source: 'auth_manifest' })),
   );
+  const names = normalized.map((permission) => permission.name);
+  const now = new Date();
+
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const binding = await tx.appBinding.findUnique({ where: { id: bindingId } });
+      if (!binding) throw new Error('Binding not found');
+
+      const existing = await tx.bindingPermission.findMany({
+        where: { binding_id: bindingId, retired_at: null },
+        select: { name: true },
+      });
+      let added = 0;
+      for (const permission of normalized) {
+        if (!existing.some((entry) => entry.name === permission.name)) added++;
+        await tx.bindingPermission.upsert({
+          where: { binding_id_name: { binding_id: bindingId, name: permission.name } },
+          create: {
+            binding_id: bindingId,
+            name: permission.name,
+            resource: permission.resource,
+            action: permission.action,
+          },
+          update: {
+            resource: permission.resource,
+            action: permission.action,
+            retired_at: null,
+          },
+        });
+      }
+
+      await tx.bindingPermission.updateMany({
+        where: {
+          binding_id: bindingId,
+          retired_at: null,
+          ...(names.length > 0 ? { name: { notIn: names } } : {}),
+        },
+        data: { retired_at: now },
+      });
+      await tx.appProfile.upsert({
+        where: { binding_id_name: { binding_id: bindingId, name: '__access__' } },
+        create: {
+          id: `system:access:${bindingId}`,
+          binding_id: bindingId,
+          name: '__access__',
+          description: 'Authentication-only access',
+          is_system: true,
+        },
+        update: { archived_at: null, is_system: true },
+      });
+      await tx.appBinding.update({
+        where: { id: bindingId },
+        data: {
+          system_permissions: JSON.stringify(normalized),
+          enable_rbac: normalized.length > 0,
+          auth_mode: normalized.length > 0 ? 'profiles_permissions' : 'authentication_only',
+          manifest_fingerprint: options.fingerprint ?? null,
+          manifest_sync_status: 'synced',
+          manifest_sync_error: null,
+          manifest_synced_at: now,
+        },
+      });
+      return { added, merged: added > 0 };
+    });
+  } catch (error) {
+    await prisma.appBinding.updateMany({
+      where: { id: bindingId },
+      data: {
+        manifest_sync_status: 'failed',
+        manifest_sync_error: error instanceof Error ? error.message.slice(0, 191) : 'manifest_sync_failed',
+      },
+    });
+    throw error;
+  }
 }
 
 export async function getBindingPermissions(bindingId: string): Promise<SystemPermission[]> {

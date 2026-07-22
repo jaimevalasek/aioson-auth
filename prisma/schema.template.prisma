@@ -14,6 +14,19 @@ generator client {
   provider = "prisma-client-js"
 }
 
+model AuthDatabaseMetadata {
+  id                String   @id @default("singleton")
+  schema_version    Int      @default(1)
+  provider          String
+  installation_id  String?
+  owner_id          String?
+  migration_state   String   @default("active")
+  data_revision     Int      @default(0)
+  source_revision   Int?
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+}
+
 // ─── Global Settings ────────────────────────────────────────────────────────
 
 model GlobalSettings {
@@ -65,6 +78,12 @@ model AppBinding {
   system_permissions String   @default("[]")
   enable_2fa         Boolean  @default(false)
   enable_rbac        Boolean  @default(false)
+  auth_mode           String   @default("authentication_only")
+  manifest_fingerprint String?
+  manifest_sync_status String  @default("pending")
+  manifest_sync_error String?
+  manifest_synced_at DateTime?
+  allowed_origins_json String  @default("[]")
   // aioson-play-identity (ADR-10): forward-compat para Fase 3 (cloud aioson-auth
   // multi-tenant). No MVP local-per-installation o valor sempre bate com o
   // singleton installation_state.aioson_play_id da máquina, mas a coluna existe
@@ -77,6 +96,8 @@ model AppBinding {
 
   // Relations
   permissions BindingPermission[]
+  profiles    AppProfile[]
+  accesses    AppAccess[]
 
   @@index([aioson_play_id])
 }
@@ -120,12 +141,14 @@ model GlobalUser {
   // play-federation S1B (BR-F-08 + AC-22): rastreia em qual Play o usuário
   // foi criado originalmente. Audit trail + conflict resolution.
   aioson_play_origin_id String?
+  disabled_at           DateTime?
   created_at            DateTime @default(now())
   updated_at            DateTime @updatedAt
 
   // Relations
   sessions   AuthSession[]
   user_roles UserRole[]
+  app_accesses AppAccess[]
 
   @@index([aioson_play_origin_id])
 }
@@ -139,12 +162,66 @@ model BindingPermission {
   name       String
   resource   String
   action     String
+  retired_at DateTime?
   created_at DateTime @default(now())
 
   binding    AppBinding       @relation(fields: [binding_id], references: [id], onDelete: Cascade)
   role_perms RolePermission[]
+  profile_perms AppProfilePermission[]
 
   @@unique([binding_id, name])
+}
+
+// ─── App-scoped access and profiles ────────────────────────────────────────
+
+model AppProfile {
+  id                     String    @id
+  binding_id             String
+  name                   String
+  description            String    @default("")
+  is_system              Boolean   @default(false)
+  is_migration_generated Boolean   @default(false)
+  archived_at            DateTime?
+  created_at             DateTime  @default(now())
+  updated_at             DateTime  @updatedAt
+
+  binding     AppBinding             @relation(fields: [binding_id], references: [id], onDelete: Cascade)
+  permissions AppProfilePermission[]
+  accesses    AppAccess[]
+
+  @@unique([binding_id, name])
+  @@index([binding_id, archived_at])
+}
+
+model AppProfilePermission {
+  id            String   @id
+  profile_id    String
+  permission_id String
+  created_at    DateTime @default(now())
+
+  profile    AppProfile       @relation(fields: [profile_id], references: [id], onDelete: Cascade)
+  permission BindingPermission @relation(fields: [permission_id], references: [id], onDelete: Cascade)
+
+  @@unique([profile_id, permission_id])
+}
+
+model AppAccess {
+  id                    String   @id
+  binding_id            String
+  user_id               String
+  profile_id            String
+  status                String   @default("active")
+  aioson_play_origin_id String?
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+
+  binding AppBinding @relation(fields: [binding_id], references: [id], onDelete: Cascade)
+  user    GlobalUser @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  profile AppProfile @relation(fields: [profile_id], references: [id], onDelete: Restrict)
+
+  @@unique([binding_id, user_id])
+  @@index([aioson_play_origin_id])
+  @@index([profile_id])
 }
 
 // ─── Roles (global) ─────────────────────────────────────────────────────────

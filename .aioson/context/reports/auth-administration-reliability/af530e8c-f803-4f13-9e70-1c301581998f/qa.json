@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "feature": "auth-administration-reliability",
+  "run_id": "af530e8c-f803-4f13-9e70-1c301581998f",
+  "attempt_id": "800a6c0b-baa7-4380-8e07-69a0799f6eac",
+  "agent": "qa",
+  "host": "codex",
+  "model_requested": "gpt-5.6-terra",
+  "model_resolved": "gpt-5.6-terra",
+  "manifest_digest": "46c2c6c01584ff7e9b6ad3022769ce7c068b31ec5687484df6de6be372918949",
+  "writable_roots": ["C:\\dev\\services\\aioson-auth"],
+  "started_at": "2026-07-10T23:38:00-03:00",
+  "finished_at": "2026-07-10T23:42:00-03:00",
+  "verdict": "FAIL",
+  "findings": [
+    {
+      "id": "H-01",
+      "severity": "high",
+      "file": "C:\\dev\\aioson-play\\aios-qa-report.md:34",
+      "risk": "The mandatory live-browser runtime evidence for Settings → Auth is absent; the report explicitly states Chromium automation did not run.",
+      "fix": "Enable the configured browser runner and generate a feature-specific aios-qa report covering recovery, operator CRUD/roles/deactivation, and invalid-session recovery."
+    },
+    {
+      "id": "H-02",
+      "severity": "high",
+      "file": "C:\\dev\\aioson-play\\src\\pages\\MaintenancePage.tsx:250,699",
+      "risk": "The changed-file code-quality audit detects two high-severity innerHTML assignments, which block Gate D.",
+      "fix": "Replace the clears with replaceChildren() or a safe DOM API, preserve lifecycle coverage, and rerun audit:code without HIGH findings."
+    }
+  ],
+  "evidence": [
+    {"command": "aioson memory:status .", "result": "PASS: bootstrap 4/4"},
+    {"command": "aioson ac:test-audit . --feature=auth-administration-reliability", "result": "PASS: 16/16 ACs covered"},
+    {"command": "aioson security:audit . --slug=auth-administration-reliability", "result": "PASS: security artifact has 0 open findings"},
+    {"artifact": "C:\\dev\\aioson-play\\aios-qa-report.md", "result": "Build, disposable migration, boot, and cross-repo service smoke recorded as PASS; browser automation explicitly not executed"},
+    {"command": "aioson audit:code . --changed --json", "result": "FAIL: 2 HIGH innerHTML findings in changed files; Gate D blocked"}
+  ]
+}

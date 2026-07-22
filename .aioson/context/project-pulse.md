@@ -1,10 +1,10 @@
 ---
-last_updated: 2026-06-24T01:15:50-03:00
-last_agent: deyvin
-active_feature: aioson-auth-rbac-dashboard
-active_work: "Tela Perfis Globais melhorada: modal multi-seleção por checkbox, sem reload após associar/remover permissões, e apps sem permissões ficam ocultos"
+last_updated: 2026-07-22T21:05:00-03:00
+last_agent: dev
+active_feature: auth-database-management
+active_work: "Stage preparado para entrega de gestão multi-provider; guard corrigido com exceções pontuais e bancos locais removidos do versionamento"
 blockers: none
-next_recommendation: "Validar visualmente em /auth/bindings/:bindingId/roles; depois evoluir manifesto JSON de gates/policies para apps declararem capabilities"
+next_recommendation: "@committer: revisar o commit preparado e efetivar a entrega"
 ---
 
 # Project Pulse
@@ -17,6 +17,8 @@ next_recommendation: "Validar visualmente em /auth/bindings/:bindingId/roles; de
 - **Next:** validar visualmente `/auth/bindings/:bindingId/roles`; depois evoluir manifesto JSON de gates/policies
 
 ## Recent Activity
+
+- 2026-07-22 @dev → auth-database-management: configuradas exceções estritamente por regra para falsos positivos do detector genérico em clientes Prisma gerados, documentação e fixtures; DLLs nativas do Prisma e `prisma/dev.db` foram removidas do stage/versionamento e bancos locais passaram a ser ignorados. `npm run typecheck` PASS; teste de providers bloqueado por DLL SQLite em uso por processo externo no Windows. Guard PASS (0 erros, 0 avisos).
 
 - 2026-06-24 @deyvin → aioson-auth-rbac-dashboard: melhorada UX de `Perfis Globais`. Apps sem catálogo de permissões não aparecem nos blocos de perfil; botão `Adicionar` mostra apenas permissões ainda não associadas; modal virou checklist com `Selecionar todas` e confirmação em lote; associar/remover permissões atualiza `rolePerms` localmente sem chamar `loadData`, evitando scroll/reload da página. Build PASS; Play reiniciado e endpoints RBAC em `:3001` OK.
 - 2026-06-24 @deyvin → aioson-auth-rbac-dashboard: fechado fluxo app → auth para permissões. `registerBindingPermissions` mantém o merge legado em `AppBinding.system_permissions`, mas agora também faz `upsert` idempotente em `BindingPermission`, que é a tabela usada pela UI de Permissões/Perfis e pela agregação de permissions no JWT. Smoke com binding temporário: primeira chamada `register-permissions` adicionou 2 permissões visíveis em `/api/auth/:bindingId/rbac/permissions`; segunda chamada retornou `added=0` e manteve 2 rows sem duplicar. Verificações: `tsc -p tsconfig.server.json --noEmit` PASS; `npm run build` PASS; Play reiniciado e `GET /health` em `:3001` PASS.

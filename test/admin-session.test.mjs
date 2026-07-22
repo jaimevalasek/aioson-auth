@@ -1,0 +1,2 @@
+import test from 'node:test'; import assert from 'node:assert/strict'; import { readFile } from 'node:fs/promises';
+test('AC-AAR-12 invalid admin session is cleared without JWT internals', async()=>{const source=await readFile(new URL('../src/client/lib/admin-fetch.ts',import.meta.url),'utf8');assert.match(source,/status === 401/);assert.match(source,/removeItem\('adminToken'\)/);assert.match(source,/redirect=/);assert.doesNotMatch(source,/JsonWebTokenError/)});

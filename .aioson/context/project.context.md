@@ -3,8 +3,9 @@ project_name: "aioson-auth"
 project_type: "web_app"
 profile: "developer"
 framework: "Node.js + Prisma"
-framework_installed: false
+framework_installed: true
 classification: "SMALL"
+interaction_language: "pt-BR"
 conversation_language: "pt-BR"
 design_skill: "warm-craft-ui"
 test_runner: ""

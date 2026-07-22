@@ -62,12 +62,20 @@ async function main() {
     readFile(templatePath, 'utf-8'),
   ]);
 
+  const clientOutput = process.env.PRISMA_CLIENT_OUTPUT?.trim();
+  const renderedTemplate = clientOutput
+    ? template.replace(
+        'generator client {\n  provider = "prisma-client-js"\n}',
+        `generator client {\n  provider = "prisma-client-js"\n  output   = "${clientOutput.replaceAll('\\\\', '/')}"\n}`,
+      )
+    : template;
+
   const header = `// ⚠ ARQUIVO GERADO automaticamente por scripts/build-prisma-schema.ts\n` +
     `// Provider: ${provider}\n` +
     `// Gerado em: ${new Date().toISOString()}\n` +
     `// NÃO edite este arquivo — edite \`prisma/schema.template.prisma\` ou os fragments.\n\n`;
 
-  const output = header + fragment.trimEnd() + '\n\n' + template.trimStart();
+  const output = header + fragment.trimEnd() + '\n\n' + renderedTemplate.trimStart();
 
   await writeFile(outputPath, output, 'utf-8');
   console.log(`[build-prisma-schema] schema.prisma gerado pra provider=${provider}`);

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import AuthLayout from '../components/AuthLayout';
+import { adminFetch } from '../lib/admin-fetch';
 
 interface UserRoleSummary {
   id: string;
@@ -16,6 +17,7 @@ interface GlobalUser {
   name: string;
   created_at: string;
   updated_at?: string;
+  aioson_play_origin_id?: string | null;
   roles: UserRoleSummary[];
 }
 
@@ -27,14 +29,6 @@ type FormState = {
 };
 
 const emptyForm: FormState = { name: '', email: '', password: '' };
-
-function adminHeaders(): HeadersInit {
-  const token = localStorage.getItem('adminToken');
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
 
 async function readError(response: Response) {
   const data = await response.json().catch(() => null) as { error?: string } | null;
@@ -58,6 +52,10 @@ function avatarColorFor(id: string) {
   return `ao-avatar--c${(sum % 7) + 1}`;
 }
 
+function isSmokeFixture(user: GlobalUser) {
+  return /^flow-deck-smoke-[^@]+@example\.test$/i.test(user.email);
+}
+
 export default function GlobalUsersPage() {
   const [users, setUsers] = useState<GlobalUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,7 +73,7 @@ export default function GlobalUsersPage() {
     setLoading(true);
     setMessage(null);
     try {
-      const response = await fetch('/api/admin/users', { headers: adminHeaders() });
+      const response = await adminFetch('/api/admin/users');
       if (!response.ok) throw new Error(await readError(response));
       const data = await response.json() as GlobalUser[];
       setUsers(Array.isArray(data) ? data : []);
@@ -97,9 +95,8 @@ export default function GlobalUsersPage() {
         name: form.name.trim(),
       };
       if (form.password.trim()) payload.password = form.password;
-      const response = await fetch(isEditing ? `/api/admin/users/${form.id}` : '/api/admin/users', {
+      const response = await adminFetch(isEditing ? `/api/admin/users/${form.id}` : '/api/admin/users', {
         method: isEditing ? 'PATCH' : 'POST',
-        headers: adminHeaders(),
         body: JSON.stringify(payload),
       });
       if (!response.ok) throw new Error(await readError(response));
@@ -118,9 +115,8 @@ export default function GlobalUsersPage() {
     setSaving(true);
     setMessage(null);
     try {
-      const response = await fetch(`/api/admin/users/${deleteTarget.id}`, {
+      const response = await adminFetch(`/api/admin/users/${deleteTarget.id}`, {
         method: 'DELETE',
-        headers: adminHeaders(),
       });
       if (!response.ok) throw new Error(await readError(response));
       setDeleteTarget(null);
@@ -144,6 +140,7 @@ export default function GlobalUsersPage() {
   }, [query, users]);
 
   const linkedUsers = users.filter((user) => user.roles.length > 0).length;
+  const smokeFixtures = users.filter(isSmokeFixture).length;
   const isEditing = Boolean(form?.id);
   const isSaveDisabled = saving || !form?.email.trim() || (!isEditing && (form?.password.length ?? 0) < 8);
 
@@ -155,6 +152,7 @@ export default function GlobalUsersPage() {
       <section className="auth-summary" aria-label="Resumo de operadores">
         <span className="ao-chip ao-chip--primary">{users.length} contas globais</span>
         <span className="ao-chip ao-chip--secondary">{linkedUsers} com vínculo ativo</span>
+        {smokeFixtures > 0 && <span className="ao-chip ao-chip--warning">{smokeFixtures} fixtures de teste</span>}
         <span className="ao-chip">{filteredUsers.length} na visão atual</span>
       </section>
 
@@ -228,6 +226,10 @@ export default function GlobalUsersPage() {
                           <div>
                             <p className="auth-user-name">{user.name || 'Sem nome'}</p>
                             <p className="auth-user-email">{user.email}</p>
+                            <div className="auth-role-list">
+                              {isSmokeFixture(user) && <span className="ao-chip ao-chip--warning ao-chip--sm">Fixture de teste</span>}
+                              {!user.aioson_play_origin_id && <span className="ao-chip ao-chip--sm">Conta legada</span>}
+                            </div>
                           </div>
                         </div>
                       </td>

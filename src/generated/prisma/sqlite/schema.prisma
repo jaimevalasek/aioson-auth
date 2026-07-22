@@ -1,0 +1,369 @@
+// ⚠ ARQUIVO GERADO automaticamente por scripts/build-prisma-schema.ts
+// Provider: sqlite
+// Gerado em: 2026-07-14T02:22:31.562Z
+// NÃO edite este arquivo — edite `prisma/schema.template.prisma` ou os fragments.
+
+// SQLite override — modo single-device DEFAULT do aioson-auth.
+//
+// Usado quando aioson-auth roda como Play Service local (sem Federação ativa).
+// É o modo preservado pra zero-config + 100% offline.
+//
+// Nota: SQLite ignora `@db.VarChar(N)`, `@db.LongText`, `@db.Json` se forem
+// adicionados a campos no template. Atualmente o schema usa apenas tipos
+// puros (String/Int/Boolean/DateTime), então não há diferença prática
+// entre os providers no nível do template.
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// AIOSON Auth — Prisma schema TEMPLATE (multi-provider)
+//
+// ⚠ Este arquivo é o "template" sem datasource block.
+// O `scripts/build-prisma-schema.ts` concatena o fragment do provider
+// (sqlite/postgres/mysql) com este template e gera o `schema.prisma` final
+// que o Prisma CLI consome.
+//
+// NÃO edite `prisma/schema.prisma` direto — ele é gerado em build-time.
+// Edite ESTE arquivo (`schema.template.prisma`) e re-rode `npm run db:build-schema`.
+//
+// Providers suportados (MVP play-federation): sqlite, postgresql, mysql.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma/sqlite"
+}
+
+model AuthDatabaseMetadata {
+  id              String   @id @default("singleton")
+  schema_version  Int      @default(1)
+  provider        String
+  installation_id String?
+  owner_id        String?
+  migration_state String   @default("active")
+  data_revision   Int      @default(0)
+  source_revision Int?
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+}
+
+// ─── Global Settings ────────────────────────────────────────────────────────
+
+model GlobalSettings {
+  id                   String   @id @default(cuid())
+  google_client_id     String?
+  google_client_secret String?
+  github_client_id     String?
+  github_client_secret String?
+  smtp_host            String?
+  smtp_port            Int?
+  smtp_user            String?
+  smtp_pass            String?
+  smtp_from_email      String?
+  created_at           DateTime @default(now())
+  updated_at           DateTime @updatedAt
+}
+
+// ─── Token Revocation (aioson-play-identity ADR-07) ────────────────────────
+
+// Lista de revogação imediata. Quando um operador é removido (DELETE
+// /:bindingId/rbac/users/:userId), inserimos uma linha aqui pra invalidar
+// quaisquer JWTs já emitidos antes do TTL natural (7 dias) expirar.
+//
+// Cleanup job (1h) deleta entries expiradas — `expires_at` = revoked_at + 7d
+// (= access TTL). Após esse prazo, JWTs antigos já estariam inválidos pelo
+// próprio expire do JWT, então a entry vira lixo.
+model TokenRevocation {
+  id             String   @id @default(cuid())
+  user_id        String
+  binding_id     String
+  revoked_at     DateTime @default(now())
+  expires_at     DateTime
+  // play-federation S1B: identifica de qual Play veio o revoke. Nullable
+  // na Fase 1 (compat com revokes single-device emitidos antes da feature);
+  // vira NOT NULL em migration aditiva futura quando Fase 2 fechar.
+  aioson_play_id String?
+
+  @@index([user_id, expires_at])
+  @@index([aioson_play_id, expires_at])
+}
+
+// ─── App Bindings ────────────────────────────────────────────────────────────
+
+model AppBinding {
+  id                   String    @id @default(cuid())
+  app_name             String
+  app_slug             String    @default("")
+  connection_name      String
+  system_permissions   String    @default("[]")
+  enable_2fa           Boolean   @default(false)
+  enable_rbac          Boolean   @default(false)
+  auth_mode            String    @default("authentication_only")
+  manifest_fingerprint String?
+  manifest_sync_status String    @default("pending")
+  manifest_sync_error  String?
+  manifest_synced_at   DateTime?
+  allowed_origins_json String    @default("[]")
+  // aioson-play-identity (ADR-10): forward-compat para Fase 3 (cloud aioson-auth
+  // multi-tenant). No MVP local-per-installation o valor sempre bate com o
+  // singleton installation_state.aioson_play_id da máquina, mas a coluna existe
+  // pra migration pra cloud não precisar alterar schema. Two-pass:
+  // 1ª migration adiciona como String? (esta) → backfill em prod com script →
+  // 2ª migration sobe pra String (NOT NULL). Em dev (DB vazio) backfill é noop.
+  aioson_play_id       String?
+  created_at           DateTime  @default(now())
+  updated_at           DateTime  @updatedAt
+
+  // Relations
+  permissions BindingPermission[]
+  profiles    AppProfile[]
+  accesses    AppAccess[]
+
+  @@index([aioson_play_id])
+}
+
+// ─── Play App Inventory ─────────────────────────────────────────────────────
+
+// Snapshot reportado pelo aioson-play. Inventario detectado NAO e AppBinding:
+// este modelo apenas registra quais apps/drafts uma instalacao Play informou.
+model PlayAppInventory {
+  id                   String    @id @default(cuid())
+  aioson_play_id       String
+  inventory_id         String
+  app_slug             String?
+  app_name             String
+  version              String?
+  description          String?
+  lifecycle            String
+  source               String
+  supports_auth        Boolean   @default(false)
+  accepted_roles_json  String    @default("[]")
+  manifest_fingerprint String?
+  warnings_json        String    @default("[]")
+  last_seen_at         DateTime
+  archived_at          DateTime?
+  created_at           DateTime  @default(now())
+  updated_at           DateTime  @updatedAt
+
+  @@unique([aioson_play_id, inventory_id])
+  @@index([aioson_play_id, app_slug])
+  @@index([aioson_play_id, archived_at, lifecycle])
+}
+
+// ─── Global Users ────────────────────────────────────────────────────────────
+
+model GlobalUser {
+  id                    String    @id @default(cuid())
+  email                 String    @unique
+  password_hash         String?
+  name                  String    @default("")
+  totp_secret           String?
+  // play-federation S1B (BR-F-08 + AC-22): rastreia em qual Play o usuário
+  // foi criado originalmente. Audit trail + conflict resolution.
+  aioson_play_origin_id String?
+  disabled_at           DateTime?
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+
+  // Relations
+  sessions     AuthSession[]
+  user_roles   UserRole[]
+  app_accesses AppAccess[]
+
+  @@index([aioson_play_origin_id])
+}
+
+// ─── Permissions (per binding) ──────────────────────────────────────────────
+
+// Permission catalog per binding. Registered by systems via POST /register-permissions.
+model BindingPermission {
+  id         String    @id @default(cuid())
+  binding_id String
+  name       String
+  resource   String
+  action     String
+  retired_at DateTime?
+  created_at DateTime  @default(now())
+
+  binding       AppBinding             @relation(fields: [binding_id], references: [id], onDelete: Cascade)
+  role_perms    RolePermission[]
+  profile_perms AppProfilePermission[]
+
+  @@unique([binding_id, name])
+}
+
+// ─── App-scoped access and profiles ────────────────────────────────────────
+
+model AppProfile {
+  id                     String    @id
+  binding_id             String
+  name                   String
+  description            String    @default("")
+  is_system              Boolean   @default(false)
+  is_migration_generated Boolean   @default(false)
+  archived_at            DateTime?
+  created_at             DateTime  @default(now())
+  updated_at             DateTime  @updatedAt
+
+  binding     AppBinding             @relation(fields: [binding_id], references: [id], onDelete: Cascade)
+  permissions AppProfilePermission[]
+  accesses    AppAccess[]
+
+  @@unique([binding_id, name])
+  @@index([binding_id, archived_at])
+}
+
+model AppProfilePermission {
+  id            String   @id
+  profile_id    String
+  permission_id String
+  created_at    DateTime @default(now())
+
+  profile    AppProfile        @relation(fields: [profile_id], references: [id], onDelete: Cascade)
+  permission BindingPermission @relation(fields: [permission_id], references: [id], onDelete: Cascade)
+
+  @@unique([profile_id, permission_id])
+}
+
+model AppAccess {
+  id                    String   @id
+  binding_id            String
+  user_id               String
+  profile_id            String
+  status                String   @default("active")
+  aioson_play_origin_id String?
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+
+  binding AppBinding @relation(fields: [binding_id], references: [id], onDelete: Cascade)
+  user    GlobalUser @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  profile AppProfile @relation(fields: [profile_id], references: [id], onDelete: Restrict)
+
+  @@unique([binding_id, user_id])
+  @@index([aioson_play_origin_id])
+  @@index([profile_id])
+}
+
+// ─── Roles (global) ─────────────────────────────────────────────────────────
+
+// Global roles reused across all bindings.
+// When assigning a role to a user for a specific binding, you specify
+// which permissions (from that binding) are part of that assignment.
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String   @default("")
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  // Relations
+  permissions RolePermission[]
+  user_roles  UserRole[]
+}
+
+// ─── Role ↔ Permission (per binding) ──────────────────────────────────────
+
+// Links a global Role to a specific permission from a specific binding.
+// This is where the per-app permission set is defined for each role.
+model RolePermission {
+  id            String   @id @default(cuid())
+  role_id       String
+  permission_id String
+  binding_id    String
+  created_at    DateTime @default(now())
+
+  role       Role              @relation(fields: [role_id], references: [id], onDelete: Cascade)
+  permission BindingPermission @relation(fields: [permission_id], references: [id], onDelete: Cascade)
+
+  @@unique([role_id, permission_id, binding_id])
+}
+
+// ─── User ↔ Role (per binding) ─────────────────────────────────────────────
+
+// Assigns a global role to a user for a specific binding.
+// The actual permissions granted come from RolePermission entries
+// that match this role + this binding.
+model UserRole {
+  id                    String   @id @default(cuid())
+  user_id               String
+  role_id               String
+  binding_id            String
+  // play-federation S1B (BR-F-08 + AC-22): rastreia em qual Play a atribuição
+  // de role foi feita. Audit trail + conflict resolution.
+  aioson_play_origin_id String?
+  created_at            DateTime @default(now())
+
+  user GlobalUser @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  role Role       @relation(fields: [role_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, role_id, binding_id])
+  @@index([aioson_play_origin_id])
+}
+
+// ─── Auth Sessions ───────────────────────────────────────────────────────────
+
+model AuthSession {
+  id             String   @id @default(cuid())
+  user_id        String
+  token          String   @unique
+  // Sessões antigas ficam sem binding até expirar; novas emissões exigem
+  // este campo para impedir que um refresh seja reutilizado por outro app.
+  // Não há FK física porque o login especial `shell` não é um AppBinding.
+  binding_id     String?
+  expires_at     DateTime
+  // play-federation S1B (BR-F-08 + AC-22): rastreia em qual Play a sessão
+  // foi criada. Audit trail + conflict resolution.
+  aioson_play_id String?
+  created_at     DateTime @default(now())
+
+  user GlobalUser @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([binding_id])
+  @@index([token, binding_id])
+  @@index([aioson_play_id])
+}
+
+// ─── Recovery Token ─────────────────────────────────────────────────────────
+
+model RecoveryToken {
+  id         String   @id @default(cuid())
+  user_id    String
+  token      String   @unique
+  expires_at DateTime
+  used       Boolean  @default(false)
+  created_at DateTime @default(now())
+}
+
+// ─── Admin Users (legacy alias para GlobalUser) ─────────────────────────────
+// Deprecated: usar GlobalUser. AdminUser existe por compatibilidade com seed.
+model AdminUser {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  password_hash String
+  created_at    DateTime @default(now())
+}
+
+// ─── Federation Config (play-federation S1B / ADR-F-05) ─────────────────────
+//
+// Singleton (id="singleton") com estado da Federação local. SEMPRE vive no
+// SQLite local mesmo quando Federação ativa com `mainPrisma` apontando pra
+// Postgres/MySQL — esse contrato é enforcement runtime via `localPrisma`
+// (vide src/lib/prisma-clients.ts).
+//
+// Quando `federation_active = false`: aioson-auth roda 100% local (sqlite),
+// sem revocation_poller, sem multi-provider, sem keyring lookup.
+// Quando `federation_active = true`: aioson-auth lê connection string via
+// IPC pro Tauri keyring do aioson-play, instancia mainPrisma no provider
+// correto e dispara revocation_poller.
+model FederationConfig {
+  id                       String    @id @default("singleton")
+  federation_active        Boolean   @default(false)
+  project_id               String?
+  project_name             String?
+  db_provider              String? // 'postgresql' | 'mysql' (null quando inativo)
+  db_connection_keyring_id String?
+  activated_at             DateTime?
+  created_at               DateTime  @default(now())
+  updated_at               DateTime  @updatedAt
+}

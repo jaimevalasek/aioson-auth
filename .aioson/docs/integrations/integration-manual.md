@@ -1,33 +1,54 @@
-# AIOSON Auth — Manual de Integração para Desenvolvedores de Apps
+# AIOSON Play — Manual de Integração para Desenvolvedores de Sistemas
 
 ## Visão Geral
 
-O `aioson-auth` é um serviço de autenticação centralizado para o ecossistema AIOSON Play. Cada app consumidor se **vincula** ao serviço e ganha autenticação completa (login, 2FA, RBAC) sem recriar nada.
+O AIOSON Play é um runtime local que orquestra **apps instalados** e os expõe a um motor de IA generativa (LLM). Para que um sistema externo (banco de dados, API HTTP, ferramenta MCP) possa ser **invocado por um app** durante uma conversa com o LLM, ele precisa se registrar no AIOSON Play através de um **Global Connector**.
 
-> Fronteira com o modo anônimo do Play: o acesso anônimo pré-cadastro do
-> `aioson-play` é uma capacidade local do Play para IDE/Terminal em sandbox. Ele
-> não cria `GlobalUser`, funcionário, role, token, sessão, `AppBinding` ou
-> binding especial neste serviço. Depois que uma instalação é reivindicada por
-> uma conta aioson.com, usuários reais, perfis e permissões voltam a ser
-> modelados aqui, preferencialmente usando o binding `shell` para permissões
-> globais do Play e bindings de app para permissões de negócio.
-
-**Modelo de dados:**
-- **Usuários** são globais — um usuário existe uma vez no sistema e pode ter acesso a todos os apps.
-- **Perfis (Roles)** são globais — criados uma vez, reutilizados em todos os apps.
-- **Permissões** são por-app — cada sistema registra as suas próprias permissões.
-- **Mapeamento** perfil↔permissão é por-app — o que significa "Admin" é definido **por cada app**.
-- **Atribuição** perfil↔usuário é por-app — o mesmo usuário pode ser Admin num app e Atendente em outro.
+Este manual explica como um desenvolvedor de um sistema externo (ex: `meu-erp`, `sistema-legado`, `microservico`) deve expor seu sistema para que o AIOSON Play consiga invocá-lo como **tool** durante a execução de um app.
 
 ---
 
-## Endereço Base
+## Arquitetura de Integração
 
 ```
-http://localhost:3001/api/auth
+┌──────────────────────────────────────────────────────────────────────┐
+│                         AIOSON Play (Runtime Local)                  │
+│                                                                      │
+│  ┌─────────────┐    ┌──────────────┐    ┌───────────────────────┐  │
+│  │ App instalado│───▶│ Global Connectors │───▶│ Tool Injection       │  │
+│  │ (manifest)   │    │ (metadata SQLite) │    │ (tools.json → LLM)   │  │
+│  └─────────────┘    └──────────────┘    └───────────────────────┘  │
+│                            │                                        │
+│              ┌─────────────┼────────────────────────────────────┐  │
+│              │             ▼                                    │  │
+│              │  ┌─────────────────┐  ┌──────────────────────┐   │  │
+│              │  │  MCPI (SQL)      │  │  API Connector (HTTP)│   │  │
+│              │  │  Prepared Stmts  │  │  reqwest             │   │  │
+│              │  └────────┬────────┘  └──────────┬───────────┘   │  │
+│              │             │                       │               │  │
+│              │  ┌──────────▼────────┐  ┌──────────▼───────────┐   │  │
+│              │  │  API Connector    │  │  MCP (stdio)         │   │  │
+│              │  │  (HTTP)          │  │  JSON-RPC proxy       │   │  │
+│              │  └────────┬─────────┘  └──────────┬───────────┘   │  │
+│              │           │                       │               │  │
+└──────────────┼───────────┼───────────────────────┼───────────────┼──┘
+                │           │                       │
+                ▼           ▼                       ▼
+          ┌──────────┐ ┌──────────┐          ┌──────────┐
+          │ Postgres │ │  MySQL   │          │ Processo │
+          │  SQLite  │ │  etc.    │          │  stdio  │
+          └──────────┘ └──────────┘          └──────────┘
+          Sistema do                              Sistema do
+          desenvolvedor                           desenvolvedor
 ```
 
-> Substitua pelo host de produção em ambientes reais.
+### Três Tipos de Conectores
+
+| Tipo | Quando usar | Exemplo |
+|------|------------|---------|
+| **MCPI** (Multi-Connection Protocol Interface) | Seu sistema expõe um **banco de dados** (PostgreSQL, MySQL, SQLite, etc.) e você quer que o LLM execute queries. | `SELECT * FROM produtos WHERE nome ILIKE '%{{search}}%'` |
+| **API** (HTTP) | Seu sistema expõe uma **API REST/HTTP** e você quer que o LLM faça chamadas HTTP. | `GET https://api.seu-sistema.com/clientes/{{id}}` |
+| **MCP** (Model Context Protocol) | Seu sistema é uma **ferramenta com stdio** (nativa ou script) que segue o protocolo MCP JSON-RPC 2.0. | `my-tool --stdin` |
 
 ---
 
@@ -35,659 +56,588 @@ http://localhost:3001/api/auth
 
 | Termo | Significado |
 |-------|-------------|
-| `bindingId` | UUID do vínculo entre o app consumidor e o aioson-auth (criado pelo admin) |
-| `connection_name` | Nome da conexão de banco no AIOSON Play que aponta para o banco do app |
-| `role` | Perfil global — reutilizável entre todos os apps |
-| `permission` | Permissão específica de um app (formato `recurso:acao`) |
+| `GlobalConnector` | Registro no AIOSON Play que representa um sistema externo (tipo, URL/query, credenciais). |
+| `AppBinding` | Vínculo entre um **app instalado** e um `GlobalConnector`, com um alias que nomeia a tool para o LLM. |
+| `MCPI` | Multi-Connection Protocol Interface — protocolo de queries SQL parametrizadas via prepared statements. |
+| `MCP` | Model Context Protocol — protocolo JSON-RPC 2.0 sobre stdio para ferramentas externas. |
+| `tools.json` | Arquivo gerado pelo AIOSON Play com a lista de tools injetadas no payload LLM antes de cada chamada. |
+| `data_bindings` | Bloco no `app-config.yaml` que declara quais conectores um app **requer** para funcionar. |
 
 ---
 
-## 1 — Registro de Permissões (Passo Obligatório por App)
+## 1 — Registro de Sistema Externo (Global Connector)
 
-Quando seu app é desenvolvido, você define o **manifesto de permissões** — a lista de todas as ações que o sistema pode controlar.
+### 1.1 Via UI (AIOSON Play → Settings → Data Connectors)
 
-Isso é feito via **merge**: quando o app é instalado/vinculado pela primeira vez, ele registra suas permissões. Em upgrades, novas permissões são **adicionadas** às já existentes (nunca substituídas).
+O método mais comum: abra o AIOSON Play, vá em **Settings → Data Connectors** e clique em **Novo Connector**.
 
-### Manifesto de Permissões
+Preencha os campos conforme o tipo:
 
-O manifesto é um array de strings no formato `recurso:acao`:
-
-```json
-[
-  "users:create",
-  "users:read",
-  "users:update",
-  "users:delete",
-  "orders:create",
-  "orders:read",
-  "orders:update",
-  "orders:delete",
-  "products:create",
-  "products:read",
-  "products:update",
-  "products:delete",
-  "reports:read",
-  "reports:export",
-  "settings:read",
-  "settings:write"
-]
-```
-
-### Registrando Permissões
+#### MCPI — Consulta de Banco de Dados
 
 ```
-POST /api/auth/:bindingId/register-permissions
-Content-Type: application/json
-
-{
-  "permissions": [
-    "users:create",
-    "users:read",
-    "orders:create",
-    "orders:read",
-    "orders:update",
-    "orders:delete"
-  ]
-}
+Nome:        Busca Produtos
+Slug:        busca-produtos
+Tipo:        MCPI (Consulta DB)
+Conexão:     [selecione uma DbConnection já configurada]
+Verbo HTTP:  GET
+Query:
+  SELECT * FROM produtos
+  WHERE nome ILIKE '%{{search}}%'
+  AND ativo = true
+  LIMIT 50
 ```
 
-**Resposta (200):**
-```json
-{
-  "added": 6,
-  "merged": true
-}
+**Validações:**
+- Queries `GET` não podem conter DML (INSERT, UPDATE, DELETE, DROP, ALTER, etc.).
+- Parâmetros usam a sintaxe `{{nome_variavel}}`.
+- A conexão de banco deve estar previamente configurada e validada em **Settings → Database Connections**.
+- Para MCPI, não use uma DbConnection pendente/falha: o Play deve bloquear a seleção no formulário e a execução pode retornar `GcError::ConnectionFailed`.
+
+#### API — Chamada HTTP
+
+```
+Nome:           Buscar Cliente por ID
+Slug:           buscar-cliente
+Tipo:           API (HTTP)
+Verbo HTTP:     GET
+URL/Comando:
+  https://api.seu-sistema.com/clientes/{{id}}
+Headers (JSON):
+  Authorization: Bearer {{api_token}}
+  Content-Type: application/json
 ```
 
-> `added: 0` significa que todas as permissões já existiam (upgrade idempotente).
+Campos `{{var}}` são substituídos na hora da invocação.
 
-O app deve fazer isso **automaticamente** ao ser vinculado pela primeira vez ou ao fazer upgrade. O admin do app pode ver e gerenciar as permissões em **Perfis → Permissões por App** no painel do aioson-auth.
+#### MCP — Ferramenta stdio
+
+```
+Nome:           Executor de Scripts
+Slug:           executor-scripts
+Tipo:           MCP (stdio)
+Comando:
+  /usr/local/bin/my-mcp-tool
+```
+
+O AIOSON Play faz spawn do processo e se comunica via JSON-RPC 2.0 sobre stdin/stdout.
 
 ---
 
-## 2 — Autenticação Tradicional
+### 1.2 Via API (Rust/Tauri)
 
-### 2.1 Cadastro
+```typescript
+import { createGlobalConnector } from "@/services/globalConnectors";
 
-```
-POST /api/auth/:bindingId/register
-Content-Type: application/json
-
-{
-  "email": "usuario@exemplo.com",
-  "password": "senhaForte123"
-}
-```
-
-**Resposta (201):**
-```json
-{
-  "userId": "cuid-xxx",
-  "verified": false
-}
+const connector = await createGlobalConnector({
+  name: "Busca Produtos",
+  slug: "busca-produtos",
+  connectorType: "mcpi",
+  method: "GET",
+  dbConnectionName: "farmacia-db",     // nome de uma DbConnection existente
+  queryTemplate: "SELECT * FROM produtos WHERE nome ILIKE '%{{search}}%'",
+  // authJson: JSON.stringify({ /* credenciais se precisar keyring */ }),
+});
 ```
 
-### 2.2 Login
-
-```
-POST /api/auth/:bindingId/login
-Content-Type: application/json
-
-{
-  "email": "usuario@exemplo.com",
-  "password": "senhaForte123"
-}
-```
-
-**Resposta (200):**
-```json
-{
-  "accessToken": "eyJhbG...",
-  "refreshToken": "uuid-do-refresh-token",
-  "user": {
-    "id": "cuid-xxx",
-    "email": "usuario@exemplo.com",
-    "name": ""
-  }
-}
-```
-
-### 2.3 Renovar Token (Refresh)
-
-```
-POST /api/auth/:bindingId/refresh
-Content-Type: application/json
-
-{
-  "refreshToken": "uuid-do-refresh-token"
-}
-```
-
-**Resposta (200):**
-```json
-{
-  "accessToken": "eyJhbG...",
-  "refreshToken": "novo-uuid",
-  "user": { "id": "...", "email": "...", "name": "" }
-}
-```
-
-### 2.4 Logout
-
-```
-POST /api/auth/:bindingId/logout
-Content-Type: application/json
-
-{
-  "refreshToken": "uuid-do-refresh-token"
-}
-```
-
-Resposta: `204 No Content`
-
-### 2.5 Esqueci a Senha
-
-```
-POST /api/auth/:bindingId/forgot-password
-Content-Type: application/json
-
-{
-  "email": "usuario@exemplo.com"
-}
-```
-
-**Resposta (200):** `{ "sent": true }`
-
-> O link de recuperação é logado no servidor ou enviado por SMTP se configurado.
-
-### 2.6 Redefinir Senha
-
-```
-POST /api/auth/:bindingId/reset-password
-Content-Type: application/json
-
-{
-  "token": "uuid-do-token-de-recuperacao",
-  "newPassword": "novaSenhaForte123"
-}
-```
-
-**Resposta (200):** `{ "success": true }`
+**Credenciais** (`authJson`) são armazenadas no keyring do SO, nunca em texto plano.
 
 ---
 
-## 3 — Login Social (OAuth)
+## 2 — Vínculo com App (App Binding)
 
+Um `GlobalConnector` sozinho **não é injetado no LLM**. Ele precisa ser **vinculado a um app** através de um `AppBinding`.
+
+### 2.1 Via UI (AIOSON Play → Settings → App Data Sources)
+
+Abra **Settings → App Data Sources**. Aparecerão apenas os apps que **declararam** `data_bindings` no seu `app-config.yaml`.
+
+Para cada slot do app, selecione o Global Connector que deseja vincular e defina um **alias** (nome da tool que o LLM verá).
+
+### 2.2 Como um App Declara que Precisa de Conectores
+
+No arquivo `{app_dir}/app-config.yaml` do seu app:
+
+```yaml
+output:
+  type: file
+  format: text
+  destination: ""
+
+database:
+  connection: ""
+  table: ""
+  fields: {}
+
+webhook:
+  url: ""
+  headers: {}
+
+data_bindings:
+  - id: "busca-produtos"
+    description: "Busca produtos no catálogo por termo"
+    expected_type: "mcpi"       # mcpi | api | mcp
+    required_params:
+      - "search"
 ```
-POST /api/auth/:bindingId/oauth
-Content-Type: application/json
 
-{
-  "email": "usuario@exemplo.com",
-  "provider": "google",
-  "providerId": "google-user-id"
-}
-```
+**Campos do `DataBindingSlot`:**
 
-**Resposta (200):**
-```json
-{
-  "accessToken": "eyJhbG...",
-  "refreshToken": "uuid-do-refresh-token",
-  "user": { "id": "...", "email": "...", "name": "" }
-}
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| `id` | `string` | Identificador único do slot dentro do app |
+| `description` | `string` | Descrição legível para o admin (não exposta ao LLM) |
+| `expected_type` | `"mcpi" \| "api" \| "mcp"` | Tipo de conector esperado |
+| `required_params` | `string[]` | Parâmetros que o template/query/API espera (`{{param}}`) |
+
+> Se o app não declarar `data_bindings`, ele **não aparecerá** na tela de App Data Sources — a seção é completamente hidden para apps que não declaram slots.
+
+### 2.3 Via API (Rust/Tauri)
+
+```typescript
+import { bindConnector } from "@/services/globalConnectors";
+
+const binding = await bindConnector({
+  appSlug: "squad-autonomo-sdr",
+  connectorId: "conn-uuid-aqui",
+  alias: "busca_produtos",
+});
 ```
 
 ---
 
-## 4 — Validação de Token
+## 3 — Injeção de Tools no LLM (Como o LLM Descobre as Tools)
 
-Aceita o JWT via `Authorization: Bearer` (RFC 6750, preferido) ou via
-query `?token=` (retro-compat).
-
-```
-GET /api/auth/:bindingId/me
-Authorization: Bearer eyJhbG...
-```
-
-Equivalente legacy (continua funcionando):
-```
-GET /api/auth/:bindingId/me?token=eyJhbG...
-```
-
-**Resposta (200):**
-```json
-{
-  "sub": "cuid-xxx",
-  "email": "usuario@exemplo.com",
-  "binding_id": "uuid-do-binding",
-  "permissions": ["orders:create", "orders:read"]
-}
-```
-
-> **Desde 2026-05-13:** o payload do JWT (e portanto a resposta de `/me`) inclui `binding_id` e `permissions` quando o login foi feito contra um binding com RBAC habilitado. Apps podem decidir UI condicional sem chamar `/rbac/check` — basta inspecionar `permissions.includes("X:Y")`. O endpoint `/rbac/check` continua existindo como defense-in-depth server-side para ações críticas. Tokens emitidos antes dessa data continuam válidos sem esses campos (compat retroativo).
-
-**Resposta (401):** `{ "error": "Invalid or expired token" }`
-
-### 4.1 — Atalho `/me/permissions`
-
-Quando seu app só quer permissions agregadas server-side (fresh do DB),
-sem o payload completo do `/me`:
+### 3.1 Fluxo completo
 
 ```
-GET /api/auth/:bindingId/me/permissions
-Authorization: Bearer eyJhbG...
+1. Usuário instala um app → app aparece no AIOSON Play
+2. Admin vincula GlobalConnectors ao app via Settings → App Data Sources
+3. Antes de cada execução de app, o AIOSON Play gera {app_dir}/tools.json
+4. O motor AIOSON (sidecar) lê tools.json e injeta as tools no payload LLM
+5. O LLM decide quais tools chamar → sidecar executa → resultado volta ao LLM
 ```
 
-**Resposta (200):**
-```json
-{ "permissions": ["orders:create", "orders:read"] }
-```
+### 3.2 tools.json (formato)
 
-Útil para apps que validam o JWT offline (futuro JWKS) e só precisam
-de uma fonte de verdade fresca para permissions, sem refazer todo o
-payload do `/me`.
-
----
-
-## 5 — Dois Fatores (2FA)
-
-> **Pré-requisito:** O vínculo precisa ter `enable_2fa: true`.
-
-### 5.1 Ativar 2FA (Gerar QR Code)
-
-```
-POST /api/auth/:bindingId/2fa/setup?token=<accessToken>
-```
-
-**Resposta (200):**
-```json
-{
-  "secret": "JBSWY3DPEHPK3PXP",
-  "otpauthUrl": "otpauth://totp/aioson-auth:usuario@exemplo.com?secret=JBSWY...",
-  "qrCode": "data:image/png;base64,..."
-}
-```
-
-> Renderize `qrCode` em um `<img>` no frontend.
-
-### 5.2 Verificar e Ativar
-
-```
-POST /api/auth/:bindingId/2fa/verify?token=<accessToken>
-Content-Type: application/json
-
-{
-  "totpToken": "123456"
-}
-```
-
-**Resposta (200):** `{ "verified": true }`
-
-### 5.3 Desativar 2FA
-
-```
-POST /api/auth/:bindingId/2fa/disable?token=<accessToken>
-```
-
-**Resposta (200):** `{ "disabled": true }`
-
----
-
-## 6 — RBAC (Perfis e Permissões)
-
-> **Pré-requisito:** O vínculo precisa ter `enable_rbac: true`.
->
-> **Autenticação (desde 2026-07-02):** todas as operações de **escrita** de
-> RBAC (criar/editar/apagar perfis, criar/apagar usuários, criar/apagar
-> permissões, vincular/desvincular perfil↔permissão e usuário↔perfil) exigem
-> `Authorization: Bearer <adminToken do painel>` OU o Bearer de dono
-> (`Authorization: Bearer aioson-com:<jwt>` + header `X-Aioson-Play-Id`).
-> Antes ficavam abertas — qualquer processo local podia criar/apagar perfis.
-> As **leituras** (GET) seguem sem autenticação, pois apps as consomem em
-> runtime. O `POST /:bindingId/register-permissions` (auto-registro de
-> permissões no boot do app) também segue aberto.
-
-### 6.1 Perfis Globais (Roles)
-
-Perfis são criados **uma vez** e reutilizados em todos os apps.
-
-**Listar todos os perfis:**
-```
-GET /api/auth/:bindingId/rbac/roles
-```
-
-**Criar perfil:**
-```
-POST /api/auth/rbac/roles
-Content-Type: application/json
-
-{
-  "name": "Admin",
-  "description": "Administrador do sistema"
-}
-```
-
-**Atualizar perfil:**
-```
-PATCH /api/auth/rbac/roles/:roleId
-Content-Type: application/json
-
-{
-  "name": "Administrador",
-  "description": "Descrição atualizada"
-}
-```
-
-**Remover perfil:**
-```
-DELETE /api/auth/rbac/roles/:roleId
-```
-
-> A remoção deleta automaticamente todas as associações de perfil com usuários e permissões.
-
----
-
-### 6.2 Permissões por App
-
-Cada app tem suas próprias permissões (registradas via `register-permissions` ou criadas manualmente).
-
-**Listar permissões de um app:**
-```
-GET /api/auth/:bindingId/rbac/permissions
-```
-
-**Criar permissão manualmente:**
-```
-POST /api/auth/:bindingId/rbac/permissions
-Content-Type: application/json
-
-{
-  "name": "orders:create",
-  "resource": "orders",
-  "action": "create"
-}
-```
-
-**Remover permissão:**
-```
-DELETE /api/auth/:bindingId/rbac/permissions/:permissionId
-```
-
----
-
-### 6.3 Mapear Permissões a um Perfil (por App)
-
-Quando você atribui uma permissão a um perfil, **deve especificar para qual app** aquela permissão faz parte do perfil.
-
-**Atribuir permissão ao perfil para um app específico:**
-```
-POST /api/auth/rbac/roles/:roleId/permissions
-Content-Type: application/json
-
-{
-  "permissionId": "uuid-da-permissao",
-  "bindingId": "uuid-do-app"
-}
-```
-
-**Remover permissão do perfil para um app:**
-```
-DELETE /api/auth/rbac/roles/:roleId/permissions/:permissionId?bindingId=uuid-do-app
-```
-
-**Ver permissões de um perfil para um app específico:**
-```
-GET /api/auth/rbac/roles/:roleId/permissions?bindingId=uuid-do-app
-```
-
-**Exemplo completo:**
-
-```bash
-# 1. Criar perfil "Atendente"
-curl -X POST /api/auth/rbac/roles \
-  -d '{"name":"Atendente","description":"Atendente de vendas"}'
-
-# 2. Registrar permissões do app de vendas
-curl -X POST /api/auth/:bindingId/register-permissions \
-  -d '{"permissions":["orders:create","orders:read","clients:read"]}'
-
-# 3. Mapear permissões ao perfil "Atendente" no app de vendas
-PERM_ID=$(curl -s /api/auth/:bindingId/rbac/permissions \
-  | jq -r '.[] | select(.name=="orders:read") | .id')
-curl -X POST /api/auth/rbac/roles/:roleId/permissions \
-  -d "{\"permissionId\":\"$PERM_ID\",\"bindingId\":\"$BINDING_ID\"}"
-```
-
----
-
-### 6.4 Atribuir Perfil a Usuário (por App)
-
-Um usuário pode ter **perfis diferentes em apps diferentes**.
-
-**Atribuir perfil ao usuário:**
-```
-POST /api/auth/:bindingId/rbac/users/:userId/roles
-Content-Type: application/json
-
-{
-  "roleId": "uuid-do-perfil"
-}
-```
-
-**Remover perfil do usuário:**
-```
-DELETE /api/auth/:bindingId/rbac/users/:userId/roles/:roleId
-```
-
-**Ver perfis e permissões de um usuário num app:**
-```
-GET /api/auth/:bindingId/rbac/users/:userId
-```
-
-**Resposta (200):**
 ```json
 [
   {
-    "role": {
-      "id": "uuid",
-      "name": "Atendente",
-      "description": "Atendente de vendas"
+    "name": "busca_produtos",
+    "description": "Busca produtos no catálogo por termo",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "search": {
+          "type": "string",
+          "description": "Termo de busca (parcial, case-insensitive)"
+        }
+      },
+      "required": ["search"]
     },
-    "permissions": ["orders:read", "clients:read"]
+    "connector_id": "conn-uuid-aqui",
+    "type": "mcpi"
   }
 ]
 ```
 
+> O `name` vem do **alias** definido no AppBinding, não do nome do GlobalConnector.
+> O `input_schema` é gerado automaticamente a partir dos `{{param}}` do template.
+
+### 3.3 Quem gera o tools.json
+
+O **Tauri backend** (Rust) gera o arquivo:
+
+```rust
+// src-tauri/src/global_connectors.rs
+pub async fn prepare_tools_json(
+    app_dir: String,
+    app_slug: String,
+) -> Result<(), String> {
+    // 1. Lista AppBindings para o app_slug
+    // 2. Para cada binding, busca o GlobalConnector
+    // 3. Gera o input_schema a partir dos required_params do data_binding
+    // 4. Grava {app_dir}/tools.json
+}
+```
+
+Esta função é chamada automaticamente por `executeApp()` antes de invocar o app.
+
 ---
 
-### 6.5 Verificar Permissão em Runtime
+## 4 — Execução de MCPI (Invocação Real)
 
-No seu app, antes de executar uma ação protegida:
+Quando o LLM decide invocar a tool `busca_produtos`:
 
 ```
-GET /api/auth/:bindingId/rbac/check?token=<accessToken>&permission=orders:create
+1. Sidecar recebe: { name: "busca_produtos", arguments: { search: "aspirina" } }
+2. Sidecar detecta connector_id no tools.json → chama Rust backend
+3. Rust busca GlobalConnector por ID
+4. Rust interpola {{search}} com "aspirina" via prepared statements
+5. Rust executa a query no banco da DbConnection vinculada
+6. Rust retorna { data: [...rows], error: null, duration_ms: 42 }
+7. Sidecar retorna para o LLM
 ```
 
-**Resposta (200):**
+### 4.1 Segurança: Prepared Statements
+
+```sql
+-- Template salvo:
+SELECT * FROM produtos WHERE nome ILIKE $1 AND ativo = $2
+
+-- Params: ["%aspirina%", "true"]
+-- O LLM NÃO injeta SQL — bind vars ($1, $2) impedem SQL injection.
+```
+
+### 4.2 Erros Comuns
+
+| Erro | Causa | Solução |
+|------|-------|---------|
+| `Db connection not found` | Nome de DbConnection inválido | Criar e validar a DbConnection em Settings → Database Connections |
+| `Syntax error in query` | Query mal formada | Corrigir a query no editor de Global Connector |
+| `Timeout` | Banco não respondeu em 30s | Reduzir o resultado (LIMIT), otimizar index |
+| `Permission denied` | Usuário do banco sem acesso | Ajustar permissões no banco ou usar credenciais diferentes |
+
+---
+
+## 5 — App Externo Completo: Exemplo `meu-erp`
+
+### 5.1 Estrutura de Diretórios
+
+```
+meu-erp/
+├── manifest.json
+├── app-config.yaml       ← declara data_bindings
+├── genomes/
+├── agents/
+│   └── vendas.md
+└── skills/
+```
+
+### 5.2 manifest.json
+
 ```json
 {
-  "allowed": true
+  "name": "Meu ERP",
+  "slug": "meu-erp",
+  "version": "1.0.0",
+  "description": "Consulta e manipula dados do ERP corporativo",
+  "author_id": "user-001",
+  "created_at": "2026-04-12T00:00:00Z",
+  "packages": [],
+  "systems": []
 }
 ```
 
----
+### 5.3 app-config.yaml
 
-## 7 — Exemplo: Fluxo Completo de Configuração de um App
+```yaml
+output:
+  type: file
+  format: text
+  destination: ""
 
-### Fase 1 — Instalação / Upgrade do App
+database:
+  connection: ""
+  table: ""
+  fields: {}
 
-Ao instalar ou fazer upgrade do seu app, registre as permissões:
+webhook:
+  url: ""
+  headers: {}
 
-```typescript
-async function registerAppPermissions(bindingId: string, permissions: string[]) {
-  const res = await fetch(`/api/auth/${bindingId}/register-permissions`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ permissions }),
-  });
-  const data = await res.json();
-  console.log(`Permissões registradas: ${data.added} novas`);
-}
+data_bindings:
+  - id: "catalogo-produtos"
+    description: "Busca produtos no catálogo do ERP"
+    expected_type: "mcpi"
+    required_params:
+      - "search"
+
+  - id: "dados-cliente"
+    description: "Busca dados de cliente por CPF/CNPJ"
+    expected_type: "mcpi"
+    required_params:
+      - "documento"
+
+  - id: "webhook-venda"
+    description: "Envia pedido de venda para o ERP via webhook"
+    expected_type: "api"
+    required_params:
+      - "pedido_json"
 ```
 
-Exemplo de manifesto completo:
+### 5.4 Criando os GlobalConnectors (admin do AIOSON Play)
+
+**Connector 1 — MCPI Busca Produtos:**
+```
+Nome:   Busca Produtos ERP
+Slug:   erp-busca-produtos
+Tipo:   MCPI
+Conexão: Meu ERP (PostgreSQL)
+Query:  SELECT id, nome, preco, estoque FROM produtos
+        WHERE nome ILIKE '%{{search}}%'
+        LIMIT 20
+```
+
+**Connector 2 — MCPI Dados Cliente:**
+```
+Nome:   Dados Cliente ERP
+Slug:   erp-dados-cliente
+Tipo:   MCPI
+Conexão: Meu ERP (PostgreSQL)
+Query:  SELECT nome, documento, telefone, email
+        FROM clientes
+        WHERE documento = '{{documento}}'
+        LIMIT 1
+```
+
+**Connector 3 — API Webhook Venda:**
+```
+Nome:   Webhook Venda ERP
+Slug:   erp-webhook-venda
+Tipo:   API
+Verbo:  POST
+URL:    https://erp.minhaempresa.com.br/api/v2/vendas
+```
+
+### 5.5 Vinculando no AIOSON Play
+
+1. Abra **Settings → App Data Sources**
+2. Selecione o app `meu-erp`
+3. Para `catalogo-produtos` → vincule o connector `erp-busca-produtos` com alias `busca_produtos_erp`
+4. Para `dados-cliente` → vincule `erp-dados-cliente` com alias `dados_cliente_erp`
+5. Para `webhook-venda` → vincule `erp-webhook-venda` com alias `enviar_venda_erp`
+
+### 5.6 tools.json Gerado
+
 ```json
 [
-  "users:create", "users:read", "users:update", "users:delete",
-  "orders:create", "orders:read", "orders:update", "orders:delete",
-  "products:create", "products:read", "products:update", "products:delete",
-  "reports:read", "reports:export",
-  "settings:read", "settings:write"
+  {
+    "name": "busca_produtos_erp",
+    "description": "Busca produtos no catálogo do ERP",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "search": { "type": "string" }
+      },
+      "required": ["search"]
+    },
+    "connector_id": "<uuid-erp-busca-produtos>",
+    "type": "mcpi"
+  },
+  {
+    "name": "dados_cliente_erp",
+    "description": "Busca dados de cliente por CPF/CNPJ",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "documento": { "type": "string" }
+      },
+      "required": ["documento"]
+    },
+    "connector_id": "<uuid-erp-dados-cliente>",
+    "type": "mcpi"
+  },
+  {
+    "name": "enviar_venda_erp",
+    "description": "Envia pedido de venda para o ERP via webhook",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "pedido_json": { "type": "string" }
+      },
+      "required": ["pedido_json"]
+    },
+    "connector_id": "<uuid-erp-webhook-venda>",
+    "type": "api"
+  }
 ]
 ```
 
-### Fase 2 — No Painel do aioson-auth (Admin)
+### 5.7 Exemplo de Conversa com LLM
 
-O admin acessa `/auth/dashboard → Perfis Globais` e:
+```
+Usuário: Quero ver os produtos de aspirina do catálogo
 
-1. Cria os perfis: **Admin**, **Atendente**, **Gerente**, **Viewer**
-2. Para cada perfil, seleciona o app e adiciona as permissões correspondentes
-
-### Fase 3 — Atribuir Perfis aos Usuários
-
-O admin ou gestor acessa `/auth/users` ou `/auth/bindings/:id/users` e:
-
-1. Seleciona o usuário
-2. Escolhe em qual **app** atribuir o perfil
-3. Seleciona o **perfil** (ex: Atendente)
-4. O usuário agora tem as permissões configuradas para aquele app
-
----
-
-## 8 — Exemplo: Middleware Express (Proteção de Rotas)
-
-```typescript
-import { Request, Response, NextFunction } from 'express';
-
-export function requireAuth(bindingId: string) {
-  return async (req: Request, res: Response, next: NextFunction) => {
-    const token = req.headers['authorization']?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ error: 'Missing token' });
-
-    try {
-      const meRes = await fetch(
-        `http://localhost:3001/api/auth/${bindingId}/me?token=${token}`
-      );
-      if (!meRes.ok) return res.status(401).json({ error: 'Invalid token' });
-      const payload = await meRes.json();
-      (req as any).user = payload;
-      next();
-    } catch {
-      return res.status(401).json({ error: 'Invalid token' });
-    }
-  };
+LLM decide invocar:
+{
+  "name": "busca_produtos_erp",
+  "arguments": { "search": "aspirina" }
 }
 
-export function requirePermission(bindingId: string, permission: string) {
-  return async (req: Request, res: Response, next: NextFunction) => {
-    const token = req.headers['authorization']?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ error: 'Missing token' });
-
-    try {
-      const checkRes = await fetch(
-        `http://localhost:3001/api/auth/${bindingId}/rbac/check?token=${token}&permission=${permission}`
-      );
-      const { allowed } = await checkRes.json();
-      if (!allowed) return res.status(403).json({ error: 'Forbidden' });
-      next();
-    } catch {
-      return res.status(403).json({ error: 'Forbidden' });
-    }
-  };
+Resultado:
+{
+  "data": [
+    { "id": 1, "nome": "Aspirina 500mg", "preco": 12.90, "estoque": 150 },
+    { "id": 2, "nome": "Aspirina Protect", "preco": 28.50, "estoque": 80 }
+  ],
+  "error": null,
+  "duration_ms": 23
 }
 
-// Uso:
-app.get('/api/orders',
-  requireAuth('binding-id-do-app'),
-  requirePermission('binding-id-do-app', 'orders:create'),
-  (_req, res) => { /* criar order */ }
-);
+LLM responde: Aqui estão os produtos encontrados:
+• Aspirina 500mg — R$ 12,90 (150 un)
+• Aspirina Protect — R$ 28,50 (80 un)
 ```
 
 ---
 
-## 9 — Exemplo: Hook React (Proteção de Componentes)
+## 6 — Criando uma DbConnection (Pré-requisito para MCPI)
 
-```tsx
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+Antes de criar um GlobalConnector tipo `mcpi`, o admin precisa ter uma **DbConnection** configurada em **Settings → Database Connections**.
 
-export function useAuth(bindingId: string) {
-  const [user, setUser] = useState<{ sub: string; email: string } | null>(null);
-  const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
+### 6.1 Drivers Suportados
 
-  useEffect(() => {
-    const token = localStorage.getItem('accessToken');
-    if (!token) {
-      navigate(`/auth/${bindingId}`);
-      return;
-    }
+| Driver | Supportado | Teste de conexão |
+|--------|-----------|-----------------|
+| PostgreSQL | ✅ | ✅ |
+| MySQL | ✅ | ✅ |
+| MariaDB | ✅ | ✅ |
+| SQLite | ✅ | ✅ |
+| MS SQL Server | ✅ | ❌ |
+| MongoDB | ✅ | ❌ |
+| Oracle | ✅ | ❌ |
+| Supabase | ✅ | ❌ |
 
-    fetch(`/api/auth/${bindingId}/me?token=${token}`)
-      .then((r) => {
-        if (!r.ok) throw new Error();
-        return r.json();
-      })
-      .then((data) => setUser(data))
-      .catch(() => {
-        localStorage.removeItem('accessToken');
-        navigate(`/auth/${bindingId}`);
-      })
-      .finally(() => setLoading(false));
-  }, [bindingId, navigate]);
+### 6.2 Campos
 
-  return { user, loading };
-}
+```
+Nome:        Meu ERP (Produção)
+Driver:      PostgreSQL
+Host:        db.minhaempresa.com.br
+Porta:       5432
+Database:     erp_corp
+Usuário:     aioson_ro
+Senha:       [armazenada em keyring]
+SSL:         ✅
+```
 
-// Uso:
-function ProtectedPage() {
-  const { user, loading } = useAuth('binding-id-do-app');
-  if (loading) return <p>Carregando...</p>;
-  if (!user) return null;
-  return <h1>Olá, {user.email}</h1>;
-}
+> A senha é armazenada no **keyring do SO** (Windows Credential Manager, macOS Keychain, Linux Secret Service), nunca em arquivo.
+
+---
+
+## 7 — Ferramentas MCP (Model Context Protocol)
+
+### 7.1 O que é MCP
+
+MCP é um protocolo JSON-RPC 2.0 sobre stdio. Se o seu sistema é uma **ferramenta executável** (binário nativo, script, container), você pode expô-lo como MCP para que o AIOSON Play o invoque.
+
+### 7.2 Exemplo de Ferramenta MCP
+
+```python
+#!/usr/bin/env python3
+# my-mcp-tool (executável, chmod +x)
+import sys
+import json
+
+def main():
+    for line in sys.stdin:
+        try:
+            msg = json.loads(line.strip())
+        except:
+            continue
+
+        method = msg.get("method", "")
+        msg_id = msg.get("id")
+
+        if method == "tools/list":
+            result = {
+                "tools": [
+                    {
+                        "name": "calcula_desconto",
+                        "description": "Calcula desconto comerciais",
+                        "input_schema": {
+                            "type": "object",
+                            "properties": {
+                                "preco_original": {"type": "number"},
+                                "pct_desconto": {"type": "number"}
+                            },
+                            "required": ["preco_original", "pct_desconto"]
+                        }
+                    }
+                ]
+            }
+            print(json.dumps({"jsonrpc": "2.0", "id": msg_id, "result": result}))
+
+        elif method == "tools/call":
+            args = msg.get("params", {}).get("arguments", {})
+            nome = args.get("name")
+            if nome == "calcula_desconto":
+                resultado = args["preco_original"] * (1 - args["pct_desconto"] / 100)
+                print(json.dumps({
+                    "jsonrpc": "2.0",
+                    "id": msg_id,
+                    "result": {
+                        "content": [{"type": "text", "text": str(resultado)}]
+                    }
+                }))
+        sys.stdout.flush()
+
+if __name__ == "__main__":
+    main()
+```
+
+### 7.3 Registro no AIOSON Play
+
+```
+Nome:      Calculadora de Desconto
+Slug:      calc-desconto
+Tipo:      MCP (stdio)
+Comando:   /usr/local/bin/my-mcp-tool
 ```
 
 ---
 
-## 10 — Checklist de Integração
+## 8 — Checklist de Integração
 
 | # | Tarefa | Onde |
 |---|--------|------|
-| 1 | Registrar manifesto de permissões (`register-permissions`) | Ao instalar/upgrade do app |
-| 2 | Fornecer ao admin a lista de permissões disponíveis | Na documentação do seu app |
-| 3 | Criar os perfis globais no painel ou via API | `/auth/roles` |
-| 4 | Mapear permissões de cada perfil por app | Painel → Perfis Globais |
-| 5 | Atribuir perfis a usuários por app | Painel → Usuários |
-| 6 | Implementar `GET /me?token=` no frontend | Login/validação |
-| 7 | Implementar `GET /rbac/check?token=&permission=` antes de ações protegidas | Backend/frontend |
-| 8 | Tratar erros 401 → redirecionar para login | Frontend |
-| 9 | Tratar erros 403 → mostrar "acesso negado" | Frontend |
+| 1 | Criar a DbConnection do banco de dados do seu sistema | Settings → Database Connections |
+| 2 | Criar o GlobalConnector (MCPI / API / MCP) | Settings → Data Connectors |
+| 3 | Declarar `data_bindings` no `app-config.yaml` do seu app | Arquivo do app |
+| 4 | Instalar o app no AIOSON Play | App Page → Install App |
+| 5 | Vincular o GlobalConnector ao app com um alias | Settings → App Data Sources |
+| 6 | Validar que `tools.json` foi gerado (debug) | `{app_dir}/tools.json` |
+| 7 | Testar a tool chamando diretamente o execute_mcpi | Settings → Data Connectors → Testar |
+| 8 | Executar o app e observar as tool calls no log |
 
 ---
 
-## 11 — Códigos de Erro Comuns
+## 9 — API Reference Rápida (Rust/Tauri)
 
-| HTTP | Erro | Significado |
-|------|------|-------------|
-| 400 | `"Email already registered"` | E-mail já cadastrado |
-| 400 | `"Invalid credentials"` | Credenciais incorretas |
-| 400 | `"Invalid or expired reset token"` | Token de recuperação inválido |
-| 401 | `"Invalid or expired token"` | Token JWT inválido ou expirado |
-| 401 | `"Invalid refresh token"` | Refresh token não encontrado ou expirado |
-| 403 | `"2FA is not enabled for this app"` | App não tem 2FA ativado |
-| 403 | `"RBAC is not enabled for this binding"` | App não tem RBAC ativado |
-| 404 | `"Binding not found"` | bindingId não existe |
-| 404 | `"Role not found"` | Role não existe |
+```rust
+// Listar conectores
+invoke("list_global_connectors") → Vec<GlobalConnector>
+
+// Criar conector
+invoke("create_global_connector", {
+  name, slug, connectorType, method,
+  urlOrCommand, dbConnectionName, queryTemplate, authJson
+}) → GlobalConnector
+
+// Executar MCPI
+invoke("execute_mcpi", { connectorId, params }) → McpiResult
+
+// Listar bindings de um app
+invoke("list_app_bindings", { appSlug }) → Vec<AppBinding>
+
+// Vincular conector a app
+invoke("bind_connector", { appSlug, connectorId, alias }) → AppBinding
+
+// Preparar tools.json (chamado automaticamente antes de executeApp)
+invoke("prepare_tools_json", { appDir, appSlug }) → ()
+
+```
+
+---
+
+## 10 — Códigos de Erro
+
+| Código | Significado |
+|--------|-------------|
+| `GcError::NotFound` | GlobalConnector ou DbConnection não encontrado |
+| `GcError::InvalidQuery` | Query mal formada pelo banco |
+| `GcError::ConnectionFailed` | Não conseguiu conectar ao banco |
+| `GcError::Timeout` | Banco não respondeu em 30 segundos |
+| `GcError::DmlNotAllowed` | Query GET contém comando DML (INSERT/UPDATE/DELETE) |
+| `GcError::Unauthorized` | Credenciais inválidas ou insuficientes |

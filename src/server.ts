@@ -4,9 +4,20 @@
 import 'dotenv/config';
 import { createApp } from './app.js';
 import { ensureAuthSessionBindingSchema } from './lib/auth-session-binding-migration.js';
+import { ensureAppScopedAccessSchema } from './lib/app-scoped-access-migration.js';
+import { ensureAuthDatabaseMetadataSchema } from './lib/auth-database-metadata-migration.js';
+import { prisma, authDatabaseProvider } from './lib/prisma.js';
+import { ensureAuthDatabaseMetadata, installAuthDatabaseRevisionTracking } from './services/auth-database-metadata.js';
 
 async function startServer(): Promise<void> {
   await ensureAuthSessionBindingSchema();
+  await ensureAppScopedAccessSchema();
+  await ensureAuthDatabaseMetadataSchema();
+  await ensureAuthDatabaseMetadata(prisma, authDatabaseProvider, {
+    installationId: process.env['AIOSON_PLAY_ID'],
+    ownerId: process.env['AIOSON_OWNER_ID'],
+  });
+  installAuthDatabaseRevisionTracking(prisma);
 
   const app = createApp();
   const port = process.env['PORT'] || 3091;

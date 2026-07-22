@@ -7,6 +7,33 @@
     "sdk/test/embedded-smoke.mjs",
     "test/dashboard-owner-context.test.mjs"
   ],
+  "contentAllowRules": [
+    {
+      "path": "src/generated/prisma/**",
+      "rules": ["generic_secret_assignment"],
+      "reason": "Prisma-generated client metadata uses credential-shaped field names; high-confidence secret detectors remain active."
+    },
+    {
+      "path": ".aioson/docs/integrations/**",
+      "rules": ["generic_secret_assignment"],
+      "reason": "Integration documentation contains intentionally illustrative credential placeholders; high-confidence secret detectors remain active."
+    },
+    {
+      "path": "scripts/test-auth-session-binding-migration.mjs",
+      "rules": ["generic_secret_assignment"],
+      "reason": "Migration fixture labels token fields without embedding credentials."
+    },
+    {
+      "path": "test/auth-security-contract.test.mjs",
+      "rules": ["generic_secret_assignment"],
+      "reason": "Security-contract fixtures exercise token and password handling with synthetic values."
+    },
+    {
+      "path": "src/lib/auth-error.ts",
+      "rules": ["generic_secret_assignment"],
+      "reason": "Auth error-code constants use token labels and contain no credential values."
+    }
+  ],
   "blockPaths": [
     "node_modules/**",
     "aioson-logs/**"

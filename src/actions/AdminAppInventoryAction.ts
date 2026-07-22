@@ -116,10 +116,8 @@ export async function syncPlayAppInventory(input: SyncPlayAppInventoryInput): Pr
 async function syncAuthManifestsForExistingBindings(input: SyncPlayAppInventoryInput) {
   const candidates = input.items.filter(
     (item) =>
-      item.lifecycle === 'installed' &&
       item.app_slug &&
-      item.auth_manifest &&
-      item.auth_manifest.permissions.length > 0,
+      item.auth_manifest,
   );
   const slugs = uniqueStrings(candidates.map((item) => item.app_slug).filter((slug): slug is string => Boolean(slug)));
   if (slugs.length === 0) {
@@ -136,7 +134,7 @@ async function syncAuthManifestsForExistingBindings(input: SyncPlayAppInventoryI
       aioson_play_id: input.aioson_play_id,
       app_slug: { in: slugs },
     },
-    select: { id: true, app_slug: true, enable_rbac: true },
+    select: { id: true, app_slug: true },
   });
   const bindingsBySlug = new Map(bindings.map((binding) => [binding.app_slug, binding]));
 
@@ -152,12 +150,14 @@ async function syncAuthManifestsForExistingBindings(input: SyncPlayAppInventoryI
     visitedSlugs.add(appSlug);
 
     const binding = bindingsBySlug.get(appSlug);
-    if (!binding?.enable_rbac || !item.auth_manifest) {
+    if (!binding || !item.auth_manifest) {
       skippedAuthManifests++;
       continue;
     }
 
-    const result = await registerBindingAuthManifest(binding.id, item.auth_manifest);
+    const result = await registerBindingAuthManifest(binding.id, item.auth_manifest, {
+      fingerprint: item.manifest_fingerprint,
+    });
     syncedAuthManifests++;
     syncedPermissions += item.auth_manifest.permissions.length;
     addedPermissions += result.added;

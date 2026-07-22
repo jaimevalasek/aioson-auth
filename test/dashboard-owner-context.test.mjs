@@ -20,7 +20,7 @@ function createStorage(entries = {}) {
   };
 }
 
-function createEnvironment({ search, response }) {
+function createEnvironment({ search, hash = '#section', pathname = '/auth/dashboard', response }) {
   const session = createStorage({
     aiosonOwnerBearer: 'old-token',
     aiosonPlayId: 'old-play',
@@ -39,7 +39,7 @@ function createEnvironment({ search, response }) {
         replaceState: (...args) => historyCalls.push(args),
       },
       localStorage: local,
-      location: { pathname: '/auth/dashboard', search, hash: '#section' },
+      location: { pathname, search, hash },
       sessionStorage: session,
     },
     historyCalls,
@@ -86,5 +86,38 @@ describe('resolveDashboardOwnerContext', () => {
     assert.equal(session.getItem('aiosonOwnerBearer'), null);
     assert.equal(session.getItem('aiosonPlayId'), null);
     assert.deepEqual(local.snapshot(), {});
+  });
+
+  it('consome owner_context do fragmento sem enviá-lo no request inicial', async () => {
+    const { environment, historyCalls, requests } = createEnvironment({
+      search: '?tab=apps',
+      hash: '#owner_context=fragment-code',
+      response: new Response(JSON.stringify({ token: 'fragment-token', playId: 'fragment-play' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    });
+    assert.deepEqual(await resolveDashboardOwnerContext(environment), {
+      token: 'fragment-token', playId: 'fragment-play',
+    });
+    assert.equal(JSON.parse(requests[0].init.body).owner_context, 'fragment-code');
+    assert.deepEqual(historyCalls[0], [null, '', '/auth/dashboard?tab=apps']);
+  });
+
+  it('consome owner_context do path e normaliza a URL do app', async () => {
+    const { environment, historyCalls, requests } = createEnvironment({
+      pathname: '/auth/handoff/path-code/apps/binding-a',
+      search: '',
+      hash: '',
+      response: new Response(JSON.stringify({ token: 'path-token', playId: 'path-play' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    });
+    assert.deepEqual(await resolveDashboardOwnerContext(environment), {
+      token: 'path-token', playId: 'path-play',
+    });
+    assert.equal(JSON.parse(requests[0].init.body).owner_context, 'path-code');
+    assert.deepEqual(historyCalls[0], [null, '', '/auth/apps/binding-a']);
   });
 });

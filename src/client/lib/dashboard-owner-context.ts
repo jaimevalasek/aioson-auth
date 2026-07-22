@@ -23,7 +23,10 @@ const PLAY_ID_KEYS = ['aiosonPlayId', 'aioson_play_id', 'aioson-play:aioson_play
 
 export function getDashboardOwnerContextEnvironment(): DashboardOwnerContextEnvironment {
   return {
-    fetchFn: fetch,
+    // WebView2 exige que o fetch nativo preserve Window como receiver.
+    // Guardar `fetch` sem bind e chamá-lo como propriedade causa
+    // "Failed to execute 'fetch' on 'Window': Illegal invocation".
+    fetchFn: window.fetch.bind(window),
     history: window.history,
     localStorage,
     location: window.location,
@@ -34,7 +37,11 @@ export function getDashboardOwnerContextEnvironment(): DashboardOwnerContextEnvi
 export async function resolveDashboardOwnerContext(
   environment: DashboardOwnerContextEnvironment = getDashboardOwnerContextEnvironment(),
 ): Promise<DashboardOwnerContext | null> {
-  if (hasOwnerContextCode(environment.location.search)) {
+  if (
+    hasOwnerContextCode(environment.location.search)
+    || hasOwnerContextCode(environment.location.hash)
+    || hasOwnerContextPath(environment.location.pathname)
+  ) {
     try {
       const owner = await consumeOwnerContextFromUrl(environment);
       if (!owner) {
@@ -52,8 +59,12 @@ export async function resolveDashboardOwnerContext(
 }
 
 export function hasOwnerContextCode(search: string): boolean {
-  const code = new URLSearchParams(search).get(OWNER_CONTEXT_PARAM)?.trim();
+  const code = new URLSearchParams(search.replace(/^[?#]/, '')).get(OWNER_CONTEXT_PARAM)?.trim();
   return Boolean(code);
+}
+
+export function hasOwnerContextPath(pathname: string): boolean {
+  return /^\/auth\/handoff\/[^/]+\/apps(?:\/[^/]+)?$/.test(pathname);
 }
 
 export function readOwnerContext(environment: DashboardOwnerContextEnvironment): DashboardOwnerContext | null {
@@ -113,13 +124,24 @@ function clearStoredOwnerContext(environment: DashboardOwnerContextEnvironment):
 }
 
 function consumeContextCodeFromUrl(environment: DashboardOwnerContextEnvironment): string | null {
-  const params = new URLSearchParams(environment.location.search);
-  const code = params.get(OWNER_CONTEXT_PARAM)?.trim();
+  const searchParams = new URLSearchParams(environment.location.search);
+  const hashParams = new URLSearchParams(environment.location.hash.replace(/^#/, ''));
+  const hasHashContext = hashParams.has(OWNER_CONTEXT_PARAM);
+  const pathMatch = environment.location.pathname.match(/^\/auth\/handoff\/([^/]+)(\/apps(?:\/[^/]+)?)$/);
+  const pathCode = pathMatch?.[1] ? decodeURIComponent(pathMatch[1]).trim() : null;
+  const code = searchParams.get(OWNER_CONTEXT_PARAM)?.trim()
+    ?? hashParams.get(OWNER_CONTEXT_PARAM)?.trim()
+    ?? pathCode;
   if (!code) return null;
 
-  params.delete(OWNER_CONTEXT_PARAM);
-  const nextSearch = params.toString();
-  const nextUrl = `${environment.location.pathname}${nextSearch ? `?${nextSearch}` : ''}${environment.location.hash}`;
+  searchParams.delete(OWNER_CONTEXT_PARAM);
+  hashParams.delete(OWNER_CONTEXT_PARAM);
+  const nextSearch = searchParams.toString();
+  const nextHash = hasHashContext
+    ? hashParams.toString()
+    : environment.location.hash.replace(/^#/, '');
+  const nextPathname = pathMatch?.[2] ? `/auth${pathMatch[2]}` : environment.location.pathname;
+  const nextUrl = `${nextPathname}${nextSearch ? `?${nextSearch}` : ''}${nextHash ? `#${nextHash}` : ''}`;
   environment.history.replaceState(null, '', nextUrl);
   return code;
 }

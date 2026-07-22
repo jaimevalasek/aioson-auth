@@ -1,8 +1,9 @@
 // S1B.5 da feature aioson-play-identity (ADR-07).
 //
 // Revogação imediata de JWTs. Quando dono remove um operador, marcamos o
-// user_id na tabela `TokenRevocation` por TTL=7d (= access TTL). Middleware
-// de validação consulta aqui ANTES de aceitar JWT — token na lista → 401.
+// user_id+binding_id na tabela `TokenRevocation` pelo TTL do access token.
+// A entry funciona como corte temporal: só tokens emitidos até `revoked_at`
+// são rejeitados; um login posterior permanece válido.
 //
 // `revokeUserTokens` é idempotente (UPSERT por user_id+binding_id; renova
 // expires_at se já existia).
@@ -12,7 +13,7 @@
 
 import { prisma } from '../lib/prisma.js';
 
-const ACCESS_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 dias
+const ACCESS_TTL_MS = 15 * 60 * 1000; // 15 minutos
 
 /**
  * Revoga todos os JWTs ativos de um user num binding específico.
@@ -41,14 +42,22 @@ export async function revokeUserTokens(userId: string, bindingId: string): Promi
 }
 
 /**
- * Retorna true se há revogação ativa pra este user_id (em qualquer binding).
- * Cobre o caso comum: middleware valida JWT e checa revocation independente
- * do binding (revogação remove acesso global do user).
+ * Retorna true quando existe um corte ativo no mesmo binding criado depois da
+ * emissão do token. Tokens novos não herdam revogações antigas.
  */
-export async function isUserRevoked(userId: string): Promise<boolean> {
+export async function isUserRevoked(
+  userId: string,
+  bindingId: string | undefined,
+  issuedAtMs: number,
+): Promise<boolean> {
   const now = new Date();
   const count = await prisma.tokenRevocation.count({
-    where: { user_id: userId, expires_at: { gt: now } },
+    where: {
+      user_id: userId,
+      ...(bindingId ? { binding_id: bindingId } : {}),
+      revoked_at: { gte: new Date(issuedAtMs) },
+      expires_at: { gt: now },
+    },
   });
   return count > 0;
 }

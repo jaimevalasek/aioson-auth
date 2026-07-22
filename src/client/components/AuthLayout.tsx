@@ -32,27 +32,30 @@ export default function AuthLayout({ children, title, subtitle, onBack }: AuthLa
   return (
     <div className="auth-shell" data-theme={theme} data-mode="work">
       <header className="ao-appbar">
-        <Link className="ao-appbar__brand" to="/auth/dashboard" aria-label="AIOSON Auth">
+        <Link className="ao-appbar__brand" to="/auth/apps" aria-label="AIOSON Auth">
           <span className="ao-appbar__brand-logo">A</span>
           <span>AIOSON Auth</span>
         </Link>
 
         <nav className="ao-appbar__nav" aria-label="Navegação principal">
           <NavLink
-            to="/auth/dashboard"
+            to="/auth/apps"
             className={({ isActive }) => `ao-appbar__link${isActive ? ' ao-appbar__link--active' : ''}`}
           >
-            Dashboard
+            Apps
           </NavLink>
           <NavLink
-            to="/auth/users"
+            to="/auth/people"
             className={({ isActive }) => `ao-appbar__link${isActive ? ' ao-appbar__link--active' : ''}`}
           >
-            Operadores
+            Pessoas
           </NavLink>
-          <Link className="ao-appbar__link" to="/auth/dashboard#access-control">
-            Acesso
-          </Link>
+          <NavLink
+            to="/auth/advanced"
+            className={({ isActive }) => `ao-appbar__link${isActive ? ' ao-appbar__link--active' : ''}`}
+          >
+            Avançado
+          </NavLink>
         </nav>
 
         <div className="ao-appbar__spacer" />

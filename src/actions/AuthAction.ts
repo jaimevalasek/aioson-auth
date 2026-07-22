@@ -19,20 +19,33 @@ export interface LoginOutput {
 }
 
 /**
- * Agrega permissions do user para um binding. Não-fatal: se RBAC está
- * desabilitado no binding (ou binding inválido), retorna `[]` em vez de
- * propagar erro — assim o login básico continua funcionando mesmo em
- * bindings sem RBAC habilitado.
+ * Agrega as permissões do perfil app-scoped. A decisão de acesso nunca é
+ * não-fatal: uma pessoa sem associação ativa não recebe sessão para o app.
  */
 async function safeGetPermissionsForBinding(
   userId: string,
   bindingId: string
 ): Promise<string[]> {
   try {
-    const { getUserPermissionsForBinding } = await import('./RbacAction.js');
-    return await getUserPermissionsForBinding(userId, bindingId);
+    const { getAppPermissions } = await import('./AppAccessAction.js');
+    return await getAppPermissions(userId, bindingId);
   } catch {
     return [];
+  }
+}
+
+async function hasBindingAccess(
+  userId: string,
+  bindingId: string,
+  client: typeof prisma | import('@prisma/client').Prisma.TransactionClient = prisma,
+): Promise<boolean> {
+  const { requireActiveAppAccess } = await import('./AppAccessAction.js');
+  try {
+    await requireActiveAppAccess(userId, bindingId, client);
+    return true;
+  } catch (error) {
+    if (error instanceof AuthError && error.code === 'binding_not_found') throw error;
+    return false;
   }
 }
 
@@ -67,6 +80,9 @@ export async function login(
 
   const valid = await bcrypt.compare(password, user.password_hash);
   if (!valid) throw new AuthError('invalid_credentials');
+  if (!(await hasBindingAccess(user.id, bindingId))) {
+    throw new AuthError('invalid_credentials');
+  }
 
   return createSession(user.id, user.email, bindingId);
 }
@@ -83,6 +99,9 @@ export async function oauthLogin(
     user = await prisma.globalUser.create({
       data: { id: uuidv4(), email, password_hash: null, name: name ?? '' },
     });
+  }
+  if (!(await hasBindingAccess(user.id, requireBindingId(bindingId)))) {
+    throw new AuthError('invalid_credentials');
   }
   return createSession(user.id, user.email, requireBindingId(bindingId));
 }
@@ -101,7 +120,12 @@ async function createSession(
   // Ver auth-integration-gaps.md (Slice A) no aioson-play.
   const permissions = await safeGetPermissionsForBinding(userId, bindingId);
 
-  const jwtPayload: Record<string, unknown> = { sub: userId, email, binding_id: bindingId };
+  const jwtPayload: Record<string, unknown> = {
+    sub: userId,
+    email,
+    binding_id: bindingId,
+    issued_at_ms: Date.now(),
+  };
   if (permissions.length > 0) jwtPayload['permissions'] = permissions;
 
   const accessToken = jwt.sign(jwtPayload, JWT_SECRET, {
@@ -149,7 +173,7 @@ export async function validateRefreshToken(
   bindingId: string
 ): Promise<LoginOutput> {
   const requiredBindingId = requireBindingId(bindingId);
-  return prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     const session = await tx.authSession.findFirst({ where: { token: refreshToken } });
     if (!session) throw new AuthError('refresh_invalid');
 
@@ -170,6 +194,11 @@ export async function validateRefreshToken(
       throw new AuthError('refresh_invalid');
     }
 
+    if (!(await hasBindingAccess(user.id, requiredBindingId, tx))) {
+      await tx.authSession.delete({ where: { id: session.id } });
+      return null;
+    }
+
     // Delete + create happen in the same transaction so a refresh token can
     // produce at most one successor session under concurrent requests.
     try {
@@ -179,6 +208,8 @@ export async function validateRefreshToken(
     }
     return createSession(user.id, user.email, requiredBindingId, tx);
   });
+  if (!result) throw new AuthError('refresh_invalid');
+  return result;
 }
 
 export async function getRefreshSessionUser(refreshToken: string): Promise<LoginOutput['user']> {
@@ -201,12 +232,16 @@ export interface TokenPayload {
   binding_id?: string;
   /** Permissions agregadas no login/refresh para o binding acima (Slice A). */
   permissions?: string[];
+  /** Timestamp de emissão com precisão de milissegundos para o corte de revogação. */
+  issued_at_ms?: number;
+  /** Claim JWT padrão, mantida como fallback para tokens emitidos antes de issued_at_ms. */
+  iat?: number;
 }
 
 /**
  * Valida o JWT + checa lista de revogação imediata (ADR-07). Quando o user
- * tem entry ativa em `TokenRevocation`, mesmo um JWT ainda dentro do TTL
- * é rejeitado.
+ * tem um corte ativo no mesmo binding posterior à emissão, o JWT é rejeitado.
+ * Logins posteriores ao corte permanecem válidos.
  *
  * Async porque a checagem de revocation toca o DB. Todos os callers já
  * estão em contexto async (route handlers).
@@ -221,7 +256,12 @@ export async function verifyAccessToken(token: string): Promise<TokenPayload> {
   }
   // Lazy import pra evitar circular dep (TokenRevocationAction usa prisma).
   const { isUserRevoked } = await import('./TokenRevocationAction.js');
-  if (await isUserRevoked(payload.sub)) {
+  const issuedAtMs = typeof payload.issued_at_ms === 'number'
+    ? payload.issued_at_ms
+    : typeof payload.iat === 'number'
+      ? payload.iat * 1000
+      : 0;
+  if (await isUserRevoked(payload.sub, payload.binding_id, issuedAtMs)) {
     throw new AuthError('revoked_token');
   }
   const result: TokenPayload = { sub: payload.sub, email: payload.email };
